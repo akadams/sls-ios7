@@ -1,0 +1,273 @@
+//
+//  ConsumerListDataViewController.m
+//  SLS
+//
+//  Created by Andrew K. Adams on 12/5/13.
+//  Copyright (c) 2013 Andrew K. Adams. All rights reserved.
+//
+
+#import "ConsumerListDataViewController.h"
+#import "PersonalDataController.h"
+#import "NSData+Base64.h"
+
+
+static const int kDebugLevel = 4;
+
+static const char* kAlertButtonCancelMessage = "No, cancel operation!";
+static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consumer.";
+
+
+@interface ConsumerListDataViewController ()
+@end
+
+@implementation ConsumerListDataViewController
+
+#pragma mark - Inherited data
+@synthesize consumer = _consumer;
+
+#pragma mark - Local variables
+@synthesize precision_changed = _precision_changed;
+@synthesize send_file_store = _send_file_store;  // XXX I think this is deprecated
+@synthesize delete_principal = _delete_principal;
+
+#pragma mark - Outlets
+@synthesize identity_label = _identity_label;
+@synthesize token_label = _token_label;
+@synthesize deposit_label = _deposit_label;
+@synthesize pub_key_label = _pub_key_label;
+@synthesize precision_slider = _precision_slider;
+@synthesize precision_label = _precision_label;
+@synthesize send_file_store_button = _send_file_store_button;
+
+- (id) init {
+    if (kDebugLevel > 2)
+        NSLog(@"ConsumerListDataViewController:init: called.");
+    
+    if (self = [super init]) {
+        _consumer = nil;
+        _precision_changed = false;
+        _send_file_store = false;
+        _delete_principal = false;
+    }
+    
+    return self;
+}
+
+- (id) initWithNibName:(NSString*)nib_name_or_nil bundle:(NSBundle*)nib_bundle_or_nil {
+    if (kDebugLevel > 2)
+        NSLog(@"ConsumerListDataViewController:initWithNibName:bundle: called.");
+    
+    self = [super initWithNibName:nib_name_or_nil bundle:nib_bundle_or_nil];
+    if (self) {
+        // Custom initialization
+        _consumer = nil;
+        _precision_changed = false;
+        _send_file_store = false;
+        _delete_principal = false;
+    }
+    
+    return self;
+}
+
+- (id) initWithStyle:(UITableViewStyle)style {
+    if (kDebugLevel > 2)
+        NSLog(@"ConsumerListDataViewController:initWithStyle: called.");
+    
+    self = [super initWithStyle:style];
+    if (self) {
+        // Custom initialization
+        _consumer = nil;
+        _precision_changed = false;
+        _send_file_store = false;
+        _delete_principal = false;
+    }
+    return self;
+}
+
+#pragma mark - View management
+
+- (void) viewDidLoad {
+    if (kDebugLevel > 2)
+        NSLog(@"ConsumerListDataViewController:viewDidLoad: called.");
+    
+    [super viewDidLoad];
+    
+	// Do any additional setup after loading the view.
+    NSLog(@"ConsumerListDataViewController:viewDidLoad: TODO(aka) We need to add a \"Update Consumer as a Provider\" button!");
+    
+    [self configureView];
+}
+
+- (void) configureView {
+    if (kDebugLevel > 2)
+        NSLog(@"ConsumerListDataViewController:configureView: called.");
+    
+    _identity_label.text = _consumer.identity;
+    _token_label.text = _consumer.identity_hash;
+    _deposit_label.text = [PersonalDataController absoluteStringDeposit:_consumer.deposit];
+    _pub_key_label.text = [PersonalDataController hashAsymmetricKey:[_consumer getPublicKey]];
+    
+    // Setup the slider value.
+    _precision_slider.value = [_consumer.precision floatValue];
+    [_precision_label setText:[NSString stringWithFormat:@"%d", (int)_precision_slider.value]];
+    
+    if (_consumer.file_store_sent) {
+        [_send_file_store_button setAlpha:0.5];
+    } else {
+        [_send_file_store_button setAlpha:1.0];
+    }
+}
+
+#pragma mark - Memory management
+
+- (void) didReceiveMemoryWarning {
+    if (kDebugLevel > 2)
+        NSLog(@"ConsumerListDataViewController:didReceiveMemoryWarning: called.");
+    
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+#pragma mark - Data source routines
+
+// UITableView
+/*  Using static prototype, so use the super methods ...
+- (NSInteger) numberOfSectionsInTableView:(UITableView *)tableView {
+    // Return the number of sections.
+    return 0;  // using dynamic prototype
+}
+
+- (NSInteger) tableView:(UITableView*)tableView numberOfRowsInSection:(NSInteger)section {
+    // Return the number of rows in the section.
+    return 0;
+}
+
+- (UITableViewCell*) tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    static NSString *CellIdentifier = @"Cell";
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier forIndexPath:indexPath];
+    
+    // Configure the cell...
+    
+    return cell;
+}
+*/
+
+/*
+// Override to support conditional editing of the table view.
+- (BOOL) tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath {
+    // Return NO if you do not want the specified item to be editable.
+    return YES;
+}
+*/
+
+/*
+// Override to support editing the table view.
+- (void) tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath {
+    if (editingStyle == UITableViewCellEditingStyleDelete) {
+        // Delete the row from the data source
+        [tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationFade];
+    }   
+    else if (editingStyle == UITableViewCellEditingStyleInsert) {
+        // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
+    }   
+}
+*/
+
+/*
+// Override to support rearranging the table view.
+- (void) tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)fromIndexPath toIndexPath:(NSIndexPath *)toIndexPath {
+}
+*/
+
+/*
+// Override to support conditional rearranging of the table view.
+- (BOOL) tableView:(UITableView *)tableView canMoveRowAtIndexPath:(NSIndexPath *)indexPath {
+    // Return NO if you do not want the item to be re-orderable.
+    return YES;
+}
+*/
+
+#pragma mark - Navigation
+
+- (void) prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+    if (kDebugLevel > 2)
+        NSLog(@"ConsumerListDataViewController:prepareForSeque: called.");
+    
+    if ([[segue identifier] isEqualToString:@"UnwindToProviderMasterViewID"]) {
+        if (kDebugLevel > 2)
+            NSLog(@"ConsumerListDataViewController:prepareForSeque: unwinding to ProviderMasterViewController.");
+        
+        if (sender != self.done_button) {
+            // User hit CANCEL.
+            if (kDebugLevel > 0)
+                NSLog(@"ConsumerListDataViewController:prepareForSeque: User hit CANCEL (delete_principal: %d).", _delete_principal);
+            
+            // Unset any state flags, if they were set.
+            _delete_principal = false;
+            _precision_changed = false;
+        } else {
+            // User hit DONE.
+            if (kDebugLevel > 0)
+                NSLog(@"ConsumerListDataViewController:prepareForSeque: User hit DONE.");
+            // Nothing to do ...
+        }
+    } else {
+        NSLog(@"ConsumerListDataViewController:prepareForSeque: TODO(aka) unknown segue: %s.", [[segue identifier] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    }
+}
+
+#pragma mark - Actions
+
+- (IBAction) precisionValueChanged:(id)sender {
+    if (kDebugLevel > 2)
+        NSLog(@"ConsumerListDataViewController:precisionValueChanged: called.");
+    
+    UISlider* slider = (UISlider*)sender;
+    _consumer.precision = [NSNumber numberWithFloat:slider.value];
+    _precision_changed = true;
+    
+    [self configureView];
+}
+
+- (IBAction) sendFileStore:(id)sender {
+    if (kDebugLevel > 2)
+        NSLog(@"ConsumerListDataViewController:sendFileStore: called.");
+    
+    NSString* err_msg = [_consumer sendFileStore];
+    if (err_msg != nil) {
+        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ConsumerListDataViewController:sendFileStore:" message:err_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+        [alert show];
+    }
+
+    [self configureView];
+}
+
+- (IBAction) deletePrincipal:(id)sender {
+    if (kDebugLevel > 2)
+        NSLog(@"ConsumerListDataViewController:deletePrincipal: called.");
+    
+    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Consumer Removal" message:@"Are you sure you want to delete this consumer?" delegate:self cancelButtonTitle:[NSString stringWithCString:kAlertButtonCancelMessage encoding:[NSString defaultCStringEncoding]] otherButtonTitles:[NSString stringWithCString:kAlertButtonDeleteConsumerMessage encoding:[NSString defaultCStringEncoding]], nil];
+    [alert show];
+}
+
+#pragma mark - Delegate functions
+
+// UIAlertView
+- (void)alertView:(UIAlertView*)alert_view clickedButtonAtIndex:(NSInteger)button_index {
+    if (kDebugLevel > 2)
+        NSLog(@"ConsumerDataViewController:alertView:clickedButtonAtIndex: called.");
+    
+ 	NSString* title = [alert_view buttonTitleAtIndex:button_index];
+	if([title isEqualToString:[NSString stringWithCString:kAlertButtonDeleteConsumerMessage encoding:[NSString defaultCStringEncoding]]]) {
+        if (kDebugLevel > 0)
+            NSLog(@"ConsumerDataViewController:alertView:clickedButtonAtIndex: matched GenKeysMessage.");
+        _delete_principal = true;
+	} else if([title isEqualToString:[NSString stringWithCString:kAlertButtonCancelMessage encoding:[NSString defaultCStringEncoding]]]) {
+        if (kDebugLevel > 0)
+            NSLog(@"ConsumerDataViewController:alertView:clickedButtonAtIndex: matched CancelMessage.");
+	} else {
+        NSLog(@"ConsumerDataViewController:alertView:clickedButtonAtIndex: TODO(aka) unknown title: %s", [title cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+	}
+}
+
+@end
