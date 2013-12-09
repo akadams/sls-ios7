@@ -45,6 +45,9 @@ static const int kDebugLevel = 3;
     UITabBarController* tabController = (UITabBarController*)self.window.rootViewController;
     
     // Check each viewController, initializing our data controllers within the view controllers as we walk through them ...
+    ProviderMasterViewController* provider_master = nil;
+    ConsumerMasterViewController* consumer_master = nil;
+    BOOL provider_delegate_set = false;
     
     int i = 0;
     for (id tabItem in tabController.viewControllers) {
@@ -55,7 +58,8 @@ static const int kDebugLevel = 3;
             if (kDebugLevel > 3)
                 NSLog(@"Found ConsumerMasterViewController Class at index %d!", i);
         } else if ([tabItem isMemberOfClass:[UINavigationController class]]) {
-            //NSLog(@"UINavigationController Class at index %d!", i);
+            if (kDebugLevel > 3)
+                NSLog(@"UINavigationController Class at index %d!", i);
             
             // Look inside the NavigationController's viewControllers.
             UINavigationController* navController = (UINavigationController*)tabItem;
@@ -66,8 +70,16 @@ static const int kDebugLevel = 3;
                         NSLog(@"Found ProviderMasterViewController Class at index %d:%d!", i, k);
                     
                     // Setup the data members within the Provider's master controller.
-                    ProviderMasterViewController* master_controller = (ProviderMasterViewController*)navItem;
-                    [master_controller loadState];
+                    provider_master = (ProviderMasterViewController*)navItem;
+                    
+                    // If we have the consumer_master, set our delegate to that.
+                    if (consumer_master != nil) {
+                        [provider_master setDelegate:consumer_master];
+                        provider_delegate_set = true;
+                    }
+                    
+                    // Load any saved state.
+                    [provider_master loadState];
                     
                     // For debugging: See whose phone this is, and load in temporary keys if necessary.
                     NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: DEBUG: Provider loading static information based on device name!");
@@ -130,13 +142,13 @@ static const int kDebugLevel = 3;
                         
                         // XXX No longer necessary, as it's the file-store URL that's sent via SMS.
                         
-                        if ([master_controller.symmetric_keys_controller count] > 0) {
+                        if ([provider_master.symmetric_keys_controller count] > 0) {
                             
-                            NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: symmetric keys: %lu.", (unsigned long)master_controller.symmetric_keys_controller.count);
+                            NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: symmetric keys: %lu.", (unsigned long)provider_master.symmetric_keys_controller.count);
                             
-                            NSData* sym_key = [master_controller.symmetric_keys_controller objectForKey:[NSNumber numberWithInt:SKC_PRECISION_HIGH]];
+                            NSData* sym_key = [provider_master.symmetric_keys_controller objectForKey:[NSNumber numberWithInt:SKC_PRECISION_HIGH]];
                             NSString* sym_key_b64 = [sym_key base64EncodedString];
-                            NSString* err_msg = [master_controller.our_data amazonS3Upload:sym_key_b64 bucketName:@"aka-tmp-sls-iphone-simulator" filename:@"symmetric-key.b64"];
+                            NSString* err_msg = [provider_master.our_data amazonS3Upload:sym_key_b64 bucketName:@"aka-tmp-sls-iphone-simulator" filename:@"symmetric-key.b64"];
                             if (err_msg != nil) {
                                 UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"SLSAppDelegate:didFinishLaunchingWithOptions:" message:err_msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
                                 [alert show];
@@ -155,12 +167,12 @@ static const int kDebugLevel = 3;
                             
                             // Note, we don't need to set the public key now, as we'll get it from the key chain when we need.
                             
-                            if (![master_controller.consumer_list_controller containsObject:tmp_consumer]) {
+                            if (![provider_master.consumer_list_controller containsObject:tmp_consumer]) {
                                 // We don't have ourselves, yet, so add it (i.e., we didn't load it in via state).
                                 
                                 NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: DEBUG: Adding bogus Consumer: %s.", [[tmp_consumer absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
                                 
-                                NSString* error_msg = [master_controller.consumer_list_controller addConsumer:tmp_consumer];
+                                NSString* error_msg = [provider_master.consumer_list_controller addConsumer:tmp_consumer];
                                 if (error_msg != nil)
                                     NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: DEBUG: Adding bogus Consumer failed: %s.", [error_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
                             }
@@ -175,10 +187,10 @@ static const int kDebugLevel = 3;
                             
                             // XXX Not needed, file-store is sent via SMS!
                             
-                            if (master_controller.symmetric_keys_controller != nil && [master_controller.symmetric_keys_controller count] > 0) {
-                                NSData* sym_key = [master_controller.symmetric_keys_controller objectForKey:[NSNumber numberWithInt:SKC_PRECISION_HIGH]];
+                            if (provider_master.symmetric_keys_controller != nil && [provider_master.symmetric_keys_controller count] > 0) {
+                                NSData* sym_key = [provider_master.symmetric_keys_controller objectForKey:[NSNumber numberWithInt:SKC_PRECISION_HIGH]];
                                 NSString* sym_key_b64 = [sym_key base64EncodedString];
-                                NSString* err_msg = [master_controller.our_data amazonS3Upload:sym_key_b64 bucketName:@"aka-tmp-sls-mistwraith" filename:@"symmetric-key.b64"];
+                                NSString* err_msg = [provider_master.our_data amazonS3Upload:sym_key_b64 bucketName:@"aka-tmp-sls-mistwraith" filename:@"symmetric-key.b64"];
                                 if (err_msg != nil) {
                                     UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"SLSAppDelegate:didFinishLaunchingWithOptions:" message:err_msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
                                     [alert show];
@@ -190,7 +202,7 @@ static const int kDebugLevel = 3;
                         {
                             // Send a copy of our public key to storage, so the consumer on the simulator can get it (as the simulator can not scan the encoded key!).
                             
-                            if (master_controller.our_data != nil && master_controller.our_data.identity != nil && [master_controller.our_data.identity length] > 0) {
+                            if (provider_master.our_data != nil && provider_master.our_data.identity != nil && [provider_master.our_data.identity length] > 0) {
                                 // Setup application tag for key-chain query and attempt to get a key.
                                 NSString* public_key_identity = [NSString stringWithFormat:@"Andrew K. Adams.publickey"];
                                 NSData* application_tag = [public_key_identity dataUsingEncoding:[NSString defaultCStringEncoding]];
@@ -199,7 +211,7 @@ static const int kDebugLevel = 3;
                                 if (error_msg != nil)
                                     NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: queryKeyData() failed: %s.", [error_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
                                 NSString* public_key_b64 = [public_key base64EncodedString];
-                                error_msg = [master_controller.our_data amazonS3Upload:public_key_b64 bucketName:@"aka-tmp-sls-mistwraith" filename:@"public-key.b64"];
+                                error_msg = [provider_master.our_data amazonS3Upload:public_key_b64 bucketName:@"aka-tmp-sls-mistwraith" filename:@"public-key.b64"];
                                 if (error_msg != nil) {
                                     UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"SLSAppDelegate:didFinishLaunchingWithOptions:" message:error_msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
                                     [alert show];
@@ -238,15 +250,15 @@ static const int kDebugLevel = 3;
                     }
                     
                     if (kDebugLevel > 0)
-                        NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Provider VC using identity of %s, file store service of %s.", [master_controller.our_data.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [[PersonalDataController absoluteStringFileStore:master_controller.our_data.file_store] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+                        NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Provider VC using identity of %s, file store service of %s, delegate: %@.", [provider_master.our_data.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [[PersonalDataController absoluteStringFileStore:provider_master.our_data.file_store] cStringUsingEncoding:[NSString defaultCStringEncoding]], provider_master.delegate);
                     
                 } else if ([navItem isMemberOfClass:[ConsumerMasterViewController class]]) {
                     if (kDebugLevel > 3)
                         NSLog(@"Found ConsumerMasterViewController Class at index %d:%d!", i, k);
                     
                     // Setup the data members within the Consumer's master controller.
-                    ConsumerMasterViewController* master_controller = (ConsumerMasterViewController*)navItem;
-                    [master_controller loadState];
+                    consumer_master = (ConsumerMasterViewController*)navItem;
+                    [consumer_master loadState];
                     
                     // For debugging: See whose phone this is, and load in temporary keys.
                     if (kDebugLevel > 3)
@@ -283,11 +295,11 @@ static const int kDebugLevel = 3;
                                 NSURL* file_store = [[NSURL alloc] initWithString:file_store_str];
                                 [tmp_provider setFile_store:file_store];
                                 
-                                if (![master_controller.provider_list_controller containsObject:tmp_provider]) {
+                                if (![consumer_master.provider_list_controller containsObject:tmp_provider]) {
                                     NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Bogus Provider not set, so adding ourselves!");
                                     
                                     // We don't have our bogus provider, so add it.
-                                    NSString* error_msg = [master_controller.provider_list_controller addProvider:tmp_provider];
+                                    NSString* error_msg = [consumer_master.provider_list_controller addProvider:tmp_provider];
                                     if (error_msg != nil) {
                                         UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"SLSAppDelegate:didFinishLaunchingWithOptions: addProvider()" message:error_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
                                         [alert show];
@@ -319,11 +331,11 @@ static const int kDebugLevel = 3;
                                 
                                 // No need to set the public key, as we'll get it from the key-chain when we need it.
                                 
-                                if (![master_controller.provider_list_controller containsObject:tmp_provider]) {
+                                if (![consumer_master.provider_list_controller containsObject:tmp_provider]) {
                                     NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: XXX Bogus Provider not set, so adding ourselves!");
                                     
                                     // We don't have our bogus provider, so add it.
-                                    NSString* error_msg = [master_controller.provider_list_controller addProvider:tmp_provider];
+                                    NSString* error_msg = [consumer_master.provider_list_controller addProvider:tmp_provider];
                                     if (error_msg != nil) {
                                         UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"SLSAppDelegate:didFinishLaunchingWithOptions: addProvider()" message:error_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
                                         [alert show];
@@ -361,11 +373,11 @@ static const int kDebugLevel = 3;
                                 NSURL* file_store = [[NSURL alloc] initWithString:file_store_str];
                                 [tmp_provider setFile_store:file_store];
                                 
-                                if (![master_controller.provider_list_controller containsObject:tmp_provider]) {
+                                if (![consumer_master.provider_list_controller containsObject:tmp_provider]) {
                                     NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: XXX Bogus Provider not set, so adding ourselves!");
                                     
                                     // We don't have our bogus provider, so add it.
-                                    NSString* error_msg = [master_controller.provider_list_controller addProvider:tmp_provider];
+                                    NSString* error_msg = [consumer_master.provider_list_controller addProvider:tmp_provider];
                                     if (error_msg != nil) {
                                         UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"SLSAppDelegate:didFinishLaunchingWithOptions: addProvider()" message:error_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
                                         [alert show];
@@ -381,7 +393,7 @@ static const int kDebugLevel = 3;
                     }
                     
                     if (kDebugLevel > 0)
-                        NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Consumer View controller using identity of %s, deposit of %s, public key hash: %s.", [master_controller.our_data.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [[PersonalDataController absoluteStringDeposit:master_controller.our_data.deposit] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[PersonalDataController hashAsymmetricKey:[master_controller.our_data getPublicKey]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+                        NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Consumer View controller using identity of %s, deposit of %s, public key hash: %s.", [consumer_master.our_data.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [[PersonalDataController absoluteStringDeposit:consumer_master.our_data.deposit] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[PersonalDataController hashAsymmetricKey:[consumer_master.our_data getPublicKey]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
                   } else {
                     NSLog(@"Unknown viewController Class at index %d:%d!", i, k);
                 }
@@ -393,6 +405,15 @@ static const int kDebugLevel = 3;
         }
         
         i++;
+    }
+    
+    // Make sure we set the Provider's delegate.
+    if (!provider_delegate_set) {
+        [provider_master setDelegate:consumer_master];
+        provider_delegate_set = true;
+        
+        if (kDebugLevel > 0)
+            NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Provider VC using identity of %s, file store service of %s, delegate: %@.", [provider_master.our_data.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [[PersonalDataController absoluteStringFileStore:provider_master.our_data.file_store] cStringUsingEncoding:[NSString defaultCStringEncoding]], provider_master.delegate);
     }
     
     [tabController setSelectedIndex:1];  // set default view to Consumer mode

@@ -21,7 +21,7 @@
 
 #pragma mark - Variables returned via callback
 @property (nonatomic) BOOL precision_changed;
-@property (nonatomic) BOOL send_file_store;
+@property (nonatomic) BOOL track_consumer;
 @property (nonatomic) BOOL delete_principal;
 
 #pragma mark - Outlets
@@ -33,6 +33,8 @@
 @property (weak, nonatomic) IBOutlet UISlider* precision_slider;
 @property (weak, nonatomic) IBOutlet UILabel* precision_label;
 @property (weak, nonatomic) IBOutlet UIButton* send_file_store_button;
+@property (weak, nonatomic) IBOutlet UIButton* track_consumer_button;
+@property (weak, nonatomic) IBOutlet UIButton* delete_button;
 
 #pragma mark - Initialiation
 
@@ -44,6 +46,7 @@
 
 - (IBAction) precisionValueChanged:(id)sender;
 - (IBAction) sendFileStore:(id)sender;
+- (IBAction) makeConsumerAProvider:(id)sender;
 - (IBAction) deletePrincipal:(id)sender;
 
 @end

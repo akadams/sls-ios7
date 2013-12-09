@@ -34,7 +34,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 #pragma mark - Local variables
 @synthesize provider = _provider;
-@synthesize picked_protocol = _picked_protocol;
+@synthesize chosen_protocol = _chosen_protocol;
 @synthesize identity_label = _identity_label;
 
 #pragma mark - Initialization
@@ -46,7 +46,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
     if (self = [super init]) {
         _our_data = nil;
         _provider = nil;
-        _picked_protocol = 0;
+        _chosen_protocol = 0;
         _identity_label = nil;
     }
     
@@ -62,7 +62,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
         // Custom initialization
         _our_data = nil;
         _provider = [[Principal alloc] init];
-        _picked_protocol = 0;
+        _chosen_protocol = 0;
         _identity_label = nil;
     }
     
@@ -215,11 +215,11 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 - (IBAction)startPairing:(id)sender {
     if (kDebugLevel > 2)
-        NSLog(@"AddProviderViewController:startPairing: called, picked_protocol: %ld.", (long)_picked_protocol);
+        NSLog(@"AddProviderViewController:startPairing: called, chosen_protocol: %ld.", (long)_chosen_protocol);
 
-    if (_picked_protocol == 0)
+    if (_chosen_protocol == 0)
         [self performSegueWithIdentifier:@"ShowAddProviderCTViewID" sender:nil];
-    else if (_picked_protocol == 1)
+    else if (_chosen_protocol == 1)
         [self performSegueWithIdentifier:@"ShowAddProviderHCCViewID" sender:nil];
 }
 
@@ -339,9 +339,9 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
     // Mark which pairing protocol was selected.
     if (row > [[AddProviderViewController supportedPairingProtocols] count])
-        _picked_protocol = 0;
+        _chosen_protocol = 0;
     else
-        _picked_protocol = row;
+        _chosen_protocol = row;
 }
 
 @end

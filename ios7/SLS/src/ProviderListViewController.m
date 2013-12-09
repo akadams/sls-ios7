@@ -8,6 +8,7 @@
 
 #import "ProviderListViewController.h"
 #import "Principal.h"
+#import "PersonalDataController.h"
 #import "NSData+Base64.h"
 
 
@@ -31,7 +32,7 @@ static const char* kAlertButtonDeleteProviderMessage = "Yes, delete this provide
 #pragma mark - Outlets
 @synthesize done_button = _done_button;
 @synthesize picker_view = _picker_view;
-@synthesize identity_label = _identity_label;
+@synthesize identity_hash_label = _identity_hash_label;
 @synthesize file_store_label = _file_store_label;
 @synthesize pub_key_label = _pub_key_label;
 @synthesize symmetric_key_label = _symmetric_key_label;
@@ -86,7 +87,7 @@ static const char* kAlertButtonDeleteProviderMessage = "Yes, delete this provide
         NSLog(@"ProviderListViewController:configureView: called.");
     
     if (_provider_list == nil || [_provider_list countOfList] == 0) {
-        _identity_label.text = @"";
+        _identity_hash_label.text = @"";
         _pub_key_label.text = @"";
         _symmetric_key_label.text = @"";
         _file_store_label.text = @"";
@@ -101,7 +102,7 @@ static const char* kAlertButtonDeleteProviderMessage = "Yes, delete this provide
 
     // Display the information for the selected provider.
     Principal* provider = [_provider_list objectInListAtIndex:_current_provider];
-    _identity_label.text = provider.identity;
+    _identity_hash_label.text = provider.identity_hash;
     _pub_key_label.text = [[provider getPublicKey] base64EncodedString];
     _symmetric_key_label.text = [provider.key base64EncodedString];
     _file_store_label.text = [provider.file_store absoluteString];
@@ -197,6 +198,7 @@ static const char* kAlertButtonDeleteProviderMessage = "Yes, delete this provide
         provider.is_focus = true;
     
     _provider_list_changed = true;
+    
     [self configureView];
 }
 
@@ -209,6 +211,7 @@ static const char* kAlertButtonDeleteProviderMessage = "Yes, delete this provide
     provider.frequency = [NSNumber numberWithFloat:slider.value];
     
     _provider_list_changed = true;
+    
     [self configureView];
 }
 
@@ -257,6 +260,7 @@ static const char* kAlertButtonDeleteProviderMessage = "Yes, delete this provide
         } else {
             _current_provider = (_current_provider > 0) ? _current_provider-- : 0;
         }
+        [[self picker_view] reloadAllComponents];
 	} else if([title isEqualToString:[NSString stringWithCString:kAlertButtonCancelMessage encoding:[NSString defaultCStringEncoding]]]) {
         if (kDebugLevel > 0)
             NSLog(@"ProviderListViewController:alertView:clickedButtonAtIndex: matched CancelMessage.");

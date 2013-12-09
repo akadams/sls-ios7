@@ -21,7 +21,7 @@
 
 #pragma mark - Local variables
 @property (copy, nonatomic) Principal* provider;
-@property (nonatomic) NSInteger picked_protocol;
+@property (nonatomic) NSInteger chosen_protocol;
 
 #pragma mark - Outlets
 @property (weak, nonatomic) IBOutlet UILabel* identity_label;

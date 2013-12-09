@@ -15,6 +15,8 @@
 #import "NSData+Base64.h"
 #import "security-defines.h"  // XXX TODO(aka) Break up SLS URL processing & security defines!
 
+#import "ConsumerMasterViewController.h"  // XXX Just to debug delegate stuff
+
 static const int kDebugLevel = 1;
 
 static const char* kSchemeSLS = URI_SCHEME_SLS;
@@ -34,13 +36,11 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 @synthesize consumer_list_controller = _consumer_list_controller;
 @synthesize location_controller = _location_controller;
 @synthesize symmetric_keys_controller = _symmetric_keys_controller;
-@synthesize cell = _cell;
 @synthesize delegate = _delegate;
 
 #pragma mark - Outlets
 @synthesize table_view = _table_view;
 
-static int selected_row;
 BOOL location_gathering_on_startup;
 static BOOL _track_self_status = false;
 
@@ -131,9 +131,9 @@ enum {
     _consumer_list_controller = [[ConsumerListController alloc] init];
     [_consumer_list_controller loadState];  // grab previous state
     
-    // Make sure we didn't load any bogus entries (and while we're at it, check for oursevles) ...
+    // Make sure we didn't load any bogus entries ...
     for (int i = 0; i < [_consumer_list_controller countOfList]; ++i) {
-        if (kDebugLevel > 0)
+        if (kDebugLevel > 4)
             NSLog(@"ProviderMasterViewController:loadState: Consumer[%d]: %s.", i,  [[[_consumer_list_controller objectInListAtIndex:i] absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         
         Principal* consumer = [_consumer_list_controller objectInListAtIndex:i];
@@ -146,11 +146,6 @@ enum {
             if (err_msg != nil)
                 NSLog(@"ProviderMasterViewController:loadState: %@.", err_msg);
             continue;
-        }
-        
-        if ([consumer.identity caseInsensitiveCompare:_our_data.identity] == NSOrderedSame) {
-            NSLog(@"ProviderMasterViewController:loadState: Found ourselves: %@ to %@!", _our_data.identity, [[_consumer_list_controller objectInListAtIndex:i] identity]);
-            _track_self_status = true;
         }
     }
     
@@ -358,6 +353,15 @@ enum {
         view_controller.our_data = _our_data;
         view_controller.location_controller = _location_controller;
         view_controller.symmetric_keys = _symmetric_keys_controller;
+        
+        // See if we are already tracking ourselves ...
+        _track_self_status = false;
+        for (int i = 0; i < [_consumer_list_controller countOfList]; ++i) {
+            Principal* consumer = [_consumer_list_controller objectInListAtIndex:i];
+            if (consumer.identity != nil && [consumer.identity caseInsensitiveCompare:_our_data.identity] == NSOrderedSame) {
+                _track_self_status = true;
+            }
+        }
         view_controller.track_self_status = _track_self_status;
     } else if ([[segue identifier] isEqualToString:@"ShowAddConsumerViewID"]) {
         if (kDebugLevel > 1)
@@ -374,7 +378,8 @@ enum {
         // Set ourselves up as the delegate and pass in *our_data*.
         UINavigationController* nav_controller = (UINavigationController*)segue.destinationViewController;
         ConsumerListDataViewController* view_controller = (ConsumerListDataViewController*)[[nav_controller viewControllers] objectAtIndex:0];
-        view_controller.consumer = [_consumer_list_controller objectInListAtIndex:selected_row];
+        Principal* principal = (Principal*)sender;
+        view_controller.consumer = principal;
     } else {
         if (kDebugLevel > 0)
             NSLog(@"ProviderMasterViewController:prepareForSeque: TODO(aka) unknown segue: %s.", [[segue identifier] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
@@ -431,28 +436,16 @@ enum {
                     NSLog(@"ProviderMasterViewController:unwindToProviderMaster: Adding to our consumer list: %s.", [[tmp_consumer absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
                 
                 [_consumer_list_controller addConsumer:tmp_consumer];
+                [self.tableView reloadData];
             }
             
             // Tell the ConsumerMaster VC to add ourselves to their provider list at high precision!
             NSString* bucket_name = [[NSString alloc] initWithFormat:@"%s3", [_our_data.identity cStringUsingEncoding:[NSString defaultCStringEncoding]]];
-            [[self delegate] addSelfToProviders:_our_data withBucket:bucket_name withKey:[_symmetric_keys_controller objectForKey:[NSNumber numberWithInt:SKC_PRECISION_HIGH]]];
-        }
-    } else if ([sourceViewController isKindOfClass:[AddConsumerCTViewController class]]) {
-        if (kDebugLevel > 2)
-            NSLog(@"ProviderMasterViewController:unwindToProviderMaster: AddConsumerCTViewController callback.");
-        
-        AddConsumerCTViewController* source = [segue sourceViewController];
-        if (source.our_data != nil) {
-            // Add the new consumer to our ProviderListController.
-            if (kDebugLevel > 0)
-                NSLog(@"ProviderMasterViewController:unwindToProviderMaster: adding new consumer: %s, public-key: %s.", [source.consumer.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [[source.consumer.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
             
-            // Add our new consumer (and update our state files).
-            NSString* error_msg = [_consumer_list_controller addConsumer:source.consumer];
-            if (error_msg != nil) {
-                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterViewController:unwindToProviderMaster:" message:error_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-                [alert show];
-            }
+            if (![[self delegate] isKindOfClass:[ConsumerMasterViewController class]])
+                NSLog(@"ProviderMasterViewController:unwindToProviderMaster: ERROR: Delegate not found!");
+
+            [[self delegate] addSelfToProviders:_our_data withBucket:bucket_name withKey:[_symmetric_keys_controller objectForKey:[NSNumber numberWithInt:SKC_PRECISION_HIGH]]];
         }
     } else if ([sourceViewController isKindOfClass:[ConsumerListDataViewController class]]) {
         if (kDebugLevel > 2)
@@ -470,11 +463,52 @@ enum {
                 UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterViewController:unwindToProviderMaster:" message:error_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
                 [alert show];
             }
-        } else if (source.precision_changed) {
-            // Update the consumer in our master list.
-            NSString* err_msg = [_consumer_list_controller addConsumer:source.consumer];
-            if (err_msg != nil) {
-                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterViewController:unwindToProviderMaster:" message:err_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+            
+            [self.tableView reloadData];
+        } else {
+            if (source.precision_changed) {
+                // Update the consumer in our master list.
+                NSString* err_msg = [_consumer_list_controller addConsumer:source.consumer];
+                if (err_msg != nil) {
+                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterViewController:unwindToProviderMaster:" message:err_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                    [alert show];
+                }
+                
+                [self.tableView reloadData];
+            }
+            
+            if (source.track_consumer) {
+                if (kDebugLevel > 2)
+                    NSLog(@"ProviderMasterViewController:unwindToProviderMaster: track consumer requested.");
+                
+                // Send our consumer over to the ConsumerMaster VC to be a Provider.
+                Principal* new_provider = source.consumer;
+                
+                // Note, we don't need to set the public key now, we'll retrieve it from the key chain when we need it (since it's already in under the consumer's identity!).
+                
+                if (kDebugLevel > 0)
+                    NSLog(@"ProviderMasterViewController:unwindToProviderMaster: new provider: %@, %@, %@.", new_provider.identity, new_provider.identity_hash, [PersonalDataController absoluteStringDeposit:new_provider.deposit]);
+                
+                if (![[self delegate] isKindOfClass:[ConsumerMasterViewController class]])
+                    NSLog(@"ProviderMasterViewController:unwindToProviderMaster: ERROR: Delegate not found!");
+
+               [[self delegate] addConsumerToProviders:new_provider];
+            }
+        }
+    } else if ([sourceViewController isKindOfClass:[AddConsumerCTViewController class]]) {
+        if (kDebugLevel > 2)
+            NSLog(@"ProviderMasterViewController:unwindToProviderMaster: AddConsumerCTViewController callback.");
+        
+        AddConsumerCTViewController* source = [segue sourceViewController];
+        if (source.our_data != nil) {
+            // Add the new consumer to our ProviderListController.
+            if (kDebugLevel > 0)
+                NSLog(@"ProviderMasterViewController:unwindToProviderMaster: adding new consumer: %s, public-key: %s.", [source.consumer.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [[source.consumer.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            
+            // Add our new consumer (and update our state files).
+            NSString* error_msg = [_consumer_list_controller addConsumer:source.consumer];
+            if (error_msg != nil) {
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterViewController:unwindToProviderMaster:" message:error_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
                 [alert show];
             }
         }
@@ -708,58 +742,27 @@ enum {
     NSUInteger section = [indexPath section];
     NSUInteger row = [indexPath row];
     
-    NSLog(@"ProviderMasterViewController:didSelectRowAtIndexPath: XXX Configuring row %ld in section %ld.", (long)row, (long)section);
+    if (kDebugLevel > 1)
+        NSLog(@"ProviderMasterViewController:tableView:didSelectRowAtIndexPath: row %ld in section %ld selected.", (long)row, (long)section);
     
+    // Show consumer details.
+    [self performSegueWithIdentifier:@"ShowConsumerListDataViewID" sender:[_consumer_list_controller objectInListAtIndex:row]];
 }
 
 - (void) tableView:(UITableView*)tableView accessoryButtonTappedForRowWithIndexPath:(NSIndexPath*)indexPath {
     if (kDebugLevel > 2)
         NSLog(@"ProvderMasterViewController:tableView:accessoryButtonTappedForRowWithIndexPath: called.");
-    
+
+    // For now, we do the same this as if we touched the row (as opposed to the detail disclosure icon).
     NSUInteger section = [indexPath section];
     NSUInteger row = [indexPath row];
     
-    NSLog(@"ProviderMasterViewController:didSelectRowAtIndexPath: XXX Configuring row %ld in section %ld.", (long)row, (long)section);
-    //[self performSegueWithIdentifier:@"ShowConsumerListDataViewID" sender:[self.tableView cellForRowAtIndexPath:indexPath]];
-}
-
-// ConsumerCell delegate functions.
-- (void) consumerCellSliderValueChanged:(UISlider*)slider {
-    if (kDebugLevel > 2)
-        NSLog(@"ProvderMasterViewController:consumerCellSliderValueChanged: called.");
+    if (kDebugLevel > 1)
+        NSLog(@"ProviderMasterViewController:tableView:accessoryButtonTappedForRowWithIndexPath:: row %ld in section %ld selected.", (long)row, (long)section);
     
-    for (int i = 0; i < [self tableView:_table_view numberOfRowsInSection:0]; ++i) {
-        NSLog(@"ProvderMasterViewController:consumerCellSliderValueChanged: XXX Checking row %d, slider's tag = %ld, value = %f", i, (long)slider.tag, slider.value);
-        
-        if (i == slider.tag) {
-            // Get the Cell's Consumer object and update the precision.
-            Principal* consumer = [_consumer_list_controller objectInListAtIndex:i];
-            consumer.precision = [NSNumber numberWithFloat:slider.value];
-            
-            if (kDebugLevel > 0)
-                NSLog(@"ProvderMasterViewController:consumerCellSliderValueChanged: Changed %s's precision to %d.", [consumer.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [consumer.precision intValue]);
-            
-            break;
-        }
-    }
-}
-
-- (void) consumerCellButtonPressed:(UIButton*)button {
-    if (kDebugLevel > 2)
-        NSLog(@"ProvderMasterViewController:consumerCellButtonPressed: called.");
+    // TODO(aka) Might want to return the cell to prepareForSegue:sender via [[self tableView] cellForRowAtIndexPath:indexPath]; Or     [[self tableView] indexPathForSelectedRow];
     
-    for (int i = 0; i < [self tableView:_table_view numberOfRowsInSection:0]; ++i) {
-        if (kDebugLevel > 0)
-            NSLog(@"ProvderMasterViewController:consumerCellButtonPressed: comparing row %d to button's tag = %ld.", i, (long)button.tag);
-        
-        if (i == button.tag) {
-            // Get the Cell's Consumer object and attempt to call ShowConsumerListDataView.
-            Principal* consumer = [_consumer_list_controller objectInListAtIndex:i];
-            [self performSegueWithIdentifier:@"ShowConsumerListDataViewID" sender:consumer];
-            
-            break;
-        }
-    }
+    [self performSegueWithIdentifier:@"ShowConsumerListDataViewID" sender:[_consumer_list_controller objectInListAtIndex:row]];
 }
 
 // CorelocationController delegate functions.

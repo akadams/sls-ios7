@@ -867,7 +867,7 @@ static const int kInitialDictionarySize = 5;
         }
     }
     
-    if (kDebugLevel > 0)
+    if (kDebugLevel > 2)
         NSLog(@"PersonalDataController:queryKeyRef: SecItemCopyMatching() call successful using tag: %s.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     if (kDebugLevel > 1)

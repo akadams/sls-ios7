@@ -12,7 +12,7 @@
 #import "security-defines.h"
 
 
-static const int kDebugLevel = 4;
+static const int kDebugLevel = 1;
 
 static const char* kStringDelimiter = ":";
 static const char* kPublicKeyExt = KC_QUERY_KEY_PUBLIC_KEY_EXT;

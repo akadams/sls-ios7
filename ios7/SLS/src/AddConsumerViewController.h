@@ -24,6 +24,8 @@
 
 #pragma mark - Outlets
 @property (weak, nonatomic) IBOutlet UILabel* identity_label;
+@property (weak, nonatomic) IBOutlet UIPickerView* paring_picker;
+@property (weak, nonatomic) IBOutlet UIButton* start_pairing_button;
 
 #pragma mark - Initialization
 - (id) init;

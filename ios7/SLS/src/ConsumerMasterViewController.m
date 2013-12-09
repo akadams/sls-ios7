@@ -114,29 +114,6 @@ static const float kFetchDataTimeout = 300.0;
     
 	// Do any additional setup after loading the view, typically from a nib.
 
-    // Add ourselves as the delegate to the ProviderMaster VC; to allow us to get info from them.
-    bool found_pmvc = false;
-    for (id tabItem in self.tabBarController.viewControllers) {
-        if ([tabItem isMemberOfClass:[UINavigationController class]]) {
-            //NSLog(@"UINavigationController Class at index %d!", i);
-            
-            // Look inside the NavigationController's viewControllers.
-            UINavigationController* navController = (UINavigationController*)tabItem;
-            for (id navItem in navController.viewControllers) {
-                if ([navItem isMemberOfClass:[ProviderMasterViewController class]]) {
-                    if (kDebugLevel > 0)
-                        NSLog(@"ConsumerMasterViewController:viewDidLoad: Found ProviderMasterViewController in NavController within tabBarController.");
-                    
-                    ProviderMasterViewController* pmvc = (ProviderMasterViewController*)tabItem;
-                    pmvc.delegate = self;
-                    found_pmvc = true;
-                }
-            }
-        }
-    }
-    if (!found_pmvc)
-        NSLog(@"ConsumerMasterViewController:viewDidLoad: XXX Did not find ProviderMaster VC!");
-    
     // Attempt to fetch any new location data (for all our providers), which then calls configureView()!
 #if 0
     // XXX This may be causing us to not load fast enough!
@@ -783,6 +760,28 @@ static const float kFetchDataTimeout = 300.0;
     if (error_msg != nil) {
         UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ConsumerMasterViewController:addSelfToProviders: addProvider()" message:error_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
         [alert show];
+    }
+    
+    [self configureView:YES];
+}
+
+- (void) addConsumerToProviders:(Principal*)consumer {
+    if (kDebugLevel > 0)
+        NSLog(@"ConsumerMasterViewController:addConsumerToProviders: called.");
+    
+    // Add this consumer as a provider.  Note, if this consumer already exists in our list, then we don't add it (as important information like symmetric keys or file-stores could be overwritten, i.e., the ConsumerMaster VC gets that info, the ProviderMaster VC does not have it!).
+    
+    if (![_provider_list containsObject:consumer]) {
+        if (kDebugLevel > 0)
+            NSLog(@"ConsumerMasterViewController:addConsumerToProviders: Adding %@ to provider list.", [consumer absoluteString]);
+        
+        NSString* error_msg = [_provider_list addProvider:consumer];
+        if (error_msg != nil) {
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ConsumerMasterViewController:addConsumerToProviders: addProvider()" message:error_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+            [alert show];
+        }
+        
+        [self configureView:YES];
     }
 }
 

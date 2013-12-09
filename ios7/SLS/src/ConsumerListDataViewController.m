@@ -27,7 +27,7 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
 
 #pragma mark - Local variables
 @synthesize precision_changed = _precision_changed;
-@synthesize send_file_store = _send_file_store;  // XXX I think this is deprecated
+@synthesize track_consumer = _track_consumer;
 @synthesize delete_principal = _delete_principal;
 
 #pragma mark - Outlets
@@ -38,6 +38,10 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
 @synthesize precision_slider = _precision_slider;
 @synthesize precision_label = _precision_label;
 @synthesize send_file_store_button = _send_file_store_button;
+@synthesize track_consumer_button = _track_consumer_button;
+@synthesize delete_button = _delete_button;
+
+#pragma mark - Initialization
 
 - (id) init {
     if (kDebugLevel > 2)
@@ -46,7 +50,7 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
     if (self = [super init]) {
         _consumer = nil;
         _precision_changed = false;
-        _send_file_store = false;
+        _track_consumer = false;
         _delete_principal = false;
     }
     
@@ -62,7 +66,7 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
         // Custom initialization
         _consumer = nil;
         _precision_changed = false;
-        _send_file_store = false;
+        _track_consumer = false;
         _delete_principal = false;
     }
     
@@ -78,7 +82,7 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
         // Custom initialization
         _consumer = nil;
         _precision_changed = false;
-        _send_file_store = false;
+        _track_consumer = false;
         _delete_principal = false;
     }
     return self;
@@ -115,6 +119,20 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
         [_send_file_store_button setAlpha:0.5];
     } else {
         [_send_file_store_button setAlpha:1.0];
+    }
+    
+    // TODO(aka) Would be nice if we knew if this consumer was already being tracked, but that would require the ConsumerMaster VC contacting us (and keeping state up), and I'm not sure that's worth it.
+    
+    if (_track_consumer) {
+        [_track_consumer_button setAlpha:0.5];
+    } else {
+        [_track_consumer_button setAlpha:1.0];
+    }
+    
+    if (_delete_principal) {
+        [_delete_button setAlpha:0.5];
+    } else {
+        [_delete_button setAlpha:1.0];
     }
 }
 
@@ -204,6 +222,7 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
             
             // Unset any state flags, if they were set.
             _delete_principal = false;
+            _track_consumer = false;
             _precision_changed = false;
         } else {
             // User hit DONE.
@@ -219,7 +238,7 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
 #pragma mark - Actions
 
 - (IBAction) precisionValueChanged:(id)sender {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 0)
         NSLog(@"ConsumerListDataViewController:precisionValueChanged: called.");
     
     UISlider* slider = (UISlider*)sender;
@@ -239,6 +258,19 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
         [alert show];
     }
 
+    [self configureView];
+}
+
+- (IBAction) makeConsumerAProvider:(id)sender {
+    if (kDebugLevel > 2)
+        NSLog(@"ConsumerListDataViewController:makeConsumerAProvider: called.");
+    
+    /*
+     UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ConsumerListDataViewController:makeConsumerAProvider:" message:@"Note, It's up to this person to send you location data" delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+     [alert show];
+     */
+    
+    _track_consumer = true;
     [self configureView];
 }
 
@@ -268,6 +300,8 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
 	} else {
         NSLog(@"ConsumerDataViewController:alertView:clickedButtonAtIndex: TODO(aka) unknown title: %s", [title cStringUsingEncoding:[NSString defaultCStringEncoding]]);
 	}
+    
+    [self configureView];
 }
 
 @end

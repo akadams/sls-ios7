@@ -14,19 +14,17 @@
 #import "ConsumerListController.h"
 #import "CoreLocationController.h"
 #import "SymmetricKeysController.h"
-#import "ConsumerCellController.h"  // XXX TODO(aka) May be deprecated!
 
 
 @protocol ProviderMasterViewControllerDelegate;  // so we can send ConsumerMaster VC info, if needed
 
-@interface ProviderMasterViewController : UITableViewController <MFMessageComposeViewControllerDelegate, MFMailComposeViewControllerDelegate, UINavigationControllerDelegate, CoreLocationControllerDelegate, ConsumerCellControllerDelegate>
+@interface ProviderMasterViewController : UITableViewController <MFMessageComposeViewControllerDelegate, MFMailComposeViewControllerDelegate, UINavigationControllerDelegate, CoreLocationControllerDelegate>
 
 #pragma mark - Local variables
 @property (strong, nonatomic) PersonalDataController* our_data;
 @property (strong, nonatomic) ConsumerListController* consumer_list_controller;
 @property (strong, nonatomic) CoreLocationController* location_controller;
 @property (strong, nonatomic) SymmetricKeysController* symmetric_keys_controller;
-@property (assign, nonatomic) ConsumerCellController* cell;
 @property (weak, nonatomic) id <ProviderMasterViewControllerDelegate> delegate;
 
 #pragma mark - Outlets
@@ -51,4 +49,5 @@
 
 @protocol ProviderMasterViewControllerDelegate <NSObject>
 - (void) addSelfToProviders:(PersonalDataController*)remote_data withBucket:(NSString*)bucket_name withKey:(NSData*)symmetric_key;
+- (void) addConsumerToProviders:(Principal*)consumer;
 @end
