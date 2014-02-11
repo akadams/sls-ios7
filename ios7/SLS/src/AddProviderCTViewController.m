@@ -288,7 +288,7 @@ enum {
         view_controller.delegate = self;
         _challenge = arc4random() % 9999;  // get a four digit challenge (response will have + 1)
         NSString* encrypted_challenge = nil;
-        NSString* error_msg = [PersonalDataController encryptString:[NSString stringWithFormat:@"%d", _challenge] publicKeyRef:[_provider publicKeyRef] encryptedString:&encrypted_challenge];
+        NSString* error_msg = [PersonalDataController asymmetricEncryptString:[NSString stringWithFormat:@"%d", _challenge] publicKeyRef:[_provider publicKeyRef] encryptedString:&encrypted_challenge];
         if (error_msg) {
             UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"AddProviderCTViewController:prepareForSeque:" message:error_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
             [alert show];

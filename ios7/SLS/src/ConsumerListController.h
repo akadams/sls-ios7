@@ -15,7 +15,7 @@
 @interface ConsumerListController : NSObject
 
 #pragma mark - Local variables
-@property (copy, nonatomic) NSMutableArray* consumer_list;  // list of Consumer objects
+@property (copy, nonatomic) NSMutableArray* consumer_list;  // list of consumers as Principal objects
 
 #pragma mark - Initialization
 - (id) init;

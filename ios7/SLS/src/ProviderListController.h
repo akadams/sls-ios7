@@ -15,7 +15,7 @@
 @interface ProviderListController : NSObject
 
 #pragma mark - Local variables
-@property (copy, nonatomic) NSMutableArray* provider_list;  // list of Provider objects
+@property (copy, nonatomic) NSMutableArray* provider_list;  // list of providers as Principal objects
 
 #pragma mark - State backup & restore
 - (id) init;
@@ -32,6 +32,7 @@
 - (BOOL) containsObject:(Principal*)provider;
 
 #pragma mark - Data management
+- (Principal*) getProvider:(NSString*)identity_hash;
 - (NSString*) addProvider:(Principal*)provider;
 - (NSString*) deleteProvider:(Principal*)provider saveState:(BOOL)save_state;
 - (NSTimeInterval) getNextTimeInterval;

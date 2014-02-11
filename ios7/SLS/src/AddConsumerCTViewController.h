@@ -36,14 +36,6 @@
 @property (copy, nonatomic) UIImage* checkbox_checked;
 
 #pragma mark - Outlets
-@property (weak, nonatomic) IBOutlet UIButton* encode_key_button;
-@property (weak, nonatomic) IBOutlet UIImageView* encode_key_image;
-
-@property (weak, nonatomic) IBOutlet UIButton* decode_challenge_button;
-@property (weak, nonatomic) IBOutlet UIImageView* decode_challenge_image;
-@property (weak, nonatomic) IBOutlet UILabel* decode_challenge_label;
-// XXX @property (weak, nonatomic) IBOutlet UILabel* decode_response_label;
-
 @property (weak, nonatomic) IBOutlet UIButton* decode_key_button;
 @property (weak, nonatomic) IBOutlet UIImageView* decode_key_image;
 
@@ -55,6 +47,16 @@
 @property (weak, nonatomic) IBOutlet UIButton* encode_response_no_button;
 @property (weak, nonatomic) IBOutlet UIImageView* encode_response_image;
 
+@property (weak, nonatomic) IBOutlet UIButton* encode_key_button;
+@property (weak, nonatomic) IBOutlet UIImageView* encode_key_image;
+
+@property (weak, nonatomic) IBOutlet UIButton* decode_challenge_button;
+@property (weak, nonatomic) IBOutlet UIImageView* decode_challenge_image;
+@property (weak, nonatomic) IBOutlet UILabel* decode_challenge_label;
+// XXX @property (weak, nonatomic) IBOutlet UILabel* decode_response_label;
+
+@property (weak, nonatomic) IBOutlet UIButton* decode_deposit_button;
+@property (weak, nonatomic) IBOutlet UIImageView* decode_deposit_image;
 @property (weak, nonatomic) IBOutlet UIButton* encode_deposit_button;
 @property (weak, nonatomic) IBOutlet UIImageView* encode_deposit_image;
 @property (weak, nonatomic) IBOutlet UILabel* end_label;

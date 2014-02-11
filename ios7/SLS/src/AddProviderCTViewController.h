@@ -57,6 +57,8 @@
 
 @property (weak, nonatomic) IBOutlet UIButton* encode_deposit_button;
 @property (weak, nonatomic) IBOutlet UIImageView* encode_deposit_image;
+@property (weak, nonatomic) IBOutlet UIButton* decode_deposit_button;
+@property (weak, nonatomic) IBOutlet UIImageView* decode_deposit_image;
 @property (weak, nonatomic) IBOutlet UILabel* end_label;
 
 @property (weak, nonatomic) IBOutlet UIBarButtonItem* done_button;

@@ -9,34 +9,34 @@
 
 #import <Foundation/Foundation.h>
 
-#import "ConsumerListController.h"  // needed for notification
-
-
-// Indexes into symmetric keys dictionary.
-typedef enum {
-    SKC_PRECISION_NONE = 0,
-    SKC_PRECISION_LOW = 1,
-    SKC_PRECISION_MEDIUM = 2,
-    SKC_PRECISION_HIGH = 3
-} SKCPrecisionLevels;
-
-static const int kNumPrecisionLevels = SKC_PRECISION_HIGH;
+#import "PolicyController.h"
+#import "ConsumerListController.h"  // needed for notification  XXX is this still true?  I think notification is now done in MVC!
 
 
 @interface SymmetricKeysController : NSObject
 
+#pragma mark - Local data
 @property (copy, nonatomic) NSMutableDictionary* symmetric_keys;  // map of symmetric keys indexed by precision level
+@property (copy, nonatomic) NSMutableArray* policies;             // dictionary keys currently in use within _symmetric_keys
 
+#pragma mark - Initialization
 - (id) init;
 - (id) copyWithZone:(NSZone*)zone;
-- (NSUInteger) count;
-- (NSData*) objectForKey:(NSNumber*)precision;
-- (void) setObject:(NSData*)symmetric_key forKey:(NSNumber*)precision;
-- (void) removeObjectForKey:(NSNumber*)precision;
+
+#pragma mark - State backup & restore
+- (NSString*) loadState;
+
+#pragma mark - NSMutableDictionary symmetric keys management
+- (NSUInteger) count;  // XXX TODO(aka) I don't think we need this one, or it should be called countSymmetricKeys:
+- (NSData*) objectForKey:(NSString*)policy;
+- (void) setObject:(NSData*)symmetric_key forKey:(NSString*)policy;
+- (void) removeObjectForKey:(NSString*)policy;
 - (NSEnumerator*) keyEnumerator;
-- (void) deleteSymmetricKey:(NSNumber*)precision;
-- (NSData*) genSymmetricKey:(NSNumber*)precision;
-- (NSArray*) loadState;
-- (BOOL) haveKeys;
+
+#pragma mark - Symmetric key management
+- (void) deleteSymmetricKey:(NSString*)policy;         // updates state
+- (NSString*) generateSymmetricKey:(NSString*)policy;  // updates state
+- (BOOL) haveAllKeys;
+- (BOOL) haveAnyKeys;
 
 @end

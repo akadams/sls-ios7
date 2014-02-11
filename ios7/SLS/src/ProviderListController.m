@@ -167,6 +167,23 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
 
 #pragma mark - Data management
 
+- (Principal*) getProvider:(NSString*)identity_hash {
+    if (kDebugLevel > 2)
+        NSLog(@"ProviderListContoller:getProvider: called: %@.", identity_hash);
+    
+    if ([_provider_list count] == 0 || identity_hash == nil || [identity_hash length] == 0)
+        return nil;
+    
+    for (id object in _provider_list) {
+        Principal* provider = (Principal*)object;
+        
+        if ([identity_hash isEqualToString:provider.identity_hash])
+            return provider;
+    }
+
+    return nil;  // we were unable to find it
+}
+
 - (NSString*) addProvider:(Principal*)provider {
     if (kDebugLevel > 2)
         NSLog(@"ProviderListContoller:addProvider: called.");
@@ -207,7 +224,7 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
         Principal* provider = [_provider_list objectAtIndex:i];
         
         // If we don't have a valid file store, might as well skip this provider.
-        if (provider.file_store == nil) {
+        if (![provider isHistoryLogURLValid]) {
             if (kDebugLevel > 0)
                 NSLog(@"ProviderListContoller:getNextTimeInterval: skipping provider[%d]: %s, due to nil file store.", i, [[provider absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
             continue;

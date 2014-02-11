@@ -16,6 +16,7 @@
 #import "ProviderListController.h"
 
 @class Principal;
+@class KeyBundleController;
 
 @interface ConsumerMasterViewController : UIViewController <MKMapViewDelegate, ProviderMasterViewControllerDelegate>
 
@@ -32,13 +33,21 @@
 - (id) initWithNibName:(NSString*)nib_name_or_nil bundle:(NSBundle*)nib_bundle_or_nil;
 - (void) loadState;
 
+#pragma mark - View management
+- (CLLocationCoordinate2D) plotProviderLocations:(Principal*)sole_provider; // plots location history
+
 #pragma mark - Actions
 - (IBAction) showProviderDetails:(id)sender;
 
+#pragma mark - Symmetric key management
+- (NSString*) fetchKeyBundle:(Principal*)provider keyBundle:(KeyBundleController**)key_bundle;
+
 #pragma mark - Location data management
+- (NSString*) fetchHistoryLog:(Principal*)provider historyLog:(NSMutableArray**)history_log;
 - (void) setTimerForFetchingData;
-- (void) checkNSUserDefaults;
-- (void) updateProviderData;  // fetch providers' data
-- (CLLocationCoordinate2D) plotProviderLocations:(Principal*)sole_provider; // plots location history
+- (void) updateProviderData;
+
+#pragma mark - NSUserDefaults management
+- (NSString*) checkNSUserDefaults;
 
 @end

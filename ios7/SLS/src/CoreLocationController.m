@@ -20,11 +20,14 @@ static const CLLocationDistance kDefaultDistanceFilter = 50.0;  // 50 meters
 
 @implementation CoreLocationController
 
+#pragma mark - Local variables
 @synthesize locationMgr = _locationMgr;
 @synthesize location_sharing_toggle = _location_sharing_toggle;
 @synthesize power_saving_toggle = _power_saving_toggle;
 @synthesize distance_filter = _distance_filter;
 @synthesize delegate = _delegate;
+
+#pragma mark - Initialization
 
 - (id) init {
     if (kDebugLevel > 2)

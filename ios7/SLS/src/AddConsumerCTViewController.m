@@ -62,15 +62,15 @@ int _challenge;
 // Possible states to be in.
 enum {
     MODE_INITIAL = 0,
-    MODE_ENCODE_PK = 1,
-    MODE_DECODE_CHALLENGE = 2,
-    MODE_DECODE_RESPONSE = 3,  // deprecated
-    MODE_DECODE_PK = 4,
-    MODE_ENCODE_CHALLENGE = 5,
-    MODE_ENCODE_RESPONSE_NO = 6,  // deprecated
-    MODE_ENCODE_RESPONSE_YES = 7,
-    MODE_ENCODE_DEPOSIT = 8,
-    MODE_DECODE_DEPOSIT = 9,
+    MODE_DECODE_PK = 1,
+    MODE_ENCODE_CHALLENGE = 2,
+    MODE_ENCODE_RESPONSE_NO = 3,  // deprecated
+    MODE_ENCODE_RESPONSE_YES = 4,
+    MODE_ENCODE_PK = 5,
+    MODE_DECODE_CHALLENGE = 6,
+    MODE_DECODE_RESPONSE = 7,  // deprecated
+    MODE_DECODE_DEPOSIT = 8,
+    MODE_ENCODE_DEPOSIT = 9,
 };
 
 #pragma mark - Initialization
@@ -132,16 +132,7 @@ enum {
         case MODE_INITIAL :
         {
             // Set default view.
-            [_encode_key_button setAlpha:1.0];
-            [_encode_key_image setImage:_checkbox_empty];
-            
-            [_decode_challenge_button setAlpha:0.5];
-            [_decode_challenge_label setText:[NSString stringWithFormat:@"Respond to challenge with ..."]];
-            [_decode_challenge_label setAlpha:0.5];
-            [_decode_challenge_image setImage:_checkbox_empty];
-            // XXX [_decode_response_label setText:@""];  // deprecated
-            
-            [_decode_key_button setAlpha:0.5];
+            [_decode_key_button setAlpha:1.0];
             [_decode_key_image setImage:_checkbox_empty];
             
             [_encode_challenge_button setAlpha:0.5];
@@ -154,31 +145,21 @@ enum {
             [_encode_response_yes_button setAlpha:0.5];
             [_encode_response_image setImage:_checkbox_empty];
             
+            [_encode_key_button setAlpha:0.5];
+            [_encode_key_image setImage:_checkbox_empty];
+            
+            [_decode_challenge_button setAlpha:0.5];
+            [_decode_challenge_label setText:[NSString stringWithFormat:@"Respond to challenge with ..."]];
+            [_decode_challenge_label setAlpha:0.5];
+            [_decode_challenge_image setImage:_checkbox_empty];
+            // XXX [_decode_response_label setText:@""];  // deprecated
+            
             [_encode_deposit_button setAlpha:0.5];
             [_encode_deposit_image setImage:_checkbox_empty];
+            [_decode_deposit_button setAlpha:0.5];
+            [_decode_deposit_image setImage:_checkbox_empty];
             
             [_end_label setText:@""];
-        }
-            break;
-            
-        case MODE_ENCODE_PK :
-        {
-            [_encode_key_button setAlpha:0.5];
-            [_encode_key_image setImage:_checkbox_checked];
-            
-            [_decode_challenge_button setAlpha:1.0];
-        }
-            break;
-            
-        case MODE_DECODE_CHALLENGE :
-        {
-            [_decode_challenge_button setAlpha:0.5];
-            [_decode_challenge_image setImage:_checkbox_checked];
-            [_decode_challenge_label setText:[NSString stringWithFormat:@"Respond to challenge with: %d", _response]];
-            [_decode_challenge_label setAlpha:1.0];
-            // XXX [_decode_response_label setText:[NSString stringWithFormat:@"%d", _response]];
-            
-            [_decode_key_button setAlpha:1.0];
         }
             break;
             
@@ -219,13 +200,43 @@ enum {
         }
             break;
             
-        case MODE_ENCODE_DEPOSIT :
+        case MODE_ENCODE_PK :
+        {
+            [_encode_key_button setAlpha:0.5];
+            [_encode_key_image setImage:_checkbox_checked];
+            
+            [_decode_challenge_button setAlpha:1.0];
+        }
+            break;
+            
+        case MODE_DECODE_CHALLENGE :
+        {
+            [_decode_challenge_button setAlpha:0.5];
+            [_decode_challenge_image setImage:_checkbox_checked];
+            [_decode_challenge_label setText:[NSString stringWithFormat:@"Respond to challenge with: %d", _response]];
+            [_decode_challenge_label setAlpha:1.0];
+            // XXX [_decode_response_label setText:[NSString stringWithFormat:@"%d", _response]];
+            
+        }
+            break;
+            
+        case MODE_DECODE_DEPOSIT :
         {
             [_decode_challenge_label setAlpha:0.5];
             
+            [_decode_deposit_button setAlpha:0.5];
+            [_decode_deposit_image setImage:_checkbox_checked];
+        }
+            break;
+            
+        case MODE_ENCODE_DEPOSIT :
+        {
+            [_decode_deposit_button setAlpha:0.5];
+            [_decode_deposit_image setImage:_checkbox_checked];
+            
             [_encode_deposit_button setAlpha:0.5];
             [_encode_deposit_image setImage:_checkbox_checked];
-            [_end_label setText:@"Key exchange complete, hit DONE!"];
+            [_end_label setText:@"Pairing complete, hit DONE!"];
         }
             break;
             
@@ -286,9 +297,9 @@ enum {
         view_controller.our_data = _our_data;
         view_controller.identity = _consumer.identity;
         view_controller.delegate = self;
-        _challenge = arc4random() % 9999;  // get a four digit challenge (response will have + 1)
+        _challenge = arc4random() % 9999;  // get a four digit challenge (response will have + 1, so <= 9998)
         NSString* encrypted_challenge = nil;
-        NSString* error_msg = [PersonalDataController encryptString:[NSString stringWithFormat:@"%d", _challenge] publicKeyRef:[_consumer publicKeyRef] encryptedString:&encrypted_challenge];
+        NSString* error_msg = [PersonalDataController asymmetricEncryptString:[NSString stringWithFormat:@"%d", _challenge] publicKeyRef:[_consumer publicKeyRef] encryptedString:&encrypted_challenge];
         if (error_msg) {
             UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"AddConsumerCTViewController:prepareForSeque:" message:error_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
             [alert show];

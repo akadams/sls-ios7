@@ -105,7 +105,7 @@ static const char* kAlertButtonDeleteProviderMessage = "Yes, delete this provide
     _identity_hash_label.text = provider.identity_hash;
     _pub_key_label.text = [[provider getPublicKey] base64EncodedString];
     _symmetric_key_label.text = [provider.key base64EncodedString];
-    _file_store_label.text = [provider.file_store absoluteString];
+    _file_store_label.text = [provider.history_log_url absoluteString];
     
     // Setup the slider value.
     _freq_slider.value = [provider.frequency floatValue];

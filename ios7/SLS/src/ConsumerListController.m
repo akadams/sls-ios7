@@ -56,20 +56,22 @@ static const char* kConsumerListFilename = "consumers.list";
 #pragma mark - State backup & restore
 
 - (NSString*) saveState {
-    if (kDebugLevel > 2) 
+    if (kDebugLevel > 2)
         NSLog(@"ConsumerListController:saveState: called.");
     
     // Save our list of consumers to disk.
     
     // Get Document path, and add the name of consumers' list file.
-    NSArray* dir_list = 
+    NSArray* dir_list =
     NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSString* doc_dir = [dir_list objectAtIndex:0];
     NSString* consumer_list_path = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], kConsumerListFilename];
     
     // Note, we must convert our Consumer objects to serialized NSData objects, and rebuild our NSArray.
     
-            NSLog(@"ConsumerListController:saveState: operating on consumer list of count: %lu.", (unsigned long)[_consumer_list count]);
+    // XXX TODO(aka) Actually, I don't think we need to do this is, i.e., I think we can just archive the NSArray!
+    
+    NSLog(@"ConsumerListController:saveState: operating on consumer list of count: %lu.", (unsigned long)[_consumer_list count]);
     
     NSMutableArray* serialized_list = [[NSMutableArray alloc] initWithCapacity:kInitialConsumerListSize];
     for (int i = 0; i < [_consumer_list count]; ++i) {
@@ -112,6 +114,8 @@ static const char* kConsumerListFilename = "consumers.list";
         
         NSMutableArray* serialized_list = [[NSMutableArray alloc] initWithContentsOfFile:consumer_list_path];
         for (int i = 0; i < [serialized_list count]; ++i) {
+            // TODO(aka) Technically, we should try to catch NSInvalidArchiveOperationException, however, according to lore, there's no guarantee that an exception will even be thrown!
+            
             Principal* consumer = [NSKeyedUnarchiver unarchiveObjectWithData:[serialized_list objectAtIndex:i]];
             [_consumer_list addObject:consumer];
         }
@@ -178,6 +182,8 @@ static const char* kConsumerListFilename = "consumers.list";
     if (consumer == nil)
         return nil;
     
+    // Note, it's up to the Provider's MVC to (i) get the old policy and re-key for it, and (ii) generate a new symmetric key for the new policy if it doesn't already exist!
+    
     // First, see if the Consumer object already exists (if so, delete it).
     NSString* err_msg = nil;
     if ([self containsObject:consumer]) {
@@ -190,7 +196,7 @@ static const char* kConsumerListFilename = "consumers.list";
         NSLog(@"ConsumerListController:addConsumer: adding: %s.", [[consumer absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     [_consumer_list addObject:consumer];
-    
+
     // And now store our (newly) updated list of consumers to disk.
     return [self saveState];
 }

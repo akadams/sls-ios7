@@ -11,23 +11,26 @@
 //#import <CommonCrypto/CommonCryptor.h>
 
 #import "SymmetricKeysController.h"
+#import "PersonalDataController.h"
 #import "security-defines.h"
 
 static const int kDebugLevel = 1;
 
 static const size_t kChosenCipherKeySize = CIPHER_KEY_SIZE;
 //static const size_t kChosenCipherBlockSize = CIPHER_BLOCK_SIZE;
-static const char* kSymmetricKey = "symmetric-key";
-static const char* kLow = "low";
-static const char* kMedium = "medium";
-static const char* kHigh = "high";
+
+static const char* kPolicyKeysFilename = "policy.keys";  // state filename which holds policies array
+static const char* kSymmetricKey = "symmetric-key";  // prefix in key-chain
+
 
 @interface SymmetricKeysController ()
 @end
 
 @implementation SymmetricKeysController
 
+#pragma mark - Local data
 @synthesize symmetric_keys = _symmetric_keys;
+@synthesize policies = _policies;
 
 // TOOD(aka) I have no idea what CSSM_ALGID_AES is being set to, i.e, 0x8000000L + 1, 0x8000000L * 2, or just 2?
 
@@ -37,12 +40,21 @@ enum {
     CSSM_ALGID_AES
 };
 
+#pragma mark - Initialization
+
 - (id) init {
     if (kDebugLevel > 2)
         NSLog(@"SymmetricKeysController:init: called.");
     
     if (self = [super init]) {
+        // TODO(aka) Depending on when loadState: is called in the master VC, this init's may not be necessary.
         _symmetric_keys = [[NSMutableDictionary alloc] initWithCapacity:kNumPrecisionLevels];
+        _policies = [[NSMutableArray alloc] initWithCapacity:kNumPrecisionLevels];
+        NSLog(@"SymmetricKeysController:init: XXXXX policies count: %ld.", (unsigned long)[_policies count]);
+        [_policies addObject:[NSString stringWithFormat:@"city"]];
+        NSLog(@"SymmetricKeysController:init: XXXXX policies count: %ld.", (unsigned long)[_policies count]);
+        [_policies removeObject:[NSString stringWithFormat:@"city"]];
+        NSLog(@"SymmetricKeysController:init: XXXXX policies count: %ld.", (unsigned long)[_policies count]);
     }
     
     return self;
@@ -54,6 +66,7 @@ enum {
     
     SymmetricKeysController* tmp_symmetric_keys_controller = [[SymmetricKeysController alloc] init];
     tmp_symmetric_keys_controller.symmetric_keys = _symmetric_keys;
+    tmp_symmetric_keys_controller.policies = _policies;
     
     return tmp_symmetric_keys_controller;
 }
@@ -66,99 +79,115 @@ enum {
     }
 }
 
-- (NSArray*) loadState {
-    // We inform the calling routine if we created any *new* symmetric keys by sending back an NSArray of precision levels (to any newly generated symmetric keys).  The reason for this is so the calling routine can then inform the consumers that use that symmetric key!
+- (void) setPolicies:(NSMutableArray*)policies {
+    // We need to override the default setter, because we declared our array to be a copy (on assignment) and we need to ensure we stay mutable!
     
-    // TOOD(aka) We may decide that *(re)starting* the app is a really good time to (re)cut our symmetric keys, hence, the first thing we should do is delete any existing symmetric keys in our key-chain!
-    
+    if (_policies != policies) {
+        _policies = [policies mutableCopy];
+    }
+}
+
+#pragma mark - State backup & restore
+
+- (NSString*) loadState {
     if (kDebugLevel > 2)
         NSLog(@"SymmetricKeysController:loadState: called.");
     
-    NSLog(@"SymmetricKeysController:loadState: TODO(aka) This routine should return an error message and pass in the new keys array as a pointer!  In fact, new keys should be a data member in SymmetricKeysController!");
+    // First, we load in our _policies array; this will act as our guide in fetching any existing symmetric keys from our key-chain in step two!
     
-    NSMutableArray* new_keys = [[NSMutableArray alloc] initWithCapacity:kNumPrecisionLevels];
+    _policies = [[PersonalDataController loadStateArray:[[NSString alloc] initWithCString:kPolicyKeysFilename encoding:[NSString defaultCStringEncoding]]] mutableCopy];
     
-    // For each precision level, see if our key is in the key-chain, if not, generate a key and send it out to our Consumers.
-    
-    for (int i = SKC_PRECISION_LOW; i <= SKC_PRECISION_HIGH; ++i) {
-        NSData* symmetric_key = nil;
+    if ([_policies count] == 0) {
+        if (kDebugLevel > 0)
+            NSLog(@"SymmetricKeysController:loadState: No policy keys found on disk!");
         
+        return nil;
+    }
+    
+    // For each dictionary key we have in _policies now, fetch the corresponding symmetric key from our key-chain.
+    NSData* symmetric_key = nil;
+    for (id object in _policies) {
         // Create the application tag into the key-chain for this symmetric key.
-        
-        NSString* application_tag_str = nil;
-        if (i == SKC_PRECISION_LOW) {
-            application_tag_str = [[NSString alloc] initWithFormat:@"%s.%s", kSymmetricKey, kLow];
-        } else if (i == SKC_PRECISION_MEDIUM) {
-            application_tag_str = [[NSString alloc] initWithFormat:@"%s.%s", kSymmetricKey, kMedium];
-        } else {
-            application_tag_str = [[NSString alloc] initWithFormat:@"%s.%s", kSymmetricKey, kHigh];
-        }
-        
+        NSString* dict_key = (NSString*)object;
+        NSString* application_tag_str = [[NSString alloc] initWithFormat:@"%s.%s", kSymmetricKey, [dict_key cStringUsingEncoding:[NSString defaultCStringEncoding]]];
         NSData* application_tag = [application_tag_str dataUsingEncoding:[NSString  defaultCStringEncoding]];
-  
-       if (kDebugLevel > 0)
+        
+        if (kDebugLevel > 1)
             NSLog(@"SymmetricKeysController:loadState: querying key-chain for %s, key type: %u.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]], CSSM_ALGID_AES);
         
         // Build the key-chain dictionary for our symmetric key.
-        NSMutableDictionary* dict = [[NSMutableDictionary alloc] init];
-        [dict setObject:(__bridge id)kSecClassKey forKey:(__bridge id)kSecClass];
-        [dict setObject:application_tag forKey:(__bridge id)kSecAttrApplicationTag];
-        [dict setObject:[NSNumber numberWithUnsignedInt:CSSM_ALGID_AES] forKey:(__bridge id)kSecAttrKeyType];
-        [dict setObject:[NSNumber numberWithBool:YES] forKey:(__bridge id)kSecReturnData];
+        NSMutableDictionary* kc_dict = [[NSMutableDictionary alloc] init];
+        [kc_dict setObject:(__bridge id)kSecClassKey forKey:(__bridge id)kSecClass];
+        [kc_dict setObject:application_tag forKey:(__bridge id)kSecAttrApplicationTag];
+        [kc_dict setObject:[NSNumber numberWithUnsignedInt:CSSM_ALGID_AES] forKey:(__bridge id)kSecAttrKeyType];
+        [kc_dict setObject:[NSNumber numberWithBool:YES] forKey:(__bridge id)kSecReturnData];
         
         // Get the key.
         CFTypeRef symmetric_key_ref = nil;
         OSStatus status = noErr;
-        status = SecItemCopyMatching((__bridge CFDictionaryRef)dict, (CFTypeRef*)&symmetric_key_ref);
+        status = SecItemCopyMatching((__bridge CFDictionaryRef)kc_dict, (CFTypeRef*)&symmetric_key_ref);
         if (status != noErr) {
-            if (kDebugLevel > 1)
-                NSLog(@"SymmetricKeysController:loadState: SecItemCopyMatching() failed using tag: %s, error: %d, generating new key.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]], (int)status);
-            
+            NSString* err_msg = [[NSString alloc] initWithFormat:@"SymmetricKeysController:loadState: SecItemCopyMatching() failed using tag: %@, error: %d, generating new key.", [[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]], (int)status];
+            return err_msg;
+
+            /*
             // Generate the symmetric key for this precision level.
-            symmetric_key = [self genSymmetricKey:[NSNumber numberWithInt:i]];
+            symmetric_key = [self generateSymmetricKey:[NSNumber numberWithInt:i]];
             
             // Add our precision to our *new keys* list.
             [new_keys addObject:[NSNumber numberWithInt:i]];
+             */
         } else {
             symmetric_key = (__bridge_transfer NSData*)symmetric_key_ref;
             
-            if (kDebugLevel > 1)
+            if (kDebugLevel > 0)
                 NSLog(@"SymmetricKeysController:loadState: fetched %luB key using tag: %s.", (unsigned long)[symmetric_key length], [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         }
         
-        // Add it to our key list.
+#if 0
+        // Convert the dictionary key to an index, then store the key in our controller using the index as a key.
+        int idx = precision_level_idx([dict_key cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         if (kDebugLevel > 0)
-            NSLog(@"SymmetricKeysController:loadState: inserting symmetric key (%s) into our dictionary using key: %d.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]], i);
+            NSLog(@"SymmetricKeysController:loadState: inserting symmetric key (%s) into our dictionary using key: %d.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]], idx);
+
+        [_symmetric_keys setObject:symmetric_key forKey:[NSNumber numberWithInt:idx]];
+#else
+        // Store the symmetric key in our local dictionary using just the suffix of the key-chain dictionary key.
+        if (kDebugLevel > 0)
+            NSLog(@"SymmetricKeysController:loadState: inserting symmetric key (%s) into our dictionary using key: %@.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]], dict_key);
         
-        [_symmetric_keys setObject:symmetric_key forKey:[NSNumber numberWithInt:i]];
-    }  // for (int i = SKC_PRECISION_LOW; i <= SKC_PRECISION_HIGH; ++i) { 
+        [_symmetric_keys setObject:symmetric_key forKey:dict_key];
+#endif
+    }  // for (id object in _policies) {
     
-    return new_keys;
+    return nil;
 }
+
+#pragma mark - NSMutableDictionary management
 
 - (NSUInteger) count {
     return [_symmetric_keys count];
 }
 
-- (NSData*) objectForKey:(NSNumber*)precision {
+- (NSData*) objectForKey:(NSString*)policy {
     if (kDebugLevel > 2)
         NSLog(@"SymmetricKeysController:objectForKey: called.");
     
-    return [_symmetric_keys objectForKey:precision];
+    return [_symmetric_keys objectForKey:policy];
 }
 
-- (void) setObject:(NSData*)symmetric_key forKey:(NSNumber*)precision {
+- (void) setObject:(NSData*)symmetric_key forKey:(NSString*)policy {
     if (kDebugLevel > 2)
         NSLog(@"SymmetricKeysController:setObject: called.");
     
-    [_symmetric_keys setObject:symmetric_key forKey:precision];
+    [_symmetric_keys setObject:symmetric_key forKey:policy];
 }
 
-- (void) removeObjectForKey:(NSNumber*)precision {
+- (void) removeObjectForKey:(NSString*)policy {
     if (kDebugLevel > 2)
         NSLog(@"SymmetricKeysController:removeObjectForKey: called.");
     
-    [_symmetric_keys removeObjectForKey:precision];
+    [_symmetric_keys removeObjectForKey:policy];
 }
 
 - (NSEnumerator*) keyEnumerator {
@@ -168,31 +197,28 @@ enum {
     return [_symmetric_keys keyEnumerator];
 }
 
-- (void) deleteSymmetricKey:(NSNumber*)precision {
+#pragma mark - Symmetric key management
+
+- (void) deleteSymmetricKey:(NSString*)policy {
     if (kDebugLevel > 2)
         NSLog(@"SymmetricKeysController:deleteSymmetricKey: called.");
     
-    // Create the application tag in the key-chain for this symmetric key.
-    NSString* application_tag_str = nil;
-    if (precision.intValue == SKC_PRECISION_LOW) {
-        application_tag_str = [[NSString alloc] initWithFormat:@"%s.%s", kSymmetricKey, kLow];
-    } else if (precision.intValue == SKC_PRECISION_MEDIUM) {
-        application_tag_str = [[NSString alloc] initWithFormat:@"%s.%s", kSymmetricKey, kMedium];
-    } else {
-        application_tag_str = [[NSString alloc] initWithFormat:@"%s.%s", kSymmetricKey, kHigh];
-    }
+    if (policy == nil || [policy length] == 0)
+        return;  // XXX TODO(aka) This routine needs to return ERRORS!
     
+    // Create the application tag in the key-chain for this symmetric key.
+    NSString* application_tag_str = [[NSString alloc] initWithFormat:@"%s.%s", kSymmetricKey, [policy cStringUsingEncoding:[NSString defaultCStringEncoding]]];
     NSData* application_tag = [application_tag_str dataUsingEncoding:[NSString  defaultCStringEncoding]];
     
     // Build the key-chain dictionary for our symmetric key.
-    NSMutableDictionary* dict = [[NSMutableDictionary alloc] init];
-    [dict setObject:(__bridge id)kSecClassKey forKey:(__bridge id)kSecClass];
-    [dict setObject:application_tag forKey:(__bridge id)kSecAttrApplicationTag];
-    [dict setObject:[NSNumber numberWithUnsignedInt:CSSM_ALGID_AES] forKey:(__bridge id)kSecAttrKeyType];
+    NSMutableDictionary* kc_dict = [[NSMutableDictionary alloc] init];
+    [kc_dict setObject:(__bridge id)kSecClassKey forKey:(__bridge id)kSecClass];
+    [kc_dict setObject:application_tag forKey:(__bridge id)kSecAttrApplicationTag];
+    [kc_dict setObject:[NSNumber numberWithUnsignedInt:CSSM_ALGID_AES] forKey:(__bridge id)kSecAttrKeyType];
     
     // Delete the symmetric key from the keychain.
     OSStatus status = noErr;
-    status = SecItemDelete((__bridge CFDictionaryRef)dict);
+    status = SecItemDelete((__bridge CFDictionaryRef)kc_dict);
     if (status != noErr) {
         if (status == errSecItemNotFound) {
             if (kDebugLevel > 1)
@@ -205,28 +231,42 @@ enum {
     
     if (kDebugLevel > 0)
         NSLog(@"SymmetricKeysController:deleteSymmetricKey: deleted key using tag: %s.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    
+    // Remove the symmetric key from our controller and our dictionary keys array, then save the latter's state.
+    [self removeObjectForKey:policy];
+    
+    NSLog(@"SymmetricKeysController:deleteSymmetricKey: XXX removing policy: %@, from policies (%ld)", policy, (unsigned long)[_policies count]);
+    [_policies removeObject:policy];
+    [PersonalDataController saveState:[[NSString alloc] initWithCString:kPolicyKeysFilename encoding:[NSString defaultCStringEncoding]] array:_policies];
 }
 
-- (NSData*) genSymmetricKey:(NSNumber*)precision {
+- (NSString*) generateSymmetricKey:(NSString*)policy {
     if (kDebugLevel > 2)
-        NSLog(@"SymmetricKeysController:genSymmetricKey: called.");
+        NSLog(@"SymmetricKeysController:generateSymmetricKey: called.");
     
-    NSLog(@"SymmetricKeysController:genSymmetricKey: TODO(aka) This routine needs to return an error message and pass in a pointer to the NSData* object!");
+    if (policy == nil || [policy length] == 0)
+        return @"SymmetricKeysController:generateSymmetricKey: policy is nil or empty!";
+    
+    // Create the symmetric key for the specified precision level (dictionary key), store the new symmetric key in our key-chain as well as to our internal dictionary indexed by the precision level, add the precision level to our _policies array, and then save the array's state.
+    
+    // First, make sure we don't already have a key at this precision level.
+    if ([_symmetric_keys objectForKey:policy] != nil) {
+        NSString* err_msg = [[NSString alloc] initWithFormat:@"SymmetricKeysController:generateSymmetricKey: key already exists at precision: %@", policy];
+        return err_msg;
+    }
     
     // Create a buffer for the symmetric key data.
     uint8_t* symmetric_key_buf = (uint8_t*)malloc(kChosenCipherKeySize * sizeof(uint8_t));
-    if (symmetric_key_buf == NULL) {
-        NSLog(@"SymmetricKeysController:genSymmetricKey: unable to malloc key buffer!");
-        return nil;
-    }
+    if (symmetric_key_buf == NULL)
+        return @"SymmetricKeysController:generateSymmetricKey: unable to malloc key buffer!";
     
     // We build the symmetric key from random data.  Hopefully, Apple's *default* PRNG works, well.
     memset((void *)symmetric_key_buf, 0x0, kChosenCipherKeySize);
     OSStatus status = noErr;
     status = SecRandomCopyBytes(kSecRandomDefault, kChosenCipherKeySize, symmetric_key_buf);
     if (status != noErr) {
-        NSLog(@"SymmetricKeysController:genSymmetricKey: SecRandomCopyBytes() failed: %d", (int)status);
-        return nil;
+        NSString* err_msg = [[NSString alloc] initWithFormat:@"SymmetricKeysController:generateSymmetricKey: SecRandomCopyBytes() failed: %d", (int)status];
+        return err_msg;
     }
     
     // Convert the key to an NSData object.
@@ -236,24 +276,16 @@ enum {
         free(symmetric_key_buf);
     
     // Create the application tag in the key-chain for the symmetric key.
-    NSString* application_tag_str = nil;
-    if (precision.intValue == SKC_PRECISION_LOW) {
-        application_tag_str = [[NSString alloc] initWithFormat:@"%s.%s", kSymmetricKey, kLow];
-    } else if (precision.intValue == SKC_PRECISION_MEDIUM) {
-        application_tag_str = [[NSString alloc] initWithFormat:@"%s.%s", kSymmetricKey, kMedium];
-    } else {
-        application_tag_str = [[NSString alloc] initWithFormat:@"%s.%s", kSymmetricKey, kHigh];
-    }
-    
+    NSString* application_tag_str = [[NSString alloc] initWithFormat:@"%s.%s", kSymmetricKey, [policy cStringUsingEncoding:[NSString defaultCStringEncoding]]];
     NSData* application_tag = [application_tag_str dataUsingEncoding:[NSString  defaultCStringEncoding]];
     
     // Build the key-chain dictionary for our symmetric key.
-    NSMutableDictionary* dict = [[NSMutableDictionary alloc] init];
-    [dict setObject:(__bridge id)kSecClassKey forKey:(__bridge id)kSecClass];
-    [dict setObject:application_tag forKey:(__bridge id)kSecAttrApplicationTag];
-    [dict setObject:[NSNumber numberWithUnsignedInt:CSSM_ALGID_AES] forKey:(__bridge id)kSecAttrKeyType];
-    [dict setObject:[NSNumber numberWithUnsignedInt:(unsigned int)(kChosenCipherKeySize << 3)] forKey:(__bridge id)kSecAttrKeySizeInBits];
-    [dict setObject:[NSNumber numberWithUnsignedInt:(unsigned int)(kChosenCipherKeySize << 3)] forKey:(__bridge id)kSecAttrEffectiveKeySize];
+    NSMutableDictionary* kc_dict = [[NSMutableDictionary alloc] init];
+    [kc_dict setObject:(__bridge id)kSecClassKey forKey:(__bridge id)kSecClass];
+    [kc_dict setObject:application_tag forKey:(__bridge id)kSecAttrApplicationTag];
+    [kc_dict setObject:[NSNumber numberWithUnsignedInt:CSSM_ALGID_AES] forKey:(__bridge id)kSecAttrKeyType];
+    [kc_dict setObject:[NSNumber numberWithUnsignedInt:(unsigned int)(kChosenCipherKeySize << 3)] forKey:(__bridge id)kSecAttrKeySizeInBits];
+    [kc_dict setObject:[NSNumber numberWithUnsignedInt:(unsigned int)(kChosenCipherKeySize << 3)] forKey:(__bridge id)kSecAttrEffectiveKeySize];
     
     /* XXX TODO(aka) Don't know if we need these or not
      [dict setObject:(id)kCFBooleanTrue forKey:(__bridge id)kSecAttrCanEncrypt];
@@ -265,31 +297,49 @@ enum {
      [dict setObject:(id)kCFBooleanFalse forKey:(__bridge id)kSecAttrCanUnwrap];
      */
     
-    [dict setObject:symmetric_key forKey:(__bridge id)kSecValueData];
+    [kc_dict setObject:symmetric_key forKey:(__bridge id)kSecValueData];
     
     // Add the symmetric key to the keychain.
-    status = SecItemAdd((__bridge CFDictionaryRef)dict, NULL);
+    status = SecItemAdd((__bridge CFDictionaryRef)kc_dict, NULL);
     if (status != noErr) {
         if (status == errSecDuplicateItem) {
             if (kDebugLevel > 0)
-                NSLog(@"SymmetricKeysController:genSymmetricKey: SecItemAdd() returned errSecDuplicateItem using tag: %s.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+                NSLog(@"SymmetricKeysController:generateSymmetricKey: SecItemAdd() returned errSecDuplicateItem using tag: %s.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         } else {
-            NSLog(@"SymmetricKeysController:genSymmetricKey: SecItemAdd() failed using tag: %s, error: %d!", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]], (int)status);
-            return nil;
+            NSString* err_msg = [[NSString alloc] initWithFormat:@"SymmetricKeysController:generateSymmetricKey: SecItemAdd() failed using tag: %s, error: %d!", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]], (int)status];
+            return err_msg;
         }
     }
     
     if (kDebugLevel > 0)
-        NSLog(@"SymmetricKeysController:genSymmetricKey: returning %luB key using tag: %s.", (unsigned long)[symmetric_key length], [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        NSLog(@"SymmetricKeysController:generateSymmetricKey: returning %luB key using tag: %s.", (unsigned long)[symmetric_key length], [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
-    return symmetric_key;
+    // And finally, save the symmetric key and precision level in our local data members.
+    [_symmetric_keys setObject:symmetric_key forKey:policy];
+    NSLog(@"SymmetricKeysController:generateSymmetricKey: XXX After adding %@, key dictionary: (%ld).", policy, (unsigned long)[_symmetric_keys count]);
+    NSLog(@"SymmetricKeysController:generateSymmetricKey: XXX Before adding %@, policies = %ld.", policy, (unsigned long)[_policies count]);
+    [_policies addObject:policy];
+    NSLog(@"SymmetricKeysController:generateSymmetricKey: XXX After adding policy: %@, policies = %ld.", policy, (unsigned long)[_policies count]);
+    [PersonalDataController saveState:[[NSString alloc] initWithCString:kPolicyKeysFilename encoding:[NSString defaultCStringEncoding]] array:_policies];
+    
+    return nil;
 }
 
-- (BOOL) haveKeys {
+- (BOOL) haveAllKeys {
     if (kDebugLevel > 2)
-        NSLog(@"SymmetricKeysController:haveKeys: called.");
+        NSLog(@"SymmetricKeysController:haveAllKeys: called.");
     
-    if ([_symmetric_keys count] == kNumPrecisionLevels)
+    if ([_symmetric_keys count] == (kNumPrecisionLevels - 1))  // note "- 1", as we never have a key for PC_PRECISION_IDX_NONE
+        return true;
+    
+    return false;
+}
+
+- (BOOL) haveAnyKeys {
+    if (kDebugLevel > 2)
+        NSLog(@"SymmetricKeysController:haveAnyKeys: called.");
+    
+    if ([_symmetric_keys count] > 0)
         return true;
     
     return false;
@@ -348,7 +398,7 @@ enum {
  NSLog(@"SymmetricKeysController:loadDefaultData: SecItemCopyMatching() failed: %ld.", status);
  
  // Generate the symmetric key for this precision level.
- symmetric_key = [self genSymmetricKey:i];
+ symmetric_key = [self generateSymmetricKey:i];
  } else {
  symmetric_key = (__bridge_transfer NSData*)symmetric_key_ref;
  

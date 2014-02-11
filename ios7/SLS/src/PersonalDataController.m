@@ -6,7 +6,10 @@
 //  Copyright (c) 2012 Andrew K. Adams. All rights reserved.
 //
 
+#import <sys/time.h>
+
 #import <AWSS3/AWSS3.h>
+
 #import "NSData+Base64.h"
 
 #import "PersonalDataController.h"
@@ -23,7 +26,6 @@ static const int kChosenKeyBitSize = 1024;
 
 static const char* kPublicKeyExt = KC_QUERY_KEY_PUBLIC_KEY_EXT;
 static const char* kPrivateKeyExt = KC_QUERY_KEY_PRIVATE_KEY_EXT;
-static const char* kLocationDataFilename = URI_LOCATION_DATA_FILENAME;
 
 // Identity constants.
 static const char* kIdentityFilename = "identity.txt";
@@ -157,8 +159,7 @@ static const int kInitialDictionarySize = 5;
     // Load in our identity, keys, file store and deposit parameters (dictionary) from disk.
     
     // Get Document path.
-    NSArray* dir_list = 
-    NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSArray* dir_list = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSString* doc_dir = [dir_list objectAtIndex:0];
     
     // Build the identity filename and load it in (if it exists).
@@ -166,7 +167,7 @@ static const int kInitialDictionarySize = 5;
     
     // If it exists, load it in, else initialize an empty string.
     if ([[NSFileManager defaultManager] fileExistsAtPath:identity_file]) {
-        if (kDebugLevel > 0)
+        if (kDebugLevel > 1)
             NSLog(@"PersonalDataController:loadState: %s exists, initializing identity with contents.", [identity_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         
         NSError* status = nil;
@@ -205,7 +206,7 @@ static const int kInitialDictionarySize = 5;
     
     // If it exists, load it in, else initialize an empty dictionary.
     if ([[NSFileManager defaultManager] fileExistsAtPath:deposit_file]) {
-        if (kDebugLevel > 0)
+        if (kDebugLevel > 1)
             NSLog(@"PersonalDataController:loadState: %s exists, initializing deposit dictionary with contents.", [deposit_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         
         _deposit = [[NSMutableDictionary alloc] initWithContentsOfFile:deposit_file];
@@ -221,7 +222,7 @@ static const int kInitialDictionarySize = 5;
     
     // If it exists, load it in, else initialize an empty dictionary.
     if ([[NSFileManager defaultManager] fileExistsAtPath:fs_file]) {
-        if (kDebugLevel > 0)
+        if (kDebugLevel > 1)
             NSLog(@"PersonalDataController:loadState: %s exists, initializing file store dictionary with contents.", [fs_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         
         _file_store = [[NSMutableDictionary alloc] initWithContentsOfFile:fs_file];
@@ -244,14 +245,13 @@ static const int kInitialDictionarySize = 5;
     // Store our (newly) updated identity to disk.
 
     // Get Document path.
-    NSArray* dir_list = 
-    NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSArray* dir_list = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSString* doc_dir = [dir_list objectAtIndex:0];
     
     // Build the identity filename and write the identity out to disk.
     NSString* identity_file = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], kIdentityFilename];
     
-    if (kDebugLevel > 0)
+    if (kDebugLevel > 1)
         NSLog(@"PersonalDataController:saveIdentityState: writing updated identity to %s.", [identity_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     NSError* status = nil;
@@ -268,14 +268,13 @@ static const int kInitialDictionarySize = 5;
     // Store our (newly) updated file store dictionary to disk.
     
     // Get Document path.
-    NSArray* dir_list = 
-    NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSArray* dir_list = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSString* doc_dir = [dir_list objectAtIndex:0];
     
     // Build the file-store dictionary filename and write it out to disk.
     NSString* deposit_file = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], kDepositFilename];
     
-    if (kDebugLevel > 0)
+    if (kDebugLevel > 1)
         NSLog(@"PersonalDataController:saveDepositState: writing updated dictionary to %s.", [deposit_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     [_deposit writeToFile:deposit_file atomically:YES];
@@ -288,14 +287,13 @@ static const int kInitialDictionarySize = 5;
     // Store our (newly) updated file store dictionary to disk.
     
     // Get Document path.
-    NSArray* dir_list = 
-    NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSArray* dir_list = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSString* doc_dir = [dir_list objectAtIndex:0];
     
     // Build the file-store dictionary filename and write it out to disk.
     NSString* fs_file = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], kFSFilename];
     
-    if (kDebugLevel > 0)
+    if (kDebugLevel > 1)
         NSLog(@"PersonalDataController:saveFileStoreState: writing updated dictionary to %s.", [fs_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     [_file_store writeToFile:fs_file atomically:YES];
@@ -303,35 +301,110 @@ static const int kInitialDictionarySize = 5;
 
 #pragma mark - State Class functions
 
-+ (BOOL) loadStateBool:(NSString*)filename {
++ (void) saveState:(NSString*)filename boolean:(BOOL)boolean {
     if (kDebugLevel > 2)
-        NSLog(@"PersonalDataController:loadStateBool: called.");
+        NSLog(@"PersonalDataController:saveState:boolean: called.");
     
-    BOOL flag = false;
+    // Get Document path.
+    NSArray* dir_list = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString* doc_dir = [dir_list objectAtIndex:0];
+    
+    // Build the state filename and write it out to disk.
+    NSString* state_file = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], [filename cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:saveState:boolean: writing updated flag to %s.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    NSString* string = [NSString stringWithFormat:@"%d", boolean];
+    
+    NSError* status = nil;
+    [string writeToFile:state_file atomically:YES encoding:[NSString defaultCStringEncoding] error:&status];
+    
+    if (status != nil)
+        NSLog(@"PersonalDataControll:saveState:boolean: ERROR: writeToFile(%s) failed: %s.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]], [status.description cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+}
+
++ (void) saveState:(NSString*)filename string:(NSString*)string {
+    if (kDebugLevel > 2)
+        NSLog(@"PersonalDataController:saveState:string: called.");
+    
+    // Get Document path.
+    NSArray* dir_list = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString* doc_dir = [dir_list objectAtIndex:0];
+    
+    // Build the state filename and write it out to disk.
+    NSString* state_file = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], [filename cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+    if (kDebugLevel > 0)
+        NSLog(@"PersonalDataController:saveState:string: writing updated string to %s.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    
+    NSError* status = nil;
+    [string writeToFile:state_file atomically:YES encoding:[NSString defaultCStringEncoding] error:&status];
+    
+    if (status != nil)
+        NSLog(@"PersonalDataControll:saveState:string: ERROR: writeToFile(%s) failed: %s.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]], [status.description cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+}
+
++ (void) saveState:(NSString*)filename array:(NSArray*)array {
+    if (kDebugLevel > 2)
+        NSLog(@"PersonalDataController:saveState:array: called.");
+    
+    // Get Document path.
+    NSArray* dir_list = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString* doc_dir = [dir_list objectAtIndex:0];
+    
+    // Build the state filename and write it out to disk.
+    NSString* state_file = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], [filename cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+    if (kDebugLevel > 0)
+        NSLog(@"PersonalDataController:saveState:array: writing updated array to %s.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    
+    if (![array writeToFile:state_file atomically:YES])
+        NSLog(@"PersonalDataControll:saveState:array: ERROR: writeToFile(%s) failed.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+}
+
++ (void) saveState:(NSString*)filename dictionary:(NSDictionary*)dict {
+    if (kDebugLevel > 2)
+        NSLog(@"PersonalDataController:saveState:dictionary: called.");
     
     // Get Document path.
     NSArray* dir_list =
     NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSString* doc_dir = [dir_list objectAtIndex:0];
     
+    // Build the state filename and write it out to disk.
+    NSString* state_file = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], [filename cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+    if (kDebugLevel > 0)
+        NSLog(@"PersonalDataController:saveState:dictionary: writing updated string to %s.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    
+    if (![dict writeToFile:state_file atomically:YES])
+        NSLog(@"PersonalDataControll:saveState:dictionary: ERROR: writeToFile(%s) failed.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+}
+
++ (BOOL) loadStateBoolean:(NSString*)filename {
+    if (kDebugLevel > 2)
+        NSLog(@"PersonalDataController:loadStateBoolean: called.");
+    
+    BOOL flag = false;
+    
+    // Get Document path.
+    NSArray* dir_list = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString* doc_dir = [dir_list objectAtIndex:0];
+    
     // Build the state filename and load it into our NSString (if it exists).
     NSString* state_file = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], [filename cStringUsingEncoding:[NSString defaultCStringEncoding]]];
     if ([[NSFileManager defaultManager] fileExistsAtPath:state_file]) {
         if (kDebugLevel > 2)
-            NSLog(@"PersonalDataController:loadStateBool: %s exists, initializing sharing_enabled with contents.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            NSLog(@"PersonalDataController:loadStateBoolean: %s exists, initializing sharing_enabled with contents.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         
         NSError* status = nil;
         NSString* flag_str = [[NSString alloc] initWithContentsOfFile:state_file encoding:[NSString defaultCStringEncoding] error:&status];
         if (status != nil) {
-            NSLog(@"PersonalDataController:loadStateBool: ERROR: initWithContentsOfFile(%s) failed: %s.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]], [status.description cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            NSLog(@"PersonalDataController:loadStateBoolean: ERROR: initWithContentsOfFile(%s) failed: %s.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]], [status.description cStringUsingEncoding:[NSString defaultCStringEncoding]]);
             
             return false;
         }
         
         flag = [flag_str boolValue];
         
-        if (kDebugLevel > 0)
-            NSLog(@"PersonalDataController:loadStateBool: Initialized boolean state %d with the contents of: %s.", flag, [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:loadStateBoolean: Initialized boolean state %d with the contents of: %s.", flag, [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     }
     
     return flag;
@@ -344,15 +417,14 @@ static const int kInitialDictionarySize = 5;
     NSString* string = nil;
     
     // Get Document path.
-    NSArray* dir_list =
-    NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSArray* dir_list = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSString* doc_dir = [dir_list objectAtIndex:0];
     
     // Build the state filename and load it into our NSString (if it exists).
     NSString* state_file = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], [filename cStringUsingEncoding:[NSString defaultCStringEncoding]]];
     if ([[NSFileManager defaultManager] fileExistsAtPath:state_file]) {
         if (kDebugLevel > 2)
-            NSLog(@"PersonalDataController:loadStateString: %s exists, initializing sharing_enabled with contents.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            NSLog(@"PersonalDataController:loadStateString: %s exists, initializing string with contents.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         
         NSError* status = nil;
         string = [[NSString alloc] initWithContentsOfFile:state_file encoding:[NSString defaultCStringEncoding] error:&status];
@@ -362,54 +434,71 @@ static const int kInitialDictionarySize = 5;
             return nil;
         }
         
-        if (kDebugLevel > 0)
+        if (kDebugLevel > 1)
             NSLog(@"PersonalDataController:loadStateString: Initialized string state %s with the contents of: %s.", [string cStringUsingEncoding:[NSString defaultCStringEncoding]], [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     }
     
     return string;
 }
 
-+ (void) saveState:(NSString*)filename Bool:(BOOL)boolean {
++ (NSArray*) loadStateArray:(NSString*)filename {
     if (kDebugLevel > 2)
-        NSLog(@"PersonalDataController:saveState:Bool: called.");
+        NSLog(@"PersonalDataController:loadStateArray: called.");
+    
+    NSMutableArray* array = nil;
     
     // Get Document path.
-    NSArray* dir_list =
-    NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSArray* dir_list = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSString* doc_dir = [dir_list objectAtIndex:0];
     
-    // Build the state filename and write it out to disk.
+    // Build the state filename and load it into our NSString (if it exists).
     NSString* state_file = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], [filename cStringUsingEncoding:[NSString defaultCStringEncoding]]];
-    if (kDebugLevel > 0)
-        NSLog(@"PersonalDataController:saveState:Bool: writing updated download flag to %s.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
-    NSString* string = [NSString stringWithFormat:@"%d", boolean];
+    if ([[NSFileManager defaultManager] fileExistsAtPath:state_file]) {
+        if (kDebugLevel > 2)
+            NSLog(@"PersonalDataController:loadStateArray: %s exists, initializing array with contents.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        
+        array = [[NSMutableArray alloc] initWithContentsOfFile:state_file];
+        if (array == nil) {
+            NSLog(@"PersonalDataController:loadStateArray: ERROR: initWithContentsOfFile(%s) failed.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            
+            return nil;
+        }
+        
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:loadStateArray: Initialized array with the %lu items in: %s.", (unsigned long)[array count], [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    }
     
-    NSError* status = nil;
-    [string writeToFile:state_file atomically:YES encoding:[NSString defaultCStringEncoding] error:&status];
-    
-    if (status != nil)
-        NSLog(@"PersonalDataControll:saveState:Bool: ERROR: writeToFile(%s) failed: %s.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]], [status.description cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    return array;
 }
 
-+ (void) saveState:(NSString*)filename string:(NSString*)string {
++ (NSDictionary*) loadStateDictionary:(NSString*)filename {
     if (kDebugLevel > 2)
-        NSLog(@"PersonalDataController:saveState:String: called.");
+        NSLog(@"PersonalDataController:loadStateDictionary: called.");
+    
+    NSMutableDictionary* dict = nil;
     
     // Get Document path.
-    NSArray* dir_list =
-    NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSArray* dir_list = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSString* doc_dir = [dir_list objectAtIndex:0];
     
-    // Build the state filename and write it out to disk.
+    // Build the state filename and load it into our NSString (if it exists).
     NSString* state_file = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], [filename cStringUsingEncoding:[NSString defaultCStringEncoding]]];
-    if (kDebugLevel > 0)
-        NSLog(@"PersonalDataController:saveState:String: writing updated download flag to %s.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    if ([[NSFileManager defaultManager] fileExistsAtPath:state_file]) {
+        if (kDebugLevel > 2)
+            NSLog(@"PersonalDataController:loadStateDictionary: %s exists, initializing array with contents.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        
+        dict = [[NSMutableDictionary alloc] initWithContentsOfFile:state_file];
+        if (dict == nil) {
+            NSLog(@"PersonalDataController:loadStateDictionary: ERROR: initWithContentsOfFile(%s) failed.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            
+            return nil;
+        }
+        
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:loadStateDictionary: Initialized dictionary with the %lu items in: %s.", (unsigned long)[dict count], [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    }
     
-    NSError* status = nil;
-    [string writeToFile:state_file atomically:YES encoding:[NSString defaultCStringEncoding] error:&status];
-    
-    if (status != nil)
-        NSLog(@"PersonalDataControll:saveState:String: ERROR: writeToFile(%s) failed: %s.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]], [status.description cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    return dict;
 }
 
 #pragma mark - Cryptography Management
@@ -518,7 +607,7 @@ static const int kInitialDictionarySize = 5;
     }
 
     // If we made it here, everything went smoothly.
-    if (kDebugLevel > 0)
+    if (kDebugLevel > 1)
         NSLog(@"PersonalDataController:getAsymmetricKeys: got both keys from key-chain.");
 
     /*
@@ -607,7 +696,7 @@ static const int kInitialDictionarySize = 5;
     NSString* private_key_identity = [_identity stringByAppendingFormat:@"%s", kPrivateKeyExt];
     NSData* pri_application_tag = [private_key_identity dataUsingEncoding:[NSString defaultCStringEncoding]];
     
-    if (kDebugLevel > 0)
+    if (kDebugLevel > 1)
         NSLog(@"PersonalDataController:genAsymmetricKeys: using public identity: %s, private identity: %s.", [public_key_identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [private_key_identity cStringUsingEncoding: [NSString defaultCStringEncoding]]);
     
     // If either already exists in key-chain, remove them.
@@ -818,7 +907,7 @@ static const int kInitialDictionarySize = 5;
         return error_msg;
     }
     
-    if (kDebugLevel > 0) {
+    if (kDebugLevel > 1) {
         // For Debugging: Get all the attributes associated with our match.
         
         // Setup the asymmetric key query dictionary.
@@ -882,7 +971,7 @@ static const int kInitialDictionarySize = 5;
     if (kDebugLevel > 2)
         NSLog(@"PersonalDataController:queryKeyData: called.");
     
-    if (kDebugLevel > 0) {
+    if (kDebugLevel > 1) {
         // For Debugging: Get all the attributes associated with our match.
         
         // Setup the asymmetric key query dictionary.
@@ -930,7 +1019,7 @@ static const int kInitialDictionarySize = 5;
     
     *key_data = (__bridge_transfer NSData*)key_data_ref;
     
-    if (kDebugLevel > 0)
+    if (kDebugLevel > 1)
         NSLog(@"PersonalDataController:queryKeyData: SecItemCopyMatching() call successful using tag: %s, returning %lub key.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]], (unsigned long)[*key_data length]);
     
     return nil;
@@ -967,7 +1056,7 @@ static const int kInitialDictionarySize = 5;
     
     NSData* key = (__bridge_transfer NSData*)key_data_ref;
     
-    if (kDebugLevel > 0)
+    if (kDebugLevel > 1)
         NSLog(@"PersonalDataController:queryKeyData: SecItemCopyMatching() call successful using tag: %s, returning %db key.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]], [key length]);
     
     return key;
@@ -978,7 +1067,7 @@ static const int kInitialDictionarySize = 5;
     if (kDebugLevel > 2)
         NSLog(@"PersonalDataController:saveKeyData: called.");
     
-    if (kDebugLevel > 0)
+    if (kDebugLevel > 1)
         NSLog(@"PersonalDataController:saveKeyData: using %luB key and tag: %s.", (unsigned long)[key_data length], [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     // First, see if *an* object is already in the key-chain with the same applicatino tag, if so, remove it, because I don't think SecItemAdd() will overwrite an object.
@@ -992,7 +1081,7 @@ static const int kInitialDictionarySize = 5;
         [PersonalDataController deleteKeyRef:application_tag];
         
         // Make sure the delete did what we think it did.
-        if (kDebugLevel > 0) {
+        if (kDebugLevel > 1) {
             // For Debugging: Get all the attributes associated with our match.
             
             // Setup the asymmetric key query dictionary.
@@ -1044,7 +1133,7 @@ static const int kInitialDictionarySize = 5;
     
     // XXX if (persistKey != nil) CFRelease(persistKey);
     
-    if (kDebugLevel > 0)
+    if (kDebugLevel > 1)
         NSLog(@"PersonalDataController:saveKeyData:withTag: added %luB key using tag: %s.", (unsigned long)[key_data length], [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     return nil;
@@ -1068,7 +1157,7 @@ static const int kInitialDictionarySize = 5;
         return;
     }
     
-    if (kDebugLevel > 0)
+    if (kDebugLevel > 1)
         NSLog(@"PersonalDataController:deleteKeyRef: SecItemDeleteKey() successful for tag: %s.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
 }
 
@@ -1130,6 +1219,96 @@ static const int kInitialDictionarySize = 5;
     return hash;
 }
 
++ (NSString*) hashSHA256String:(NSString*)string {
+    if (kDebugLevel > 2)
+        NSLog(@"PersonalDataController:hashSHA256String: called.");
+    
+    // Convert our string to data.
+    NSData* data = [string dataUsingEncoding:[NSString defaultCStringEncoding]];
+    
+    // XXX TODO(aka) At this point, why not call hashSHA265Data: ?
+    
+    // Get a buffer to hold the hashed string.
+    uint8_t* hash_buf = (uint8_t*)malloc(CC_SHA256_DIGEST_LENGTH * sizeof(uint8_t));
+    memset((void*)hash_buf, 0x0, CC_SHA256_DIGEST_LENGTH);
+    
+    // Initialize the Common-Crypto SHA256 context and execute the hash.
+    CC_SHA256_CTX ctx;
+    CC_SHA256_Init(&ctx);
+    CC_SHA256_Update(&ctx, (void*)[data bytes], (CC_LONG)[data length]);
+    CC_SHA256_Final(hash_buf, &ctx);
+    
+    // Convert the hash buffer to a NSString for consumption.
+    NSMutableString* hash = [NSMutableString stringWithCapacity:(CC_SHA256_DIGEST_LENGTH * 2)];
+    for(int i = 0; i < CC_SHA256_DIGEST_LENGTH; ++i)
+        [hash appendFormat:@"%02x", hash_buf[i]];  // change to hex
+    
+    if (hash_buf)
+        free(hash_buf);
+    
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:hashSHA256String: genenerated %s.", [hash cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    
+    return hash;
+}
+
++ (NSData*) hashSHA256DataToData:(NSData*)data {
+    if (kDebugLevel > 2)
+        NSLog(@"PersonalDataController:hashSHA256DataToData: called.");
+    
+    // Get a buffer to hold the hashed string.
+    uint8_t* hash_buf = (uint8_t*)malloc(CC_SHA256_DIGEST_LENGTH * sizeof(uint8_t));
+    memset((void*)hash_buf, 0x0, CC_SHA256_DIGEST_LENGTH);
+    
+    // Initialize the Common-Crypto SHA256 context and execute the hash.
+    CC_SHA256_CTX ctx;
+    CC_SHA256_Init(&ctx);
+    CC_SHA256_Update(&ctx, (void*)[data bytes], (CC_LONG)[data length]);
+    CC_SHA256_Final(hash_buf, &ctx);
+    
+    // Convert the hash buffer to a NSData for consumption.
+    NSData* hash = [NSData dataWithBytes:(const void *)hash_buf length:(NSUInteger)CC_SHA256_DIGEST_LENGTH];
+    
+    if (hash_buf)
+        free(hash_buf);
+    
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:hashSHA256DataToData: genenerated %ld byte hash.", (unsigned long)[hash length]);
+    
+    return hash;
+}
+
++ (NSData*) hashSHA256StringToData:(NSString*)string {
+    if (kDebugLevel > 2)
+        NSLog(@"PersonalDataController:hashSHA256StringToData: called.");
+    
+    // Convert our string to data.
+    NSData* data = [string dataUsingEncoding:[NSString defaultCStringEncoding]];
+    
+    // XXX TODO(aka) Again, why not call hashSHA256DataToData: at this point?
+    
+    // Get a buffer to hold the hashed string.
+    uint8_t* hash_buf = (uint8_t*)malloc(CC_SHA256_DIGEST_LENGTH * sizeof(uint8_t));
+    memset((void*)hash_buf, 0x0, CC_SHA256_DIGEST_LENGTH);
+    
+    // Initialize the Common-Crypto SHA256 context and execute the hash.
+    CC_SHA256_CTX ctx;
+    CC_SHA256_Init(&ctx);
+    CC_SHA256_Update(&ctx, (void*)[data bytes], (CC_LONG)[data length]);
+    CC_SHA256_Final(hash_buf, &ctx);
+    
+    // Convert the hash buffer to a NSData for consumption.
+    NSData* hash = [NSData dataWithBytes:(const void *)hash_buf length:(NSUInteger)CC_SHA256_DIGEST_LENGTH];
+    
+    if (hash_buf)
+        free(hash_buf);
+    
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:hashSHA256StringToData: genenerated %ld byte hash.", (unsigned long)[hash length]);
+    
+    return hash;
+}
+
 + (NSString*) hashMD5Data:(NSData*)data {
     if (kDebugLevel > 2)
         NSLog(@"PersonalDataController:hashMD5Data: called.");
@@ -1187,37 +1366,33 @@ static const int kInitialDictionarySize = 5;
     if (hash_buf)
         free(hash_buf);
     
-    if (kDebugLevel > 0)
+    if (kDebugLevel > 1)
         NSLog(@"PersonalDataController:hashMD5String: genenerated %s.", [hash cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     return hash;
 }
 
-+ (NSData*) encryptSymmetricKey:(NSData*)symmetric_key publicKeyRef:(SecKeyRef)public_key_ref {
++ (NSString*) asymmetricEncryptData:(NSData*)data publicKeyRef:(SecKeyRef)public_key_ref encryptedData:(NSData**)encrypted_data {
     if (kDebugLevel > 2)
-        NSLog(@"PersonalDataController:encryptSymmetricKey:publicKeyRef: called.");
+        NSLog(@"PersonalDataController:asymmetricEncryptData: called.");
     
-    if (symmetric_key == nil) {
-        NSLog(@"PersonalDataController:encryptSymmetricKey:publicKeyRef: ERROR: Symmetric key is nil.");
-        return nil;
-    } else {
-        if (kDebugLevel > 0)
-            NSLog(@"PersonalDataController:encryptSymmetricKey:publicKeyRef: symmetric key: %luB.", (unsigned long)[symmetric_key length]);
-    }
+    if (data == nil)
+       return @"PersonalDataController:asymmetricEncryptData: ERROR: Symmetric key is nil.";
+
+    if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:asymmetricEncryptData: symmetric key: %luB.", (unsigned long)[data length]);
     
-    if (public_key_ref == NULL) {
-        NSLog(@"PersonalDataController:encryptSymmetricKey:publicKeyRef: ERROR: Public key is nil.");
-        return nil;
-    }
+    if (public_key_ref == NULL)
+        return @"PersonalDataController:asymmetricEncryptData: ERROR: Public key is nil.";
     
     // Calculate the buffer sizes.
-    size_t plain_text_buf_size = [symmetric_key length];
+    size_t plain_text_buf_size = [data length];
     size_t cipher_block_size = SecKeyGetBlockSize(public_key_ref);
     
     // Note, when using pkcs1 padding (which we are), the maximum amount of data we can encrypt is 11 bytes less than the block length associated with the public key.
     
     if (plain_text_buf_size > (cipher_block_size - 11)) {
-        NSLog(@"PersonalDataController:encryptSymmetricKey:publicKeyRef: TODO(aka) symmetric key (%ld) is too large for the public key's block size %ld (- 11).", plain_text_buf_size, cipher_block_size);
+        NSLog(@"PersonalDataController:asymmetricEncryptData: TODO(aka) symmetric key (%ld) is too large for the public key's block size %ld (- 11).", plain_text_buf_size, cipher_block_size);
         return nil;
     }
     
@@ -1227,7 +1402,7 @@ static const int kInitialDictionarySize = 5;
     uint8_t* cipher_text_buf = NULL;
     cipher_text_buf = (uint8_t*)malloc(cipher_text_buf_size * sizeof(uint8_t));
     if (cipher_text_buf == NULL) {
-        NSLog(@"PersonalDataController:encryptSymmetricKey:publicKeyRef: unable to malloc cipher text buffer.");
+        NSLog(@"PersonalDataController:asymmetricEncryptData: unable to malloc cipher text buffer.");
         return nil;
     }
     memset((void*)cipher_text_buf, 0x0, cipher_text_buf_size);
@@ -1236,95 +1411,16 @@ static const int kInitialDictionarySize = 5;
     OSStatus sanityCheck = noErr;
     sanityCheck = SecKeyEncrypt(public_key_ref,
                                 kSecPaddingPKCS1,
-                                (const uint8_t*)[symmetric_key bytes],
+                                (const uint8_t*)[data bytes],
                                 plain_text_buf_size,
                                 cipher_text_buf,
                                 &cipher_text_buf_size
                                 );
-    if (sanityCheck != noErr) {
-        NSLog(@"PersonalDataController:encryptSymmetricKey:publicKeyRef: ERROR: SecKeyEncrypt() failed: %d.", (int)sanityCheck);
-        return nil;
-    }
+    if (sanityCheck != noErr)
+        return [[NSString alloc] initWithFormat:@"PersonalDataController:asymmetricEncryptData: ERROR: SecKeyEncrypt() failed: %d.", (int)sanityCheck];
     
     // Encode cipher text as a NSData object.
-    NSData* cipher = [NSData dataWithBytes:(const void*)cipher_text_buf length:(NSUInteger)cipher_text_buf_size];
-    
-    if (cipher_text_buf)
-        free(cipher_text_buf);
-    
-    return cipher;
-}
-
-+ (NSString*) encryptString:(NSString*)string publicKeyRef:(SecKeyRef)public_key_ref encryptedString:(NSString**)encrypted_string_b64 {
-    if (kDebugLevel > 2)
-        NSLog(@"PersonalDataController:encryptString:publicKeyRef: called.");
-    
-    if (string == nil) {
-        return @"PersonalDataController:encryptString:publicKeyRef: ERROR: string is nil.";
-    } else {
-        if (kDebugLevel > 0)
-            NSLog(@"PersonalDataController:encryptString:publicKeyRef: encrypting %s.", [string cStringUsingEncoding:[NSString defaultCStringEncoding]]);
-    }
-    
-    if (public_key_ref == NULL) {
-        return @"PersonalDataController:encryptString:publicKeyRef: ERROR: public key is NULL.";
-    }
-    
-    // Convert the NSString to a NSData.
-    NSData* plain_text = [string dataUsingEncoding:NSUTF8StringEncoding];
-    
-    // Calculate the buffer sizes.
-    size_t plain_text_buf_size = [plain_text length];
-    size_t cipher_block_size = SecKeyGetBlockSize(public_key_ref);
-    
-    // Note, when using pkcs1 padding (which we are), the maximum amount of data we can encrypt is 11 bytes less than the block length associated with the public key.
-    
-    if (plain_text_buf_size > (cipher_block_size - 11)) {
-        NSString* error_msg = [[NSString alloc] initWithFormat:@"PersonalDataController:encryptString:publicKeyRef: TODO(aka) symmetric key (%ld) is too large for the public key's block size %ld (- 11).", plain_text_buf_size, cipher_block_size];
-        return error_msg;
-    }
-    
-    size_t cipher_text_buf_size = cipher_block_size;  // to avoid confusion later on
-    
-    // Allocate the cipher text buffer.
-    uint8_t* cipher_text_buf = NULL;
-    cipher_text_buf = (uint8_t*)malloc(cipher_text_buf_size * sizeof(uint8_t));
-    if (cipher_text_buf == NULL) {
-        NSString* error_msg = [[NSString alloc] initWithFormat:@"PersonalDataController:encryptString:publicKeyRef: unable to malloc cipher text buffer."];
-        return error_msg;
-    }
-    memset((void*)cipher_text_buf, 0x0, cipher_text_buf_size);
-    
-    // Encrypt using the public key.
-    OSStatus sanityCheck = noErr;
-    sanityCheck = SecKeyEncrypt(public_key_ref,
-                                kSecPaddingPKCS1,
-                                (const uint8_t*)[plain_text bytes],
-                                plain_text_buf_size,
-                                cipher_text_buf,
-                                &cipher_text_buf_size
-                                );
-    if (sanityCheck != noErr) {
-        NSString* error_msg = [[NSString alloc] initWithFormat:@"PersonalDataController:encryptString:publicKeyRef: ERROR: SecKeyEncrypt() failed: %d.", (int)sanityCheck];
-        if (cipher_text_buf)
-            free(cipher_text_buf);
-        
-        return error_msg;
-    }
-    
-    // Encode cipher text buffer as a NSData object, then convert it to the passed in NSString.
-    NSData* cipher_text = [NSData dataWithBytes:(const void*)cipher_text_buf length:(NSUInteger)cipher_text_buf_size];
-    
-#if 0
-    // For Debugging: I don't understand the difference in encodings here ...
-    NSLog(@"PersonalDataController:encryptString:publicKeyRef: cipher text(%d) with default encoding: %s.", [cipher_text length], [[[NSString alloc] initWithData:cipher_text encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
-    NSLog(@"PersonalDataController:encryptString:publicKeyRef: cipher text(%d) with UTF8 encoding: %s.", [cipher_text length], [[[NSString alloc] initWithData:cipher_text encoding:NSUTF8StringEncoding] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
-#endif
-    
-    *encrypted_string_b64 = [cipher_text base64EncodedString];
-    
-    if (kDebugLevel > 0)
-        NSLog(@"PersonalDataController:encryptString:publicKeyRef: encrypted string %s.", [*encrypted_string_b64 cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    *encrypted_data = [NSData dataWithBytes:(const void*)cipher_text_buf length:(NSUInteger)cipher_text_buf_size];
     
     if (cipher_text_buf)
         free(cipher_text_buf);
@@ -1332,33 +1428,228 @@ static const int kInitialDictionarySize = 5;
     return nil;
 }
 
-+ (NSData*) encryptLocationData:(NSData*)location_data dataSize:(size_t)data_size symmetricKey:(NSData*) symmetric_key {
++ (NSString*) asymmetricDecryptData:(NSData*)encrypted_data privateKeyRef:(SecKeyRef)private_key_ref data:(NSData**)data  {
     if (kDebugLevel > 2)
-        NSLog(@"PersonalDataController:encryptLocationData:dataSize:symmetricKey: called.");
+        NSLog(@"PersonalDataController:asymmetricDecryptData: called.");
+    
+    if (encrypted_data == nil)
+        return @"PersonalDataController:asymmetricDecryptData: data is nil!";
+    
+    if (private_key_ref == NULL)
+        return @"PersonalDataController:asymmetricDecryptData: private key is nil!";
+    
+    // Calculate the buffer sizes.
+    size_t cipher_block_size = SecKeyGetBlockSize(private_key_ref);
+    size_t decryption_buf_size = [encrypted_data length];  // key will be same length
+    
+    // Note, when using pkcs1 padding (which we are), the maximum amount of data we can encrypt is 11 bytes less than the block length associated with the public key.
+    
+    if (decryption_buf_size > cipher_block_size)
+        return [[NSString alloc] initWithFormat:@"PersonalDataController:asymmetricDecryptData: TODO(aka) encrypted symmetric key (%ld) is too large for the private key's block size %ld.", decryption_buf_size, cipher_block_size];
+    
+    // Allocate the decryption buffer.
+    uint8_t* decryption_buf = NULL;
+    decryption_buf = (uint8_t*)malloc(decryption_buf_size * sizeof(uint8_t));
+    if (decryption_buf == NULL)
+        return @"PersonalDataController:asymmetricDecryptData: unable to malloc cipher text buffer.";
+    
+    memset((void*)decryption_buf, 0x0, decryption_buf_size);
+    
+    // Decrypt using the private key.
+    OSStatus status = noErr;
+    status = SecKeyDecrypt(private_key_ref,
+                           kSecPaddingPKCS1,
+                           (const uint8_t*)[encrypted_data bytes],
+                           cipher_block_size,
+                           decryption_buf,
+                           &decryption_buf_size
+                           );
+    if (status != noErr)
+        return [[NSString alloc] initWithFormat:@"PersonalDataController:asymmetricDecryptData: ERROR: SecKeyDecrypt() failed: %d.", (int)status];
+    
+    // Encode symmetric key as a NSData object.
+    *data = [NSData dataWithBytes:(const void*)decryption_buf length:(NSUInteger)decryption_buf_size];
+    
+    if (decryption_buf)
+        free(decryption_buf);
+    
+    return nil;
+}
+
++ (NSString*) asymmetricEncryptString:(NSString*)plain_text publicKeyRef:(SecKeyRef)public_key_ref encryptedString:(NSString**)cipher_text_b64 {
+    if (kDebugLevel > 2)
+        NSLog(@"PersonalDataController:asymmetricEncryptString: called.");
+    
+    if (plain_text == nil)
+        return @"PersonalDataController:asymmetricEncryptString: ERROR: string is nil.";
+    
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:asymmetricEncryptString: encrypting %s.", [plain_text cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    
+    if (public_key_ref == NULL)
+        return @"PersonalDataController:asymmetricEncryptString: ERROR: public key is NULL.";
+    
+    // Convert the NSString to a NSData.
+    NSData* plain_text_data = [plain_text dataUsingEncoding:NSUTF8StringEncoding];
+    
+    // Calculate the buffer sizes.
+    size_t plain_text_buf_size = [plain_text_data length];
+    size_t cipher_block_size = SecKeyGetBlockSize(public_key_ref);
+    
+    // Note, when using pkcs1 padding (which we are), the maximum amount of data we can encrypt is 11 bytes less than the block length associated with the public key.
+    
+    if (plain_text_buf_size > (cipher_block_size - 11)) {
+        NSString* error_msg = [[NSString alloc] initWithFormat:@"PersonalDataController:asymmetricEncryptString: TODO(aka) symmetric key (%ld) is too large for the public key's block size %ld (- 11).", plain_text_buf_size, cipher_block_size];
+        return error_msg;
+    }
+    
+    size_t cipher_text_buf_size = cipher_block_size;  // to avoid confusion later on
+    
+    // Allocate the cipher text buffer.
+    uint8_t* cipher_text_buf = NULL;
+    cipher_text_buf = (uint8_t*)malloc(cipher_text_buf_size * sizeof(uint8_t));
+    if (cipher_text_buf == NULL) {
+        NSString* error_msg = [[NSString alloc] initWithFormat:@"PersonalDataController:asymmetricEncryptString: unable to malloc cipher text buffer."];
+        return error_msg;
+    }
+    memset((void*)cipher_text_buf, 0x0, cipher_text_buf_size);
+    
+    // Encrypt using the public key.
+    OSStatus sanityCheck = noErr;
+    sanityCheck = SecKeyEncrypt(public_key_ref,
+                                kSecPaddingPKCS1,
+                                (const uint8_t*)[plain_text_data bytes],
+                                plain_text_buf_size,
+                                cipher_text_buf,
+                                &cipher_text_buf_size
+                                );
+    if (sanityCheck != noErr) {
+        NSString* error_msg = [[NSString alloc] initWithFormat:@"PersonalDataController:asymmetricEncryptString: ERROR: SecKeyEncrypt() failed: %d.", (int)sanityCheck];
+        if (cipher_text_buf)
+            free(cipher_text_buf);
+        
+        return error_msg;
+    }
+    
+    // Encode cipher text buffer as a NSData object, then convert it to the passed in NSString.
+    NSData* cipher_text_data = [NSData dataWithBytes:(const void*)cipher_text_buf length:(NSUInteger)cipher_text_buf_size];
+    
+#if 0
+    // For Debugging: I don't understand the difference in encodings here ...
+    NSLog(@"PersonalDataController:asymmetricEncryptString: cipher text(%d) with default encoding: %s.", [cipher_text_data length], [[[NSString alloc] initWithData:cipher_text encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    NSLog(@"PersonalDataController:asymmetricEncryptString: cipher text(%d) with UTF8 encoding: %s.", [cipher_text_data length], [[[NSString alloc] initWithData:cipher_text encoding:NSUTF8StringEncoding] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+#endif
+    
+    *cipher_text_b64 = [cipher_text_data base64EncodedString];
+    
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:asymmetricEncryptString: encrypted string %s.", [*cipher_text_b64 cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    
+    if (cipher_text_buf)
+        free(cipher_text_buf);
+    
+    return nil;
+}
+
++ (NSString*) asymmetricDecryptString:(NSString*)cipher_text_b64 privateKeyRef:(SecKeyRef)private_key_ref string:(NSString**)plain_text {
+    if (kDebugLevel > 2)
+        NSLog(@"PersonalDataController:asymmetricDecryptString: called.");
+    
+    if (cipher_text_b64 == nil)
+        return @"PersonalDataController:asymmetricDecryptString: cipher-text is nil!";
+    
+    if (private_key_ref == NULL)
+        return @"PersonalDataController:asymmetricDecryptString: private key is nil!";
+    
+    // Convert our base64 NSString to a NSData.
+    NSData* encrypted_data = [NSData dataFromBase64String:cipher_text_b64];
+    
+#if 1
+    // Call asymmetricDecryptData() to get the work done.
+    NSData* data = nil;
+    NSString* err_msg = [PersonalDataController asymmetricDecryptData:encrypted_data privateKeyRef:private_key_ref data:&data];
+    if (err_msg != nil)
+        return err_msg;
+    *plain_text = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    
+#else
+    // TODO(aka) If decryptSymmetricKey() was actually decryptData(), then we could simply call that routine at this point!
+    
+    // Calculate the buffer sizes.
+    size_t cipher_block_size = SecKeyGetBlockSize(private_key_ref);
+    size_t decryption_buf_size = [encrypted_data length];  // unencrypted data will be no bigger
+    
+    // Note, when using pkcs1 padding (which we are), the maximum amount of data we can encrypt is 11 bytes less than the block length associated with the public key.
+    
+    if (decryption_buf_size > cipher_block_size) {
+        NSString* error_msg = [[NSString alloc] initWithFormat:@"PersonalDataController:asymmetricDecryptString: TODO(aka) encrypted symmetric key (%ld) is too large for the private key's block size %ld.", decryption_buf_size, cipher_block_size];
+        return error_msg;
+    }
+    
+    // Allocate the decryption buffer.
+    uint8_t* decryption_buf = NULL;
+    decryption_buf = (uint8_t*)malloc(decryption_buf_size * sizeof(uint8_t));
+    if (decryption_buf == NULL) {
+        return @"PersonalDataController:asymmetricDecryptString: unable to malloc cipher text buffer.";
+    }
+    memset((void*)decryption_buf, 0x0, decryption_buf_size);
+    
+    // Decrypt using the private key.
+    OSStatus status = noErr;
+    status = SecKeyDecrypt(private_key_ref,
+                           kSecPaddingPKCS1,
+                           (const uint8_t*)[encrypted_data bytes],
+                           cipher_block_size,
+                           decryption_buf,
+                           &decryption_buf_size
+                           );
+    if (status != noErr) {
+        if (decryption_buf)
+            free(decryption_buf);
+        
+        NSString* error_msg = [[NSString alloc] initWithFormat:@"PersonalDataController:asymmetricDecryptString: ERROR: SecKeyDecrypt() failed: %d.", (int)status];
+        return error_msg;
+    }
+    
+    // Encode the decrypted buf as a NSData object, then convert it to the passed in NSString.
+    NSData* data = [NSData dataWithBytes:(const void*)decryption_buf length:(NSUInteger)decryption_buf_size];
+    *plain_text = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    
+    if (decryption_buf)
+        free(decryption_buf);
+    
+#endif
+    
+    return nil;
+}
+
++ (NSString*) symmetricEncryptData:(NSData*)data symmetricKey:(NSData*)symmetric_key encryptedData:(NSData**)encrypted_data {
+    if (kDebugLevel > 2)
+        NSLog(@"PersonalDataController:symmetricEncryptData:symmetricKey:encryptedData: called.");
     
     // Encrypt with symmetric key (using the CommonCrypto library).
     if (kDebugLevel > 2)
-        NSLog(@"PersonalDataController:encryptLocationData:dataSize:symmetricKey: cipher block size: %ld, plain text size: %ld.", kChosenCipherBlockSize, data_size);
+        NSLog(@"PersonalDataController:symmetricEncryptData: cipher block size: %ld, plain text size: %ld.", kChosenCipherBlockSize, (unsigned long)[data length]);
     
     // Setup an initialization vector.
     uint8_t iv[kChosenCipherBlockSize];
     if (SecRandomCopyBytes(kSecRandomDefault, kChosenCipherBlockSize, iv) != 0) {
-        NSLog(@"PersonalDataController:encryptLocationData:dataSize:symmetricKey: ERROR: TODO(aka) unable to generate IV!");
-        memset((void*)iv, 0x0, (size_t)sizeof(iv));  // make it all zeros, for now
+        return @"PersonalDataController:symmetricEncryptData: ERROR: SecRandomCopyBytes() unable to generate IV!";
+        // memset((void*)iv, 0x0, (size_t)sizeof(iv));  // make it all zeros, for now
     }
     
     // Set aside space for the cipher-text buffer.  Note, this is guarenteed to be no bigger than the plain-text size plus one cipher-block size (for a block cipher).
     
     // TODO(aka) We can use CCCryptorGetOutputLength() to get the exact amount we need, but that requires setting up a CCCryptor reference first (via CCCryptorCreate()).
     
-    size_t cipher_buf_size = [location_data length] + kChosenCipherBlockSize;
+    size_t cipher_buf_size = [data length] + kChosenCipherBlockSize;
     uint8_t* cipher_text = (uint8_t*)malloc(cipher_buf_size * sizeof(uint8_t));
-    if (cipher_text == NULL) {
-        NSLog(@"PersonalDataController:encryptLocationData:dataSize:symmetricKey: ERROR: TODO(aka) unable to malloc cipher-text buffer for encryption!");
-        return nil;
-    }
+    if (cipher_text == NULL)
+        return @"PersonalDataController:symmetricEncryptData: ERROR: TODO(aka) unable to malloc cipher-text buffer for encryption!";
     
     size_t bytes_encrypted = 0;  // number of bytes moved into cipher-text buffer
+    
+    // Encrypt with the symmetric key.
     CCCryptorStatus ccStatus = kCCSuccess;
     ccStatus = CCCrypt(kCCEncrypt,
                        kCCAlgorithmAES128,
@@ -1366,39 +1657,47 @@ static const int kInitialDictionarySize = 5;
                        (const void*)[symmetric_key bytes],
                        kChosenCipherKeySize,
                        iv,
-                       (const void*)[location_data bytes],
-                       [location_data length],
+                       (const void*)[data bytes],
+                       [data length],
                        (void*)cipher_text,
                        cipher_buf_size,
                        &bytes_encrypted
                        );
     
+    NSString* error_msg = nil;
     switch (ccStatus) {
         case kCCSuccess:
             if (kDebugLevel > 1)
-                NSLog(@"PersonalDataController:encryptLocationData:dataSize:symmetricKey: Encrypted %ld bytes of cipher text.", bytes_encrypted);
+                NSLog(@"PersonalDataController:symmetricEncryptData: Encrypted %ld bytes of cipher text.", bytes_encrypted);
             break;
         case kCCParamError: // illegal parameter value
-            NSLog(@"PersonalDataController:encryptLocationData:dataSize:symmetricKey: CCCrypt() status kCCParamError!");
+            error_msg = @"PersonalDataController:symmetricEncryptData: CCCrypt() status kCCParamError!";
             break;
         case kCCBufferTooSmall: // insufficent buffer provided for specified operation
-            NSLog(@"PersonalDataController:encryptLocationData:dataSize:symmetricKey: CCCrypt() status kCCBufferTooSmall!");
+            error_msg = @"PersonalDataController:symmetricEncryptData: CCCrypt() status kCCBufferTooSmall!";
             break;
         case kCCMemoryFailure:  // memory allocation failure
-            NSLog(@"PersonalDataController:encryptLocationData:dataSize:symmetricKey: CCCrypt() status kCCMemoryFailure!");
+            error_msg = @"PersonalDataController:symmetricEncryptData: CCCrypt() status kCCMemoryFailure!";
             break;
         case kCCAlignmentError:  // input size was not aligned properly
-            NSLog(@"PersonalDataController:encryptLocationData:dataSize:symmetricKey: CCCrypt() status kCCAlignmentError!");
+            error_msg = @"PersonalDataController:symmetricEncryptData: CCCrypt() status kCCAlignmentError!";
             break;
         case kCCDecodeError:  // input data did not decode or decrypt properly
-            NSLog(@"PersonalDataController:encryptLocationData:dataSize:symmetricKey: CCCrypt() unknown status: %d.", ccStatus);
+            error_msg = @"PersonalDataController:symmetricEncryptData: CCCrypt() status kCCDecodeError!";
             break;
         case kCCUnimplemented:  // function not implemented for the current algorithm
-            NSLog(@"PersonalDataController:encryptLocationData:dataSize:symmetricKey: CCCrypt() unknown status: %d.", ccStatus);
+            error_msg = @"PersonalDataController:symmetricEncryptData: CCCrypt() status kCCUnimplemented!";
             break;
         default:
-            NSLog(@"PersonalDataController:encryptLocationData:dataSize:symmetricKey: CCCrypt() unknown status: %d.", ccStatus);
+            error_msg = [[NSString alloc] initWithFormat:@"PersonalDataController:symmetricEncryptData: CCCrypt() unknown status: %d.", ccStatus];
             break;
+    }
+    
+    if (error_msg != nil) {
+        if (cipher_text)
+            free(cipher_text);
+        
+        return error_msg;
     }
     
     /*
@@ -1496,7 +1795,7 @@ static const int kInitialDictionarySize = 5;
     /*
      // TODO(aka) And here's another method ...
      OSStatus status = noErr;
-     status = SecKeyEncrypt(key, kSecPaddingPKCS1, plain_text, locationStr.length, cipher_text, &cipher_len);
+     status = SecKeyEncrypt(key, kSecPaddingPKCS1, hash, locationStr.length, cipher_text, &cipher_len);
      if (status != noErr) {
      NSLog(@"PersonalDataController:locationManager:didUpdateToLocation:fromLocation: SecKeyEncrypt failed: %ld.", status);
      }
@@ -1507,33 +1806,36 @@ static const int kInitialDictionarySize = 5;
     NSMutableData* bundle = [NSMutableData dataWithLength:bundle_size];
     [bundle setData:[[NSData alloc] initWithBytes:(const void*)iv length:kChosenCipherBlockSize]];
     [bundle appendBytes:(const void*)cipher_text length:bytes_encrypted];
+    *encrypted_data = bundle;
     
     if (cipher_text)
         free(cipher_text);
     
-    if (kDebugLevel > 0)
-        NSLog(@"PersonalDataController:encryptLocationData:dataSize:symmetricKey: returning %ld byte iv + cipher-text bundle.", bundle_size);
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:symmetricEncryptData: returning %ld byte iv + cipher-text bundle.", bundle_size);
     
-    return bundle;
+    return nil;
 }
 
-+ (NSString*) decryptData:(NSData*)encrypted_bundle bundleSize:(NSInteger)bundle_size symmetricKey:(NSData*)symmetric_key decryptedData:(NSData**)decrypted_data  {
++ (NSString*) symmetricDecryptData:(NSData*)encrypted_data symmetricKey:(NSData*)symmetric_key data:(NSData**)data  {
     if (kDebugLevel > 2)
-        NSLog(@"PersonalDataController:decryptData:symmetricKey: called.");
+        NSLog(@"PersonalDataController:symmetricDecryptData:symmetricKey:data: called.");
     
     // Decrypt the data with the symmetric key (using the CommonCrypto library).
     
-    if (kDebugLevel > 0)
-        NSLog(@"PersonalDataController:decryptData:symmetricKey: cipher block size: %ld, cipher buf size: %ld, key hash: %s.", kChosenCipherBlockSize, (long)bundle_size, [[PersonalDataController hashSHA256Data:symmetric_key] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    NSInteger data_size = [encrypted_data length];
+    
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:symmetricDecryptData: cipher block size: %ld, cipher buf size: %ld, key hash: %s.", kChosenCipherBlockSize, (long)data_size, [[PersonalDataController hashSHA256Data:symmetric_key] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     // Set aside space for the plain-text buffer.  Note, this is guarenteed to be no bigger than the cipher-text size plus one cipher-block size (for a block cipher).
     
-    size_t plain_text_buf_size = bundle_size + kChosenCipherBlockSize;  // TOOD(aka) bundle_size has IV!
+    size_t plain_text_buf_size = data_size + kChosenCipherBlockSize;  // TOOD(aka) data_size has IV!
     uint8_t* plain_text = (uint8_t*)malloc(plain_text_buf_size * sizeof(uint8_t));
     if (plain_text == NULL)
-        return @"PersonalDataController:decryptData:symmetricKey: unable to malloc plain-text buffer for decryption!";
+        return @"PersonalDataController:symmetricDecryptData: unable to malloc plain-text buffer for decryption!";
     
-    const uint8_t* cipher_text = [encrypted_bundle bytes];  // move encrypted data to uint_8 buffer
+    const uint8_t* cipher_text = [encrypted_data bytes];  // move encrypted data to uint_8 buffer
     size_t bytes_decrypted = 0;  // number of bytes moved into plain-text buffer
     CCCryptorStatus ccStatus = kCCSuccess;
     ccStatus = CCCrypt(kCCDecrypt,
@@ -1543,7 +1845,7 @@ static const int kInitialDictionarySize = 5;
                        kChosenCipherKeySize,
                        cipher_text,  /* first kChosenCipherBlockSize is the IV */
                        (const void*)(cipher_text + kChosenCipherBlockSize),
-                       bundle_size - kChosenCipherBlockSize,
+                       data_size - kChosenCipherBlockSize,
                        (void*)plain_text,
                        plain_text_buf_size,
                        &bytes_decrypted
@@ -1553,28 +1855,28 @@ static const int kInitialDictionarySize = 5;
     switch (ccStatus) {
         case kCCSuccess:
             if (kDebugLevel > 1)
-                NSLog(@"PersonalDataController:decryptData:symmetricKey: Decrypted %ld bytes of plain text.", bytes_decrypted);
+                NSLog(@"PersonalDataController:symmetricDecryptData: Decrypted %ld bytes of plain text.", bytes_decrypted);
             break;
         case kCCParamError: // illegal parameter value
-            error_msg = @"PersonalDataController:decryptData:symmetricKey: CCCrypt() status: kCCParamError!";
+            error_msg = @"PersonalDataController:symmetricDecryptData: CCCrypt() status: kCCParamError!";
             break;
         case kCCBufferTooSmall: // insufficent buffer provided for specified operation
-            error_msg = @"PersonalDataController:decryptData:symmetricKey: CCCrypt() status: kCCBufferTooSmall!";
+            error_msg = @"PersonalDataController:symmetricDecryptData: CCCrypt() status: kCCBufferTooSmall!";
             break;
         case kCCMemoryFailure:  // memory allocation failure
-            error_msg = @"PersonalDataController:decryptData:symmetricKey: CCCrypt() status: kCCMemoryFailure!";
+            error_msg = @"PersonalDataController:symmetricDecryptData: CCCrypt() status: kCCMemoryFailure!";
             break;
         case kCCAlignmentError:  // input size was not aligned properly
-            error_msg = @"PersonalDataController:decryptData:symmetricKey: CCCrypt() status: kCCAlignmentError!";
+            error_msg = @"PersonalDataController:symmetricDecryptData: CCCrypt() status: kCCAlignmentError!";
             break;
         case kCCDecodeError:  // input data did not decode or decrypt properly
-            error_msg = @"PersonalDataController:decryptData:symmetricKey: CCCrypt() status: kCCDecodeError!";
+            error_msg = @"PersonalDataController:symmetricDecryptData: CCCrypt() status: kCCDecodeError!";
             break;
         case kCCUnimplemented:  // function not implemented for the current algorithm
-            error_msg = @"PersonalDataController:decryptData:symmetricKey: CCCrypt() status: kCCUnimplemented!";
+            error_msg = @"PersonalDataController:symmetricDecryptData: CCCrypt() status: kCCUnimplemented!";
             break;
         default:
-            error_msg = [[NSString alloc] initWithFormat:@"PersonalDataController:decryptData:symmetricKey: CCCrypt() unknown status: %d.", ccStatus];
+            error_msg = [[NSString alloc] initWithFormat:@"PersonalDataController:symmetricDecryptData: CCCrypt() unknown status: %d.", ccStatus];
             break;
     }
     
@@ -1586,16 +1888,140 @@ static const int kInitialDictionarySize = 5;
     }
     
     // Convert the plain-text buffer to a NSData object.
-    //*decrypted_data = [[NSData alloc] initWithBytes:(const void*)plain_text length:plain_text_buf_size];
-    *decrypted_data = [[NSData alloc] initWithBytes:(const void*)plain_text length:bytes_decrypted];
+    //*data = [[NSData alloc] initWithBytes:(const void*)plain_text length:plain_text_buf_size];
+    *data = [[NSData alloc] initWithBytes:(const void*)plain_text length:bytes_decrypted];
     
     if (plain_text)
         free(plain_text);
     
-    if (kDebugLevel > 0)
-        NSLog(@"PersonalDataController:decryptData:symmetricKey: returning %ld byte plain text.", bytes_decrypted);
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:symmetricDecryptData: returning %ld byte plain text.", bytes_decrypted);
     
     return nil;
+}
+
++ (NSString*) signHashData:(NSData*)hash privateKeyRef:(SecKeyRef)private_key_ref signedHash:(NSString**)signed_hash_b64 {
+    if (kDebugLevel > 2)
+        NSLog(@"PersonalDataController:signHashData: called.");
+    
+    if (hash == nil)
+        return @"PersonalDataController:signHashData: ERROR: hash is nil.";
+    
+    if (private_key_ref == NULL)
+        return @"PersonalDataController:signHashData: ERROR: private key is NULL.";
+    
+    // Calculate the buffer sizes.
+    size_t hash_buf_size = [hash length];
+    size_t signed_hash_block_size = SecKeyGetBlockSize(private_key_ref);
+    
+    // Note, when using pkcs1 padding (which we are), the maximum amount of data we can encrypt is 11 bytes less than the block length associated with the public key.
+    
+    if (hash_buf_size > (signed_hash_block_size - 11)) {
+        NSString* error_msg = [[NSString alloc] initWithFormat:@"PersonalDataController:signHashData: TODO(aka) hash (%ld) is too large for the private key's block size %ld (- 11).", hash_buf_size, signed_hash_block_size];
+        return error_msg;
+    }
+    
+    size_t signed_hash_buf_size = signed_hash_block_size;  // to avoid confusion later on
+    
+    // Allocate the cipher text buffer.
+    uint8_t* signed_hash_buf = NULL;
+    signed_hash_buf = (uint8_t*)malloc(signed_hash_buf_size * sizeof(uint8_t));
+    if (signed_hash_buf == NULL) {
+        NSString* error_msg = [[NSString alloc] initWithFormat:@"PersonalDataController:signHashData: unable to malloc cipher text buffer."];
+        return error_msg;
+    }
+    memset((void*)signed_hash_buf, 0x0, signed_hash_buf_size);
+    
+    // Sign using the private key.
+    OSStatus sanityCheck = noErr;
+    sanityCheck = SecKeyRawSign(private_key_ref,
+                                kSecPaddingPKCS1SHA256,
+                                (const uint8_t*)[hash bytes],
+                                CC_SHA256_DIGEST_LENGTH,
+                                signed_hash_buf,
+                                &signed_hash_buf_size
+                                );
+    if (sanityCheck != noErr) {
+        NSString* error_msg = [[NSString alloc] initWithFormat:@"PersonalDataController:signHashData: ERROR: SecKeyEncrypt() failed: %d.", (int)sanityCheck];
+        if (signed_hash_buf)
+            free(signed_hash_buf);
+        
+        return error_msg;
+    }
+    
+    // Encode signature buffer as a NSData object, then convert it to the passed in NSString.
+    NSData* signed_hash = [NSData dataWithBytes:(const void*)signed_hash_buf length:(NSUInteger)signed_hash_buf_size];
+    
+#if 0
+    // For Debugging: I don't understand the difference in encodings here ...
+    NSLog(@"PersonalDataController:signHashData: cipher text(%d) with default encoding: %s.", [signed_hash length], [[[NSString alloc] initWithData:signed_hash encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    NSLog(@"PersonalDataController:signHashData: cipher text(%d) with UTF8 encoding: %s.", [signed_hash length], [[[NSString alloc] initWithData:signed_hash encoding:NSUTF8StringEncoding] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+#endif
+    
+    *signed_hash_b64 = [signed_hash base64EncodedString];
+    
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:signHashData: signature: %s.", [*signed_hash_b64 cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    
+    if (signed_hash_buf)
+        free(signed_hash_buf);
+    
+    return nil;
+}
+
++ (NSString*) signHashString:(NSString*)hash privateKeyRef:(SecKeyRef)private_key_ref signedHash:(NSString**)signed_hash_b64 {
+    if (kDebugLevel > 2)
+        NSLog(@"PersonalDataController:signHashString: called.");
+    
+    // Convert our string to data.
+    NSData* hash_data = [hash dataUsingEncoding:[NSString defaultCStringEncoding]];
+    
+    // Then call signHashData: to get the work done.
+    return [PersonalDataController signHashData:hash_data privateKeyRef:private_key_ref signedHash:signed_hash_b64];
+}
+
++ (BOOL) verifySignatureData:(NSData*)hash secKeyRef:(SecKeyRef)public_key_ref signature:(NSData*)signed_hash {
+    if (kDebugLevel > 2)
+        NSLog(@"PersonalDataController:verifySignatureData: called.");
+    
+    if (hash == nil) {
+        NSLog(@"PersonalDataController:verifySignatureData: ERROR: TODO(aka) hash is nil.");
+        return false;
+    } else {
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:verifySignatureData: verifying hash of size %ld.", (unsigned long)[hash length]);
+    }
+    
+    if (public_key_ref == NULL) {
+        NSLog(@"PersonalDataController:verifySignatureData: ERROR: TODO(aka) public key is NULL.");
+        return false;
+    }
+    
+    // Get the size of the assymetric block.
+    size_t signed_hash_buf_size = SecKeyGetBlockSize(public_key_ref);
+    
+    // Verify using the public key.
+    OSStatus sanityCheck = noErr;
+    sanityCheck = SecKeyRawVerify(public_key_ref,
+                                  kSecPaddingPKCS1SHA256,
+                                  (const uint8_t*)[hash bytes],
+                                  CC_SHA256_DIGEST_LENGTH,
+                                  (const uint8_t*)[signed_hash bytes],
+                                  signed_hash_buf_size
+                                  );
+    
+    return (sanityCheck == noErr) ? YES : NO;
+}
+
++ (BOOL) verifySignatureString:(NSString*)hash secKeyRef:(SecKeyRef)public_key_ref signature:(NSData*)signed_hash {
+    if (kDebugLevel > 2)
+        NSLog(@"PersonalDataController:verifySignatureString: called.");
+    
+    // Convert our string to data.
+    NSData* hash_data = [hash dataUsingEncoding:[NSString defaultCStringEncoding]];
+    
+    // Then call verifySignatureData: to get the work done.
+    return [PersonalDataController verifySignatureData:hash_data secKeyRef:public_key_ref signature:signed_hash];
 }
 
 #pragma mark - QR Code Utilities
@@ -1607,7 +2033,7 @@ static const int kInitialDictionarySize = 5;
     // Call QRcode to generate a binary buffer of the encoded ID + base-64 public key.
     NSString* id_key_str = [[NSString alloc] initWithFormat:@"id=%s%skey=%s", [_identity_hash cStringUsingEncoding:[NSString defaultCStringEncoding]], kQRDelimiter, [[[self getPublicKey] base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
     
-    if (kDebugLevel > 0)
+    if (kDebugLevel > 1)
         NSLog(@"PersonalDataController:printQRPublicKey: Encoding: %s.", [id_key_str UTF8String]);
     
     /**
@@ -2006,7 +2432,7 @@ static const int kInitialDictionarySize = 5;
     // if ([some_string rangeOfString:@"s3"].location != NSNotFound)
     
     if ([type caseInsensitiveCompare:[NSString stringWithCString:kDepositEMail encoding:[NSString defaultCStringEncoding]]] == NSOrderedSame) {
-        if (kDebugLevel > 0)
+        if (kDebugLevel > 1)
             NSLog(@"PersonalDataController:isDepositTypeEMail: Found EMail deposit!");
         return true;
     }
@@ -2111,14 +2537,14 @@ static const int kInitialDictionarySize = 5;
     [file_store setObject:secret_key forKey:[NSString stringWithCString:kFSKeySecretKey encoding:[NSString defaultCStringEncoding]]];
 }
 
-+ (NSURL*) absoluteURLFileStore:(NSDictionary*)file_store withBucket:(NSString*)bucket_name {
++ (NSURL*) absoluteURLFileStore:(NSDictionary*)file_store withBucket:(NSString*)bucket_name withFile:(NSString*)file_name {
     if (kDebugLevel > 2)
-        NSLog(@"PersonalDataController:absoluteURLFileStore:withBucket: called.");
+        NSLog(@"PersonalDataController:absoluteURLFileStore:withBucket:withFile: called.");
     
     // See what file store we are using.
     if ([PersonalDataController isFileStoreServiceAmazonS3:file_store]) {
-        if (kDebugLevel > 0)
-            NSLog(@"PersonalDataController:absoluteURLFileStore:withBucket: building for S3 service.");
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:absoluteURLFileStore: building for S3 service.");
         
         // Build the URL.
         
@@ -2126,19 +2552,19 @@ static const int kInitialDictionarySize = 5;
         
         NSString* scheme = [[NSString alloc] initWithCString:kFSSchemeHTTPS encoding:[NSString defaultCStringEncoding]];
         
-        if (kDebugLevel > 0)
-            NSLog(@"PersonalDataController:absoluteURLFileStore:withBucket: file_store has %lu objects.", (unsigned long)[file_store count]);
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:absoluteURLFileStore: file_store has %lu objects.", (unsigned long)[file_store count]);
                                                                                                          
         NSString* host = [file_store objectForKey:[NSString stringWithCString:kFSKeyHost encoding:[NSString defaultCStringEncoding]]];
-        NSString* path = [[NSString alloc] initWithFormat:@"/%s/%s", [bucket_name cStringUsingEncoding:[NSString defaultCStringEncoding]], kLocationDataFilename];
+        NSString* path = [[NSString alloc] initWithFormat:@"/%s/%s", [bucket_name cStringUsingEncoding:[NSString defaultCStringEncoding]], [file_name cStringUsingEncoding:[NSString defaultCStringEncoding]]];
         
-        if (kDebugLevel > 0)
-            NSLog(@"PersonalDataController:absoluteURLFileStoreWithBucket: using: %s, %s, and %s.", [scheme cStringUsingEncoding:[NSString defaultCStringEncoding]], [host cStringUsingEncoding:[NSString defaultCStringEncoding]], [path cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:absoluteURLFileStore: using: %s, %s, and %s.", [scheme cStringUsingEncoding:[NSString defaultCStringEncoding]], [host cStringUsingEncoding:[NSString defaultCStringEncoding]], [path cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         
         NSURL* url = [[NSURL alloc] initWithScheme:scheme host:host path:path];
         return url;    
     } else {
-        NSLog(@"PersonalDataController:absoluteURLFileStoreWithBucket: unknown service: %s", [[file_store objectForKey:[NSString stringWithCString:kFSKeyService encoding:[NSString defaultCStringEncoding]]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        NSLog(@"PersonalDataController:absoluteURLFileStore: TODO(aka) unknown service: %s", [[file_store objectForKey:[NSString stringWithCString:kFSKeyService encoding:[NSString defaultCStringEncoding]]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     }       
     
     // If we made it here, something went wrong.
@@ -2243,27 +2669,67 @@ static const int kInitialDictionarySize = 5;
 
 #pragma mark - Cloud Management
 
-- (NSString*) uploadLocationData:(NSString*)location_data
-                      bucketName:(NSString*)bucket_name {
+#if 0  // XXX TODO(aka) Deprecated
+- (NSString*) genFileStoreDepositMsg:(NSString*)consumer_identity_hash withPrecision:(NSNumber*)precision {
     if (kDebugLevel > 2)
-        NSLog(@"PersonalDataController:uploadLocationData:bucketName: called.");
+        NSLog(@"PersonalDataController:genFileStoreDepositMsg: called: %d.", [precision intValue]);
     
     if (_file_store == nil) {
-        NSLog(@"PersonalDataController:uploadLocationData:bucketName: file_store is nil!");
+        NSLog(@"PersonalDataController:genFileStoreDepositMsg: ERROR: TODO(aka) file_store is nil!");
+        return nil;
+    }
+    
+    static const char kMsgDelimiter = ' ';  // for now, let's make it whitespace
+    
+    // Build the File-store meta data bundle, which includes; (i) our identity token, (ii) the URI of the our File-store for this precision, (iii) the URI for this consumer's key-bundle (currently, only difference is the path component of the URI, i.e., the final filename), (iv) a time stamp, and (v) a signature across the preceeding four fields.
+    
+    NSString* bucket_name = [[NSString alloc] initWithFormat:@"%s%d", [_identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [precision intValue]];
+            NSString* location_data_filename = [[NSString alloc] initWithFormat:@"%s", kLocationDataFilename];
+    NSString* key_bundle_filename = [[NSString alloc] initWithFormat:@"%s.kb", [consumer_identity_hash cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+    NSURL* key_bundle_url = [PersonalDataController absoluteURLFileStore:_file_store withBucket:bucket_name withFile:key_bundle_filename];
+    NSURL* location_data_url = [PersonalDataController absoluteURLFileStore:_file_store withBucket:bucket_name withFile:location_data_filename];
+    struct timeval now;
+    gettimeofday(&now, NULL);
+
+    
+    NSString* four_tuple = [[NSString alloc] initWithFormat:@"%s%c%s%c%s%c%ld", [_identity_hash cStringUsingEncoding:[NSString defaultCStringEncoding]], kMsgDelimiter, [[location_data_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]], kMsgDelimiter, [[key_bundle_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]], kMsgDelimiter, now.tv_sec];
+    
+    // Get signature over the four tuple.
+    NSString* signature = nil;
+    NSString* err_msg = [PersonalDataController signHashOfString:four_tuple privateKeyRef:privateKeyRef signedHash:&signature];
+    if (err_msg != nil) {
+        NSLog(@"PersonalDataController:genFileStoreDepositMsg: ERROR: TODO(aka) unable to sign %@!", four_tuple);
+        return nil;
+    }
+    
+    if (kDebugLevel > 0)
+        NSLog(@"PersonalDataController:genFileStoreDepositMsg: four tuple: %@, signature: %@.", four_tuple, signature);
+    
+    NSString* msg = [[NSString alloc] initWithFormat:@"%s%c%s", [four_tuple cStringUsingEncoding:[NSString defaultCStringEncoding]], kMsgDelimiter, [signature cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+    
+    return msg;
+}
+#endif
+
+- (NSString*) uploadData:(NSString*)data bucketName:(NSString*)bucket_name filename:(NSString*)filename {
+    if (kDebugLevel > 2)
+        NSLog(@"PersonalDataController:uploadData:bucketName:filename: called.");
+    
+    if (_file_store == nil) {
+        NSLog(@"PersonalDataController:uploadData: file_store is nil!");
         return @"File Store is not set";
     }
     
     // See what file store we are using.
     if ([PersonalDataController isFileStoreServiceAmazonS3:_file_store]) {
-        if (kDebugLevel > 0)
-            NSLog(@"PersonalDataController:uploadLocationData:bucketName: using S3 as file store.");
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:uploadData:bucketName: using S3 as file store.");
         
-        NSString* filename = [[NSString alloc] initWithFormat:@"%s", kLocationDataFilename];
-        NSString* err_msg = [self amazonS3Upload:location_data bucketName:bucket_name filename:filename];
+        NSString* err_msg = [self amazonS3Upload:data bucketName:bucket_name filename:filename];
         return err_msg;
     } else {
         NSString* err_msg = [[NSString alloc] initWithFormat:@"Unknown service: %s", [[_file_store objectForKey:[NSString stringWithCString:kFSKeyService encoding:[NSString defaultCStringEncoding]]] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
-        NSLog(@"PersonalDataController:uploadLocationData:bucketName: %s.", [err_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        NSLog(@"PersonalDataController:uploadData:bucketName: %s.", [err_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         return err_msg;
     }
     

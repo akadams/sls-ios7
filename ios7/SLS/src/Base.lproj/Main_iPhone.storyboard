@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="4514" systemVersion="13A603" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" initialViewController="hUg-lN-9ZO">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="4514" systemVersion="13B42" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" initialViewController="hUg-lN-9ZO">
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="3747"/>
     </dependencies>
@@ -90,7 +90,7 @@
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Lga-cw-JIC">
+                            <button opaque="NO" contentMode="scaleToFill" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Lga-cw-JIC">
                                 <rect key="frame" x="268" y="109" width="32" height="32"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <constraints>
@@ -135,6 +135,7 @@
                             <constraint firstItem="Gcf-xg-NTh" firstAttribute="top" secondItem="Lga-cw-JIC" secondAttribute="bottom" constant="10" id="8Ot-oq-tDW"/>
                             <constraint firstItem="gaQ-pr-Who" firstAttribute="leading" secondItem="bQE-qx-Iav" secondAttribute="trailing" constant="2" id="GcS-jc-fZV"/>
                             <constraint firstItem="Gcf-xg-NTh" firstAttribute="leading" secondItem="LAD-AX-vaL" secondAttribute="leading" constant="27" id="H3X-Pf-50d"/>
+                            <constraint firstItem="Lga-cw-JIC" firstAttribute="centerY" secondItem="gaQ-pr-Who" secondAttribute="centerY" id="H3z-56-ueM"/>
                             <constraint firstItem="BC1-D9-Twa" firstAttribute="top" secondItem="LAD-AX-vaL" secondAttribute="top" constant="177" id="HV5-v2-RA7"/>
                             <constraint firstItem="bQE-qx-Iav" firstAttribute="baseline" secondItem="gaQ-pr-Who" secondAttribute="baseline" id="Ock-J9-3Nk"/>
                             <constraint firstItem="bQE-qx-Iav" firstAttribute="leading" secondItem="Izq-sE-DUW" secondAttribute="leading" id="Qb9-NR-Ier"/>
@@ -142,6 +143,7 @@
                             <constraint firstItem="BC1-D9-Twa" firstAttribute="top" secondItem="Gcf-xg-NTh" secondAttribute="bottom" constant="5" id="VZC-cd-1oe"/>
                             <constraint firstItem="Gcf-xg-NTh" firstAttribute="centerX" secondItem="Izq-sE-DUW" secondAttribute="centerX" id="W72-aX-fW3"/>
                             <constraint firstItem="BC1-D9-Twa" firstAttribute="centerX" secondItem="Gcf-xg-NTh" secondAttribute="centerX" id="YEo-K1-hn6"/>
+                            <constraint firstItem="gaQ-pr-Who" firstAttribute="centerY" secondItem="bQE-qx-Iav" secondAttribute="centerY" id="ahl-UX-XWj"/>
                             <constraint firstAttribute="trailing" secondItem="Lga-cw-JIC" secondAttribute="trailing" constant="20" symbolic="YES" id="eFK-Q3-5Hs"/>
                             <constraint firstItem="Lga-cw-JIC" firstAttribute="leading" secondItem="gaQ-pr-Who" secondAttribute="trailing" constant="15" id="jdA-YQ-kqd"/>
                             <constraint firstItem="Izq-sE-DUW" firstAttribute="top" secondItem="BC1-D9-Twa" secondAttribute="bottom" constant="8" symbolic="YES" id="kcw-Rt-ihE"/>
@@ -181,11 +183,11 @@
                         <rect key="frame" x="0.0" y="0.0" width="320" height="568"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                         <subviews>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="RhU-ms-ZYf">
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="RhU-ms-ZYf">
                                 <rect key="frame" x="258" y="73" width="42" height="42"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                             </imageView>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="7Sb-aD-02U">
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="7Sb-aD-02U">
                                 <rect key="frame" x="20" y="127" width="230" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Tap To Scan Their Challenge">
@@ -195,7 +197,7 @@
                                     <segue destination="JRk-2C-IDZ" kind="modal" identifier="ShowQRDecodeChallengeView" id="hNz-7M-AUF"/>
                                 </connections>
                             </button>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="RbQ-HZ-M5t">
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="RbQ-HZ-M5t">
                                 <rect key="frame" x="258" y="121" width="42" height="42"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                             </imageView>
@@ -205,8 +207,8 @@
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="cdy-cs-GXA">
-                                <rect key="frame" x="18" y="214" width="232" height="30"/>
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="cdy-cs-GXA">
+                                <rect key="frame" x="18" y="206" width="232" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Tap To Scan Their Key">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
@@ -215,12 +217,12 @@
                                     <segue destination="y27-oW-DDh" kind="modal" identifier="ShowQRDecodePKView" id="Azd-Zh-Ae6"/>
                                 </connections>
                             </button>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="PZe-MM-b6t">
-                                <rect key="frame" x="258" y="208" width="42" height="42"/>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="PZe-MM-b6t">
+                                <rect key="frame" x="258" y="200" width="42" height="42"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                             </imageView>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Ue2-y0-SUB">
-                                <rect key="frame" x="18" y="259" width="232" height="30"/>
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Ue2-y0-SUB">
+                                <rect key="frame" x="18" y="256" width="232" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Tap To Display Our Challenge">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
@@ -229,36 +231,36 @@
                                     <segue destination="ubA-Py-3Zq" kind="modal" identifier="ShowQREncodeChallengeView" id="nBS-tc-tH2"/>
                                 </connections>
                             </button>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="MeJ-Rn-NA4">
-                                <rect key="frame" x="258" y="253" width="42" height="42"/>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="MeJ-Rn-NA4">
+                                <rect key="frame" x="258" y="250" width="42" height="42"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                             </imageView>
                             <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Label" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="hNl-Vm-5uR">
-                                <rect key="frame" x="20" y="315" width="280" height="21"/>
+                                <rect key="frame" x="20" y="300" width="280" height="21"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="V6t-A2-F5A">
-                                <rect key="frame" x="20" y="358" width="80" height="30"/>
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="V6t-A2-F5A">
+                                <rect key="frame" x="18" y="329" width="80" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Yes">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                             </button>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Qvv-h0-2OL">
-                                <rect key="frame" x="170" y="358" width="80" height="30"/>
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Qvv-h0-2OL">
+                                <rect key="frame" x="168" y="329" width="80" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="No">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                             </button>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="XzJ-JY-Jnu">
-                                <rect key="frame" x="258" y="352" width="42" height="42"/>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="XzJ-JY-Jnu">
+                                <rect key="frame" x="258" y="323" width="42" height="42"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                             </imageView>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="5gs-vF-J4Q">
-                                <rect key="frame" x="20" y="412" width="230" height="30"/>
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="5gs-vF-J4Q">
+                                <rect key="frame" x="20" y="379" width="230" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Tap To Display Our Deposit">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
@@ -267,17 +269,17 @@
                                     <segue destination="nxn-zH-Yfh" kind="modal" identifier="ShowQREncodeDepositView" id="5Uc-cg-fwY"/>
                                 </connections>
                             </button>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="xnu-KA-2gR">
-                                <rect key="frame" x="258" y="406" width="42" height="42"/>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="xnu-KA-2gR">
+                                <rect key="frame" x="258" y="373" width="42" height="42"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                             </imageView>
                             <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Label" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="oru-cC-rZN">
-                                <rect key="frame" x="20" y="466" width="280" height="21"/>
+                                <rect key="frame" x="20" y="467" width="280" height="21"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="TNE-JJ-jvX">
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="TNE-JJ-jvX">
                                 <rect key="frame" x="18" y="79" width="230" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Tap To Display Our Key">
@@ -287,8 +289,29 @@
                                     <segue destination="h7o-1g-68Y" kind="modal" identifier="ShowQREncodePKView" id="93T-Nr-6nV"/>
                                 </connections>
                             </button>
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="SN9-EQ-LwI">
+                                <rect key="frame" x="18" y="429" width="230" height="30"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="Tap To Scan Their Deposit">
+                                    <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
+                                </state>
+                            </button>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="h5J-At-LzX">
+                                <rect key="frame" x="258" y="423" width="42" height="42"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                            </imageView>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
+                        <constraints>
+                            <constraint firstItem="7Sb-aD-02U" firstAttribute="centerY" secondItem="RbQ-HZ-M5t" secondAttribute="centerY" id="1bv-bm-3jE"/>
+                            <constraint firstItem="xnu-KA-2gR" firstAttribute="centerY" secondItem="5gs-vF-J4Q" secondAttribute="centerY" id="6A9-va-zVP"/>
+                            <constraint firstItem="Qvv-h0-2OL" firstAttribute="centerY" secondItem="V6t-A2-F5A" secondAttribute="centerY" id="C8O-lF-beZ"/>
+                            <constraint firstItem="TNE-JJ-jvX" firstAttribute="centerY" secondItem="RhU-ms-ZYf" secondAttribute="centerY" id="CGn-OZ-4z5"/>
+                            <constraint firstItem="Ue2-y0-SUB" firstAttribute="centerY" secondItem="MeJ-Rn-NA4" secondAttribute="centerY" id="Jpm-Us-049"/>
+                            <constraint firstItem="SN9-EQ-LwI" firstAttribute="centerY" secondItem="h5J-At-LzX" secondAttribute="centerY" id="L1V-Z0-Csg"/>
+                            <constraint firstItem="cdy-cs-GXA" firstAttribute="centerY" secondItem="PZe-MM-b6t" secondAttribute="centerY" id="WDK-k1-8r8"/>
+                            <constraint firstItem="Qvv-h0-2OL" firstAttribute="centerY" secondItem="XzJ-JY-Jnu" secondAttribute="centerY" id="hRy-4I-s2L"/>
+                        </constraints>
                     </view>
                     <navigationItem key="navigationItem" title="CT Pairing Protocol" id="Ugc-np-dzI">
                         <barButtonItem key="leftBarButtonItem" systemItem="cancel" id="dKh-z3-y8W">
@@ -306,6 +329,8 @@
                         <outlet property="decode_challenge_button" destination="7Sb-aD-02U" id="Mzs-Pn-Udm"/>
                         <outlet property="decode_challenge_image" destination="RbQ-HZ-M5t" id="xM4-mU-qhh"/>
                         <outlet property="decode_challenge_label" destination="Jhz-gm-pKL" id="Fym-xg-ZvV"/>
+                        <outlet property="decode_deposit_button" destination="SN9-EQ-LwI" id="ss7-Tr-NxR"/>
+                        <outlet property="decode_deposit_image" destination="h5J-At-LzX" id="rOn-7V-QV9"/>
                         <outlet property="decode_key_button" destination="cdy-cs-GXA" id="Vfv-Ry-sz8"/>
                         <outlet property="decode_key_image" destination="PZe-MM-b6t" id="KGd-oL-JXT"/>
                         <outlet property="done_button" destination="l3I-1H-FHr" id="X7I-06-c7g"/>
@@ -1005,7 +1030,7 @@
                                             <rect key="frame" x="0.0" y="0.0" width="320" height="43"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
-                                                <slider opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="0.5" minValue="0.0" maxValue="3" translatesAutoresizingMaskIntoConstraints="NO" id="Ev4-T9-bup">
+                                                <slider opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" minValue="0.0" maxValue="6" translatesAutoresizingMaskIntoConstraints="NO" id="Ev4-T9-bup">
                                                     <rect key="frame" x="18" y="5" width="225" height="34"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                                     <connections>
@@ -1035,7 +1060,7 @@
                                                 <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Rmb-2l-ihn">
                                                     <rect key="frame" x="20" y="7" width="280" height="30"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                                    <state key="normal" title="Send Consumer File-store URL">
+                                                    <state key="normal" title="Send Consumer File-store URLs">
                                                         <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                                     </state>
                                                     <connections>
@@ -1517,7 +1542,7 @@
                         <rect key="frame" x="0.0" y="0.0" width="320" height="568"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                         <subviews>
-                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Identity:" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zIp-gi-I9k">
+                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" misplaced="YES" text="Identity:" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zIp-gi-I9k">
                                 <rect key="frame" x="20" y="114" width="67" height="21"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <constraints>
@@ -1603,7 +1628,7 @@
                     </navigationItem>
                     <connections>
                         <outlet property="identity_label" destination="gp3-qv-DgZ" id="kMZ-VN-o5Z"/>
-                        <outlet property="paring_picker" destination="lu3-FX-FmL" id="XbB-ez-oOB"/>
+                        <outlet property="pairing_picker" destination="lu3-FX-FmL" id="ybH-Cc-rak"/>
                         <outlet property="start_pairing_button" destination="aS3-tN-Mc6" id="gdj-DD-KLr"/>
                         <segue destination="ohZ-yO-TIN" kind="modal" identifier="ShowAddConsumerCTViewID" id="rTH-V5-iLA"/>
                     </connections>
@@ -1625,11 +1650,11 @@
                         <rect key="frame" x="0.0" y="0.0" width="320" height="568"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                         <subviews>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="p84-cc-v4N">
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="p84-cc-v4N">
                                 <rect key="frame" x="258" y="73" width="42" height="42"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                             </imageView>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="SDt-dg-PFU">
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="SDt-dg-PFU">
                                 <rect key="frame" x="20" y="127" width="230" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Tap To Display Our Challenge">
@@ -1639,18 +1664,18 @@
                                     <segue destination="rzr-nw-ARg" kind="modal" id="8cC-ne-i5C"/>
                                 </connections>
                             </button>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="rZj-4A-qQY">
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="rZj-4A-qQY">
                                 <rect key="frame" x="258" y="121" width="42" height="42"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                             </imageView>
                             <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Label" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Ezu-0D-o0F">
-                                <rect key="frame" x="20" y="171" width="280" height="21"/>
+                                <rect key="frame" x="20" y="165" width="280" height="21"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ugp-HY-2iE">
-                                <rect key="frame" x="18" y="276" width="232" height="30"/>
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ugp-HY-2iE">
+                                <rect key="frame" x="18" y="244" width="232" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Tap To Display Our Key">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
@@ -1659,12 +1684,12 @@
                                     <segue destination="7eV-3I-cKo" kind="modal" id="KJU-GI-FTK"/>
                                 </connections>
                             </button>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="FRZ-np-g0j">
-                                <rect key="frame" x="258" y="270" width="42" height="42"/>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="FRZ-np-g0j">
+                                <rect key="frame" x="258" y="238" width="42" height="42"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                             </imageView>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="X5f-Tr-LST">
-                                <rect key="frame" x="18" y="321" width="232" height="30"/>
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="X5f-Tr-LST">
+                                <rect key="frame" x="18" y="294" width="232" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Tap To Scan Their Challenge">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
@@ -1673,36 +1698,36 @@
                                     <segue destination="TNI-yE-LRI" kind="modal" id="ASx-wX-Sd3"/>
                                 </connections>
                             </button>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="mNA-vC-bNm">
-                                <rect key="frame" x="258" y="315" width="42" height="42"/>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="mNA-vC-bNm">
+                                <rect key="frame" x="258" y="288" width="42" height="42"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                             </imageView>
                             <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Label" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="eHB-oY-Ayw">
-                                <rect key="frame" x="20" y="377" width="280" height="21"/>
+                                <rect key="frame" x="20" y="332" width="280" height="21"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Mcc-gO-2Uf">
-                                <rect key="frame" x="20" y="206" width="80" height="30"/>
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Mcc-gO-2Uf">
+                                <rect key="frame" x="18" y="194" width="80" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Yes">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                             </button>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="gjW-gw-zcz">
-                                <rect key="frame" x="170" y="206" width="80" height="30"/>
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="gjW-gw-zcz">
+                                <rect key="frame" x="168" y="194" width="80" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="No">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                             </button>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="T0i-iM-v4S">
-                                <rect key="frame" x="258" y="200" width="42" height="42"/>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="T0i-iM-v4S">
+                                <rect key="frame" x="258" y="188" width="42" height="42"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                             </imageView>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="iXT-a6-d6Z">
-                                <rect key="frame" x="20" y="412" width="230" height="30"/>
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="iXT-a6-d6Z">
+                                <rect key="frame" x="18" y="367" width="230" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Tap To Scan Their Deposit">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
@@ -1711,17 +1736,17 @@
                                     <segue destination="Xvj-Po-BJd" kind="modal" id="ac9-c9-htC"/>
                                 </connections>
                             </button>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="xnz-Oy-gk3">
-                                <rect key="frame" x="258" y="406" width="42" height="42"/>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="xnz-Oy-gk3">
+                                <rect key="frame" x="258" y="361" width="42" height="42"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                             </imageView>
                             <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Label" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="ETi-6Q-wm7">
-                                <rect key="frame" x="20" y="466" width="280" height="21"/>
+                                <rect key="frame" x="20" y="455" width="280" height="21"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="akX-cn-woy">
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="akX-cn-woy">
                                 <rect key="frame" x="18" y="79" width="230" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Tap To Scan Their Key">
@@ -1731,8 +1756,29 @@
                                     <segue destination="ghh-JE-gzH" kind="modal" id="HSH-QQ-Xpq"/>
                                 </connections>
                             </button>
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="MsU-Uq-wec">
+                                <rect key="frame" x="20" y="417" width="230" height="30"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="Tap To Display Our Deposit">
+                                    <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
+                                </state>
+                            </button>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="iW8-EW-g2n">
+                                <rect key="frame" x="258" y="411" width="42" height="42"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                            </imageView>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
+                        <constraints>
+                            <constraint firstItem="FRZ-np-g0j" firstAttribute="centerY" secondItem="ugp-HY-2iE" secondAttribute="centerY" id="0BB-y3-rRf"/>
+                            <constraint firstItem="iXT-a6-d6Z" firstAttribute="centerY" secondItem="xnz-Oy-gk3" secondAttribute="centerY" id="0Gp-w0-wcy"/>
+                            <constraint firstItem="SDt-dg-PFU" firstAttribute="centerY" secondItem="rZj-4A-qQY" secondAttribute="centerY" id="3bL-lB-Qog"/>
+                            <constraint firstItem="T0i-iM-v4S" firstAttribute="centerY" secondItem="gjW-gw-zcz" secondAttribute="centerY" id="4Ih-xC-YlG"/>
+                            <constraint firstItem="mNA-vC-bNm" firstAttribute="centerY" secondItem="X5f-Tr-LST" secondAttribute="centerY" id="JP5-w5-e5C"/>
+                            <constraint firstItem="Mcc-gO-2Uf" firstAttribute="centerY" secondItem="gjW-gw-zcz" secondAttribute="centerY" id="U9d-bo-loO"/>
+                            <constraint firstItem="p84-cc-v4N" firstAttribute="centerY" secondItem="akX-cn-woy" secondAttribute="centerY" id="WO3-WU-7ji"/>
+                            <constraint firstItem="iW8-EW-g2n" firstAttribute="centerY" secondItem="MsU-Uq-wec" secondAttribute="centerY" id="aGx-fU-HWp"/>
+                        </constraints>
                     </view>
                     <navigationItem key="navigationItem" title="CT Pairing Protocol" id="b1Z-9h-T40">
                         <barButtonItem key="leftBarButtonItem" systemItem="cancel" id="MaK-XU-NtA">
@@ -1747,19 +1793,21 @@
                         </barButtonItem>
                     </navigationItem>
                     <connections>
-                        <outlet property="decode_challenge_button" destination="SDt-dg-PFU" id="qia-EP-8OX"/>
-                        <outlet property="decode_challenge_image" destination="rZj-4A-qQY" id="URP-II-UTD"/>
-                        <outlet property="decode_challenge_label" destination="Ezu-0D-o0F" id="uqg-Uc-oT9"/>
-                        <outlet property="decode_key_button" destination="ugp-HY-2iE" id="KA6-Z6-6UZ"/>
-                        <outlet property="decode_key_image" destination="FRZ-np-g0j" id="tze-id-GIg"/>
+                        <outlet property="decode_challenge_button" destination="X5f-Tr-LST" id="rxp-7s-C9a"/>
+                        <outlet property="decode_challenge_image" destination="mNA-vC-bNm" id="2kJ-ba-yaI"/>
+                        <outlet property="decode_challenge_label" destination="eHB-oY-Ayw" id="6ca-Xz-16b"/>
+                        <outlet property="decode_deposit_button" destination="iXT-a6-d6Z" id="x2e-oB-3GK"/>
+                        <outlet property="decode_deposit_image" destination="xnz-Oy-gk3" id="kiO-ly-Rbw"/>
+                        <outlet property="decode_key_button" destination="akX-cn-woy" id="oRE-fb-Mut"/>
+                        <outlet property="decode_key_image" destination="p84-cc-v4N" id="giG-cC-KCg"/>
                         <outlet property="done_button" destination="lNe-dy-9Yq" id="L2J-cE-ckB"/>
-                        <outlet property="encode_challenge_button" destination="X5f-Tr-LST" id="81Q-7I-rmx"/>
-                        <outlet property="encode_challenge_image" destination="mNA-vC-bNm" id="t4Z-wO-9CA"/>
-                        <outlet property="encode_challenge_label" destination="eHB-oY-Ayw" id="mGy-06-rUs"/>
-                        <outlet property="encode_deposit_button" destination="iXT-a6-d6Z" id="0BO-yG-lrf"/>
-                        <outlet property="encode_deposit_image" destination="xnz-Oy-gk3" id="vEp-E5-wwE"/>
-                        <outlet property="encode_key_button" destination="akX-cn-woy" id="lAl-po-FJK"/>
-                        <outlet property="encode_key_image" destination="p84-cc-v4N" id="kIE-Re-qvn"/>
+                        <outlet property="encode_challenge_button" destination="SDt-dg-PFU" id="K8W-ps-YI8"/>
+                        <outlet property="encode_challenge_image" destination="rZj-4A-qQY" id="oRu-bZ-H7o"/>
+                        <outlet property="encode_challenge_label" destination="Ezu-0D-o0F" id="KlS-OP-Xc9"/>
+                        <outlet property="encode_deposit_button" destination="MsU-Uq-wec" id="pZJ-Pi-fMS"/>
+                        <outlet property="encode_deposit_image" destination="iW8-EW-g2n" id="da5-Nw-sex"/>
+                        <outlet property="encode_key_button" destination="ugp-HY-2iE" id="BcT-5y-aoI"/>
+                        <outlet property="encode_key_image" destination="FRZ-np-g0j" id="sYy-oo-77W"/>
                         <outlet property="encode_response_image" destination="T0i-iM-v4S" id="54q-dy-58V"/>
                         <outlet property="encode_response_no_button" destination="gjW-gw-zcz" id="cHy-zq-xHb"/>
                         <outlet property="encode_response_yes_button" destination="Mcc-gO-2Uf" id="YQm-9L-mwT"/>

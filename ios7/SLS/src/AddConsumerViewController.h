@@ -14,17 +14,18 @@
 #import "Principal.h"
 
 
-@interface AddConsumerViewController : UIViewController <ABPeoplePickerNavigationControllerDelegate>
+@interface AddConsumerViewController : UIViewController <ABPeoplePickerNavigationControllerDelegate, UIPickerViewDataSource, UIPickerViewDelegate>
 
 #pragma mark - Inherited data (from MasterViewController)
 @property (copy, nonatomic) PersonalDataController* our_data;
 
 #pragma mark - Local variables
 @property (copy, nonatomic) Principal* consumer;
+@property (nonatomic) NSInteger chosen_protocol;
 
 #pragma mark - Outlets
 @property (weak, nonatomic) IBOutlet UILabel* identity_label;
-@property (weak, nonatomic) IBOutlet UIPickerView* paring_picker;
+@property (weak, nonatomic) IBOutlet UIPickerView* pairing_picker;
 @property (weak, nonatomic) IBOutlet UIButton* start_pairing_button;
 
 #pragma mark - Initialization
@@ -33,5 +34,9 @@
 
 #pragma mark - Actions
 - (IBAction) showAddressBook:(id)sender;
+- (IBAction) startPairing:(id)sender;
+
+#pragma mark - Utility routines
++ (NSArray*) supportedPairingProtocols;
 
 @end

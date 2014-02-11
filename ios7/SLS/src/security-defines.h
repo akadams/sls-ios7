@@ -19,19 +19,6 @@
 //#define SHA256_DIGEST_LENGTH CC_SHA256_DIGEST_LENGTH
 //#defien MD5_DIGEST_LENGTH CC_MD5_DIGEST_LENGTH
 
-#define URI_SCHEME_SLS "sls"
-#define URI_QUERY_KEY_ENCRYPTED_KEY "encrypted-key"
-#define URI_QUERY_KEY_PUB_KEY "public-key"
-#define URI_QUERY_KEY_FS_URL "file-store"
-#define URI_QUERY_KEY_KD_URL "key-deposit"
-#define URI_QUERY_KEY_IDENTITY "identity"
-#define URI_QUERY_KEY_SIGNATURE "signature"
-
-#define URI_QUERY_KEY_FS_SCHEME "scheme"
-#define URI_QUERY_KEY_FS_HOST "host"
-
-#define URI_LOCATION_DATA_FILENAME "location-data.b64"
-
 #define KC_QUERY_KEY_PUBLIC_KEY_EXT ".publickey"
 #define KC_QUERY_KEY_PRIVATE_KEY_EXT ".privatekey"
 #define KC_QUERY_KEY_SYMMETRIC_KEY_EXT ".key"

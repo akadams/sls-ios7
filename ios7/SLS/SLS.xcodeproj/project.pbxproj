@@ -25,6 +25,9 @@
 		5C279F0D183E56F800E9EC70 /* QRDecodeDepositViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C279F0C183E56F800E9EC70 /* QRDecodeDepositViewController.m */; };
 		5C279F10183E58D800E9EC70 /* QREncodePKViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C279F0F183E58D700E9EC70 /* QREncodePKViewController.m */; };
 		5C3C429B183BBA0900CFACCF /* AddProviderCTViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C3C429A183BBA0900CFACCF /* AddProviderCTViewController.m */; };
+		5C3FBDC218903BEA0055475C /* KeyBundleController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C3FBDC118903BEA0055475C /* KeyBundleController.m */; };
+		5C3FBDC81892D0B00055475C /* LocationBundleController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C3FBDC71892D0B00055475C /* LocationBundleController.m */; };
+		5C48005318A3D284009D9CBD /* PolicyController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C48005218A3D284009D9CBD /* PolicyController.m */; };
 		5C5F49231844FE4B008D1222 /* FileStoreDataViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C5F49221844FE4B008D1222 /* FileStoreDataViewController.m */; };
 		5C7F50A718198B46001F5515 /* CoreLocationController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C7F50A518198B46001F5515 /* CoreLocationController.m */; };
 		5C7F50AA18198B99001F5515 /* SymmetricKeysController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C7F50A818198B99001F5515 /* SymmetricKeysController.m */; };
@@ -155,11 +158,18 @@
 		5C3C42C3183BBF1400CFACCF /* ConsumerDataViewController-old.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "ConsumerDataViewController-old.m"; sourceTree = "<group>"; };
 		5C3C42C4183BBF1400CFACCF /* ProviderMasterViewController-old.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ProviderMasterViewController-old.h"; sourceTree = "<group>"; };
 		5C3C42C5183BBF1400CFACCF /* ProviderMasterViewController-old.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "ProviderMasterViewController-old.m"; sourceTree = "<group>"; };
+		5C3FBDC018903BEA0055475C /* KeyBundleController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KeyBundleController.h; sourceTree = "<group>"; };
+		5C3FBDC118903BEA0055475C /* KeyBundleController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KeyBundleController.m; sourceTree = "<group>"; };
+		5C3FBDC61892D0B00055475C /* LocationBundleController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LocationBundleController.h; sourceTree = "<group>"; };
+		5C3FBDC71892D0B00055475C /* LocationBundleController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LocationBundleController.m; sourceTree = "<group>"; };
+		5C48005118A3D284009D9CBD /* PolicyController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PolicyController.h; sourceTree = "<group>"; };
+		5C48005218A3D284009D9CBD /* PolicyController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PolicyController.m; sourceTree = "<group>"; };
 		5C4F75A9183A9927004A41BA /* Obsoleted-code.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "Obsoleted-code.m"; sourceTree = "<group>"; };
 		5C4F75AA183A9927004A41BA /* ConsumerDataExtViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ConsumerDataExtViewController.h; sourceTree = "<group>"; };
 		5C4F75AB183A9927004A41BA /* ConsumerDataExtViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ConsumerDataExtViewController.m; sourceTree = "<group>"; };
 		5C5F49211844FE4B008D1222 /* FileStoreDataViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FileStoreDataViewController.h; sourceTree = "<group>"; };
 		5C5F49221844FE4B008D1222 /* FileStoreDataViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FileStoreDataViewController.m; sourceTree = "<group>"; };
+		5C7BADC01859F81800E0601C /* sls-url-defines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "sls-url-defines.h"; sourceTree = "<group>"; };
 		5C7F50A518198B46001F5515 /* CoreLocationController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CoreLocationController.m; sourceTree = "<group>"; };
 		5C7F50A618198B46001F5515 /* CoreLocationController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CoreLocationController.h; sourceTree = "<group>"; };
 		5C7F50A818198B99001F5515 /* SymmetricKeysController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SymmetricKeysController.m; sourceTree = "<group>"; };
@@ -414,14 +424,21 @@
 				5C7F50A518198B46001F5515 /* CoreLocationController.m */,
 				5C7F50A918198B99001F5515 /* SymmetricKeysController.h */,
 				5C7F50A818198B99001F5515 /* SymmetricKeysController.m */,
+				5C3FBDC018903BEA0055475C /* KeyBundleController.h */,
+				5C3FBDC118903BEA0055475C /* KeyBundleController.m */,
+				5C3FBDC61892D0B00055475C /* LocationBundleController.h */,
+				5C3FBDC71892D0B00055475C /* LocationBundleController.m */,
 				5CE2342C18197579003CCECA /* PersonalDataController.h */,
 				5CE2342B18197579003CCECA /* PersonalDataController.m */,
 				5C0D2D78184F762B00A313B2 /* Principal.h */,
 				5C0D2D79184F762B00A313B2 /* Principal.m */,
+				5C48005118A3D284009D9CBD /* PolicyController.h */,
+				5C48005218A3D284009D9CBD /* PolicyController.m */,
 				5C7F50BC1819923B001F5515 /* ConsumerCellController.h */,
 				5C7F50B91819923B001F5515 /* ConsumerCellController.m */,
 				5C7F50BB1819923B001F5515 /* ProviderAnnotation.h */,
 				5C7F50BA1819923B001F5515 /* ProviderAnnotation.m */,
+				5C7BADC01859F81800E0601C /* sls-url-defines.h */,
 				5CE2343918198191003CCECA /* security-defines.h */,
 				5CED42D81822AEE000D78098 /* ConsumerCell.xib */,
 				5CC57CCB18196E4C0070AFE8 /* InfoPlist.strings */,
@@ -589,8 +606,11 @@
 				5C042EEA183FC088007B8344 /* ProviderDataViewController.m in Sources */,
 				5C279EFB183BF15E00E9EC70 /* ProviderListController.m in Sources */,
 				5CE80635184E08F600B58DC6 /* ProviderListViewController.m in Sources */,
+				5C3FBDC81892D0B00055475C /* LocationBundleController.m in Sources */,
 				5C5F49231844FE4B008D1222 /* FileStoreDataViewController.m in Sources */,
 				5C3C429B183BBA0900CFACCF /* AddProviderCTViewController.m in Sources */,
+				5C3FBDC218903BEA0055475C /* KeyBundleController.m in Sources */,
+				5C48005318A3D284009D9CBD /* PolicyController.m in Sources */,
 				5CC57CD918196E4C0070AFE8 /* main.m in Sources */,
 				5C7F50A718198B46001F5515 /* CoreLocationController.m in Sources */,
 				5CE23429181973E1003CCECA /* SLSAppDelegate.m in Sources */,

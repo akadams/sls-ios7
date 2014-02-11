@@ -23,8 +23,9 @@
 #pragma mark - Local variables
 @property (strong, nonatomic) PersonalDataController* our_data;
 @property (strong, nonatomic) ConsumerListController* consumer_list_controller;
-@property (strong, nonatomic) CoreLocationController* location_controller;
 @property (strong, nonatomic) SymmetricKeysController* symmetric_keys_controller;
+@property (strong, nonatomic) CoreLocationController* location_controller;
+@property (strong, nonatomic) NSMutableDictionary* history_logs;  //  NSArrays of LocationBundleControllers (for each policy)
 @property (weak, nonatomic) id <ProviderMasterViewControllerDelegate> delegate;
 
 #pragma mark - Outlets
@@ -37,13 +38,11 @@
 - (void) loadState;
 
 #pragma mark - Cloud management
-- (void) sendFileStore:(NSNumber*)precision consumer:(Principal*)sole_consumer;
+- (void) sendCloudMetaData:(NSString*)policy consumer:(Principal*)sole_consumer;
 
-#pragma mark - Cryptography management
-- (void) uploadSymmetricKey:(NSNumber*)precision consumer:(Principal*)sole_consumer;
-
-#pragma mark - Location data management
-- (NSString*) uploadLocationData:(CLLocation*)location;
+#pragma mark - Cloud operations
+- (void) uploadKeyBundle:(NSString*)policy consumer:(Principal*)sole_consumer;
+- (NSString*) uploadHistoryLog:(NSArray*)history_log policy:(NSString*)policy;  // returns an error, called by CLLocation delegates
 
 @end
 

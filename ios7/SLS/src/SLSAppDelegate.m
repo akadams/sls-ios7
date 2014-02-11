@@ -290,8 +290,8 @@ static const int kDebugLevel = 3;
                                 [tmp_provider setKey:sym_key];
                                 
                                 // Setup the file store as us, as a Provider (using high precision).
-                                NSString* bucket_name = [[NSString alloc] initWithFormat:@"%s3", [tmp_provider.identity cStringUsingEncoding:[NSString defaultCStringEncoding]]];
-                                NSString* file_store_str = [[NSString alloc] initWithFormat:@"https://s3.amazonaws.com/%s/location-data.b64", [[PersonalDataController hashMD5String:bucket_name] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+                                NSString* bucket_name = [PersonalDataController hashMD5String:[[NSString alloc] initWithFormat:@"%s%s", [tmp_provider.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], PC_PRECISION_EXACT]];
+                                NSString* file_store_str = [[NSString alloc] initWithFormat:@"https://s3.amazonaws.com/%s/location-data.b64", [bucket_name cStringUsingEncoding:[NSString defaultCStringEncoding]];
                                 NSURL* file_store = [[NSURL alloc] initWithString:file_store_str];
                                 [tmp_provider setFile_store:file_store];
                                 
@@ -324,6 +324,10 @@ static const int kDebugLevel = 3;
                             } else {
                                 NSData* sym_key = [NSData dataFromBase64String:sym_key_b64];
                                 [tmp_provider setKey:sym_key];
+                                
+                                NSString* bucket_name = [PersonalDataController hashMD5String:[[NSString alloc] initWithFormat:@"%s%s", [tmp_provider.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], PC_PRECISION_EXACT]];
+                                NSString* file_store_str = [[NSString alloc] initWithFormat:@"https://s3.amazonaws.com/%s/location-data.b64", [bucket_name cStringUsingEncoding:[NSString defaultCStringEncoding]];
+                                xxx;  // wrong
                                 NSString* bucket_name = [[NSString alloc] initWithFormat:@"%s3", [tmp_provider.identity cStringUsingEncoding:[NSString defaultCStringEncoding]]];
                                 NSString* file_store_str = [[NSString alloc] initWithFormat:@"https://s3.amazonaws.com/%s/location-data.b64", [[PersonalDataController hashMD5String:bucket_name] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
                                 NSURL* file_store = [[NSURL alloc] initWithString:file_store_str];
@@ -368,6 +372,7 @@ static const int kDebugLevel = 3;
                                 [tmp_provider setKey:sym_key];
                                 
                                 // Setup the file store as us, as the Provider (using high precision).
+                                xxx;  // wrong
                                 NSString* bucket_name = [[NSString alloc] initWithFormat:@"%s3", [tmp_provider.identity cStringUsingEncoding:[NSString defaultCStringEncoding]]];
                                 NSString* file_store_str = [[NSString alloc] initWithFormat:@"https://s3.amazonaws.com/%s/location-data.b64", [[PersonalDataController hashMD5String:bucket_name] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
                                 NSURL* file_store = [[NSURL alloc] initWithString:file_store_str];

@@ -35,6 +35,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 #pragma mark - Local variables
 @synthesize consumer = _consumer;
+@synthesize chosen_protocol = _chosen_protocol;
 @synthesize identity_label = _identity_label;
 
 #pragma mark - Initialization
@@ -46,6 +47,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
     if (self = [super init]) {
         _our_data = nil;
         _consumer = nil;
+        _chosen_protocol = 0;
         _identity_label = nil;
     }
     
@@ -61,6 +63,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
         // Custom initialization
         _our_data = nil;
         _consumer = [[Principal alloc] init];
+        _chosen_protocol = 0;
         _identity_label = nil;
     }
     
@@ -97,6 +100,26 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
     
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
+}
+
+#pragma mark - Data source routines
+
+// UIPickerView.
+- (NSInteger) numberOfComponentsInPickerView:(UIPickerView*)picker_view {
+    if (kDebugLevel > 2)
+        NSLog(@"AddConsumerViewController:numberOfComponentsInPickerView: called.");
+    
+    return 1;
+}
+
+- (NSInteger) pickerView:(UIPickerView*)picker_view numberOfRowsInComponent:(NSInteger)component {
+    if (kDebugLevel > 2)
+        NSLog(@"AddConsumerViewController:pickerView:numberOfRowsInComponent: called.");
+    
+    
+    NSLog(@"AddConsumerViewController:pickerView:numberOfRowsInComponent: returning %lu rows.", (unsigned long)[[AddConsumerViewController supportedPairingProtocols] count]);
+    
+    return [[AddConsumerViewController supportedPairingProtocols] count];
 }
 
 #pragma mark - Navigation
@@ -189,6 +212,30 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
     [self presentViewController:picker animated:YES completion:nil];
 }
 
+- (IBAction)startPairing:(id)sender {
+    if (kDebugLevel > 2)
+        NSLog(@"AddConsumerViewController:startPairing: called, chosen_protocol: %ld.", (long)_chosen_protocol);
+    
+    if (_chosen_protocol == 0)
+        [self performSegueWithIdentifier:@"ShowAddConsumerCTViewID" sender:nil];
+    else if (_chosen_protocol == 1)
+        [self performSegueWithIdentifier:@"ShowAddConsumerHCCViewID" sender:nil];
+}
+
+#pragma mark - Utility routines
+
++ (NSArray*) supportedPairingProtocols {
+    if (kDebugLevel > 2)
+        NSLog(@"AddConsumerViewController:supportedPairingProtocols: called.");
+    
+    static NSArray* protocols = nil;
+    
+    if (protocols == nil)
+        protocols = [[NSArray alloc] initWithObjects:@"QR Codes", @"E-mail & SMS", nil];
+    
+    return protocols;
+}
+
 #pragma mark - Delegate callbacks
 
 // ABPeoplePicker delegate functions.
@@ -275,6 +322,25 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
         NSLog(@"AddConsumerViewController:peoplePickerNavigationControllerDidCancel: called.");
     
     [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+// UIPickerView delegate functions.
+- (NSString*) pickerView:(UIPickerView*)picker_view titleForRow:(NSInteger)row forComponent:(NSInteger)component {
+    if (kDebugLevel > 2)
+        NSLog(@"AddConsumerViewController:pickerView:titleForRow:forComponent: called with row: %ld.", (long)row);
+    
+    return [[AddConsumerViewController supportedPairingProtocols] objectAtIndex:row];
+}
+
+- (void) pickerView:(UIPickerView*)picker_view didSelectRow:(NSInteger)row inComponent:(NSInteger)component {
+    if (kDebugLevel > 2)
+        NSLog(@"AddConsumerViewController:pickerView:didSelectRow:inComponent: called.");
+    
+    // Mark which pairing protocol was selected.
+    if (row > [[AddConsumerViewController supportedPairingProtocols] count])
+        _chosen_protocol = 0;
+    else
+        _chosen_protocol = row;
 }
 
 @end

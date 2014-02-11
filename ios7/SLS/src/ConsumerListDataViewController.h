@@ -20,9 +20,11 @@
 #pragma mark - Local variables
 
 #pragma mark - Variables returned via callback
-@property (nonatomic) BOOL precision_changed;
+@property (copy, nonatomic) NSString* desired_policy;  // necessary, because we need to re-key old policy value
+@property (nonatomic) BOOL policy_changed;
 @property (nonatomic) BOOL track_consumer;
 @property (nonatomic) BOOL delete_principal;
+@property (nonatomic) BOOL send_file_store_info;
 
 #pragma mark - Outlets
 @property (weak, nonatomic) IBOutlet UIBarButtonItem* done_button;

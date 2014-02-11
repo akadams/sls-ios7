@@ -6,9 +6,11 @@
 //  Copyright (c) 2013 Andrew K. Adams. All rights reserved.
 //
 
+#import "NSData+Base64.h"
+
 #import "ConsumerListDataViewController.h"
 #import "PersonalDataController.h"
-#import "NSData+Base64.h"
+#import "PolicyController.h"
 
 
 static const int kDebugLevel = 4;
@@ -26,9 +28,11 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
 @synthesize consumer = _consumer;
 
 #pragma mark - Local variables
-@synthesize precision_changed = _precision_changed;
+@synthesize desired_policy = _desired_policy;
+@synthesize policy_changed = _policy_changed;
 @synthesize track_consumer = _track_consumer;
 @synthesize delete_principal = _delete_principal;
+@synthesize send_file_store_info = _send_file_store_info;
 
 #pragma mark - Outlets
 @synthesize identity_label = _identity_label;
@@ -49,9 +53,11 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
     
     if (self = [super init]) {
         _consumer = nil;
-        _precision_changed = false;
+        _desired_policy = nil;
+        _policy_changed = false;
         _track_consumer = false;
         _delete_principal = false;
+        _send_file_store_info = false;
     }
     
     return self;
@@ -65,9 +71,11 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
     if (self) {
         // Custom initialization
         _consumer = nil;
-        _precision_changed = false;
+        _desired_policy = nil;
+        _policy_changed = false;
         _track_consumer = false;
         _delete_principal = false;
+        _send_file_store_info = false;
     }
     
     return self;
@@ -81,9 +89,11 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
     if (self) {
         // Custom initialization
         _consumer = nil;
-        _precision_changed = false;
+        _desired_policy = nil;
+        _policy_changed = false;
         _track_consumer = false;
         _delete_principal = false;
+        _send_file_store_info = false;
     }
     return self;
 }
@@ -97,7 +107,6 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
     [super viewDidLoad];
     
 	// Do any additional setup after loading the view.
-    NSLog(@"ConsumerListDataViewController:viewDidLoad: TODO(aka) We need to add a \"Update Consumer as a Provider\" button!");
     
     [self configureView];
 }
@@ -112,7 +121,10 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
     _pub_key_label.text = [PersonalDataController hashAsymmetricKey:[_consumer getPublicKey]];
     
     // Setup the slider value.
-    _precision_slider.value = [_consumer.precision floatValue];
+    if (_desired_policy == nil)
+        _precision_slider.value = [[PolicyController precisionLevelIndex:_consumer.policy] floatValue];
+    else
+        _precision_slider.value = [[PolicyController precisionLevelIndex:_desired_policy] floatValue];
     [_precision_label setText:[NSString stringWithFormat:@"%d", (int)_precision_slider.value]];
     
     if (_consumer.file_store_sent) {
@@ -133,6 +145,12 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
         [_delete_button setAlpha:0.5];
     } else {
         [_delete_button setAlpha:1.0];
+    }
+    
+    if (_send_file_store_info) {
+        [_send_file_store_button setAlpha:0.5];
+    } else {
+        [_send_file_store_button setAlpha:1.0];
     }
 }
 
@@ -223,11 +241,12 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
             // Unset any state flags, if they were set.
             _delete_principal = false;
             _track_consumer = false;
-            _precision_changed = false;
+            _policy_changed = false;
         } else {
             // User hit DONE.
             if (kDebugLevel > 0)
                 NSLog(@"ConsumerListDataViewController:prepareForSeque: User hit DONE.");
+            
             // Nothing to do ...
         }
     } else {
@@ -241,9 +260,12 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
     if (kDebugLevel > 0)
         NSLog(@"ConsumerListDataViewController:precisionValueChanged: called.");
     
+    
+    
     UISlider* slider = (UISlider*)sender;
-    _consumer.precision = [NSNumber numberWithFloat:slider.value];
-    _precision_changed = true;
+    _desired_policy = [PolicyController precisionLevelName:[[NSNumber alloc] initWithFloat:slider.value]];
+    
+    _policy_changed = true;
     
     [self configureView];
 }
@@ -252,11 +274,7 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
     if (kDebugLevel > 2)
         NSLog(@"ConsumerListDataViewController:sendFileStore: called.");
     
-    NSString* err_msg = [_consumer sendFileStore];
-    if (err_msg != nil) {
-        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ConsumerListDataViewController:sendFileStore:" message:err_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-        [alert show];
-    }
+    _send_file_store_info = true;  // handle back in Provider MVC!
 
     [self configureView];
 }
