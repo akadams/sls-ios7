@@ -1,0 +1,9 @@
+Notes regarding SLS's development
+
+Xcode:
+
+- VC like AddProviderVC use *manual* triggered segues (which are created by dragging from the manual element in the connection inspector), because the action (UIButton) within the VC can go to more than one view.
+
+- The [Decode/Encode][PK/Challenge/Deposit]ViewControllers use delegates as opposed to unwindTo actions, as they need to return to different VC (e.g., AddProviderCTVC & AddConsumerCTVC!).
+
+

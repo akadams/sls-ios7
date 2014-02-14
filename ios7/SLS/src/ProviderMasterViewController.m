@@ -192,7 +192,10 @@ enum {
     NSLog(@"ProviderMasterViewController:loadState: TODO(aka) Why am I using a temp controller here?  _symmetric_keys_controller is <strong>, so I don't think I need to worry about the setter ...");
     
     SymmetricKeysController* tmp_keys_controller = [[SymmetricKeysController alloc] init];
+    NSLog(@"PMVC:loadState: XXX _policies: %d, _symmetric_keys: %d", [tmp_keys_controller.policies isKindOfClass:[NSMutableArray class]], [tmp_keys_controller.symmetric_keys isKindOfClass:[NSMutableDictionary class]]);
+
     NSString* err_msg = [tmp_keys_controller loadState];
+    NSLog(@"PMVC:loadState: XXX After loadState, _policies: %d, _symmetric_keys: %d", [tmp_keys_controller.policies isKindOfClass:[NSMutableArray class]], [tmp_keys_controller.symmetric_keys isKindOfClass:[NSMutableDictionary class]]);
     if (err_msg != nil)
         NSLog(@"ProviderMasterViewController:loadState: %@.", err_msg);
     
@@ -200,7 +203,7 @@ enum {
         NSLog(@"ProviderMasterViewController:loadState: loaded %lu symmetric keys into the tmp controller.", (unsigned long)[tmp_keys_controller count]);
     
     _symmetric_keys_controller = tmp_keys_controller;
-    
+    NSLog(@"PMVC:loadState: XXX After set, _policies: %d, _symmetric_keys: %d", [tmp_keys_controller.policies isKindOfClass:[NSMutableArray class]], [tmp_keys_controller.symmetric_keys isKindOfClass:[NSMutableDictionary class]]);
     // Load in any previous locations (history logs) for any policy levels we have.
     _history_logs = [[PersonalDataController loadStateDictionary:[[NSString alloc] initWithCString:kHistoryLogFilename encoding:[NSString defaultCStringEncoding]]] mutableCopy];
     
@@ -460,6 +463,10 @@ enum {
             NSLog(@"ProviderMasterViewController:unwindToProviderMaster: ConsumerListDataViewController callback.");
         
         ConsumerListDataViewController* source = [segue sourceViewController];
+        
+        if (kDebugLevel > 0)
+            NSLog(@"ProviderMasterViewController:unwindToProviderMaster: ConsumerListDataViewController callback: delete principal: %d, policy_changed: %d, track consumer: %d, send file-store: %d.", source.delete_principal, source.policy_changed, source.track_consumer, source.send_file_store_info);
+        
         if (source.delete_principal) {
             // Delete the consumer.
             if (kDebugLevel > 0)
@@ -487,8 +494,22 @@ enum {
                     if (err_msg != nil) {
                         UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterViewController:unwindToProviderMaster:" message:err_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
                         [alert show];
+                        
+                        return;
                     }
+                    
                     [self uploadKeyBundle:policy consumer:nil];
+                }
+                
+                // Make sure we have a symmetric key at the new policy.
+                if (![_symmetric_keys_controller haveKey:source.desired_policy]) {
+                    NSString* err_msg = [_symmetric_keys_controller generateSymmetricKey:source.desired_policy];
+                    if (err_msg != nil) {
+                        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterViewController:unwindToProviderMaster:" message:err_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                        [alert show];
+                        
+                        return;
+                    }
                 }
                 
                 // Now upload our consumer's new shared key bundle, and send them the updated cloud meta-data.
@@ -542,15 +563,20 @@ enum {
             if (kDebugLevel > 0)
                 NSLog(@"ProviderMasterViewController:unwindToProviderMaster: adding new consumer: %s, public-key: %s.", [source.consumer.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [[source.consumer.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
             
+            // Make sure our policy is set to NONE.
+            [source.consumer setPolicy:[PolicyController precisionLevelName:[NSNumber numberWithInt:0]]];
+            
             // Add our new consumer (and update our state files).
             NSString* err_msg = [_consumer_list_controller addConsumer:source.consumer];
             if (err_msg != nil) {
                 UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterViewController:unwindToProviderMaster:" message:err_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
                 [alert show];
             } else {
-                // Remind the Provider to set the new consumer's policy & send the file-store meta-data out!
+                // Remind the provider to set the new consumer's policy & send the file-store meta-data out!
                 UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"New Consumer Added" message:@"Remember to set policy for the new consumer!" delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
                 [alert show];
+                
+                [self.tableView reloadData];  // get the new consumer in our table view
             }
         }
     } else if ([sourceViewController isKindOfClass:[AddConsumerViewController class]]) {
@@ -610,12 +636,13 @@ enum {
         
         // Generate signature of four tuple.
         NSString* four_tuple = [[NSString alloc] initWithFormat:@"%s%s%s%ld", [_our_data.identity_hash cStringUsingEncoding:[NSString defaultCStringEncoding]], [[history_log_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[key_bundle_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]], now.tv_sec];
+        NSData* hash = [PersonalDataController hashSHA256StringToData:four_tuple];
         
         if (kDebugLevel > 2)
-            NSLog(@"PersonalDataController:sendCloudMetaData: four tuple: %@.", four_tuple);
+            NSLog(@"PersonalDataController:sendCloudMetaData: four tuple: %@, hash size: %ld.", four_tuple, (unsigned long)[hash length]);
         
         NSString* signature = nil;
-        NSString* err_msg = [PersonalDataController signHashString:four_tuple privateKeyRef:_our_data.privateKeyRef signedHash:&signature];
+        NSString* err_msg = [PersonalDataController signHashData:hash privateKeyRef:_our_data.privateKeyRef signedHash:&signature];
         if (err_msg != nil) {
             UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterViewController:sendCloudMetaData:" message:err_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
             [alert show];

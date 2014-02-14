@@ -512,16 +512,30 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
         NSLog(@"ProviderDataViewController:genSymmetricKeys: called.");
     
     if (![_symmetric_keys haveAnyKeys]) {
-        // Generate all possible symmetric keys.
-        for (int i = 1; i < kNumPrecisionLevels; ++i) {
-            NSString* policy = [PolicyController precisionLevelName:[NSNumber numberWithInt:i]];
-            [_symmetric_keys generateSymmetricKey:policy];
+        if ([_symmetric_keys.policies count]) {
+            // Generate keys for all the policies we currently have in play ...
+            for (id object in _symmetric_keys.policies) {
+                NSString* policy = (NSString*)object;
+                [_symmetric_keys generateSymmetricKey:policy];
+            }
+            
+            _sym_keys_changed = true;
+        } else {
+            // TODO(aka) We don't have any policies in play, so should we generate all keys?
+#if 0
+            // Generate keys for all policy levels we are currently usingall possible symmetric keys.
+            for (int i = 1; i < kNumPrecisionLevels; ++i) {
+                NSString* policy = [PolicyController precisionLevelName:[NSNumber numberWithInt:i]];
+                [_symmetric_keys generateSymmetricKey:policy];
+            }
+            
+            _sym_keys_changed = true;
+#endif
         }
-        _sym_keys_changed = true;
         
         [self configureView];
     } else {
-        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Symmetric Key Generation" message:@"(Some) keys already exist.  Are you sure you want to generate all new keys?" delegate:self cancelButtonTitle:[NSString stringWithCString:kAlertButtonCancelMessage encoding:[NSString defaultCStringEncoding]] otherButtonTitles:[NSString stringWithCString:kAlertButtonGenSymKeysMessage encoding:[NSString defaultCStringEncoding]], nil];
+        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Symmetric Key Generation" message:@"(Some) keys already exist.  Are you sure you want to re-generate those keys?" delegate:self cancelButtonTitle:[NSString stringWithCString:kAlertButtonCancelMessage encoding:[NSString defaultCStringEncoding]] otherButtonTitles:[NSString stringWithCString:kAlertButtonGenSymKeysMessage encoding:[NSString defaultCStringEncoding]], nil];
         [alert show];
     }
 }
@@ -668,13 +682,12 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
         if (kDebugLevel > 0)
             NSLog(@"ProviderDataViewController:alertView:clickedButtonAtIndex: matched GenSymKeysMessage.");
         
-        // TODO(aka) It's arguable that we should only re-generate those keys we already have ...
-        
-        // Re-generate all possible symmetric keys.
-        for (int i = 1; i < kNumPrecisionLevels; ++i) {
-            NSString* policy = [PolicyController precisionLevelName:[NSNumber numberWithInt:i]];
+        // Re-generate keys for all the policies we currently have in play ...
+        for (id object in _symmetric_keys.policies) {
+            NSString* policy = (NSString*)object;
             [_symmetric_keys generateSymmetricKey:policy];
         }
+        
         _sym_keys_changed = true;
 	} else if([title isEqualToString:[NSString stringWithCString:kAlertButtonCancelMessage encoding:[NSString defaultCStringEncoding]]]) {
         if (kDebugLevel > 0)

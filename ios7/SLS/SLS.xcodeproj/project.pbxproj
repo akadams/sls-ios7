@@ -164,6 +164,7 @@
 		5C3FBDC71892D0B00055475C /* LocationBundleController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LocationBundleController.m; sourceTree = "<group>"; };
 		5C48005118A3D284009D9CBD /* PolicyController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PolicyController.h; sourceTree = "<group>"; };
 		5C48005218A3D284009D9CBD /* PolicyController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PolicyController.m; sourceTree = "<group>"; };
+		5C48005418AE46B6009D9CBD /* developers-notes.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "developers-notes.txt"; sourceTree = "<group>"; };
 		5C4F75A9183A9927004A41BA /* Obsoleted-code.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "Obsoleted-code.m"; sourceTree = "<group>"; };
 		5C4F75AA183A9927004A41BA /* ConsumerDataExtViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ConsumerDataExtViewController.h; sourceTree = "<group>"; };
 		5C4F75AB183A9927004A41BA /* ConsumerDataExtViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ConsumerDataExtViewController.m; sourceTree = "<group>"; };
@@ -378,6 +379,7 @@
 			isa = PBXGroup;
 			children = (
 				5CA83F0E18350CD3004B693F /* deprecated */,
+				5C48005418AE46B6009D9CBD /* developers-notes.txt */,
 				5C89CA2D182A99BA0080576A /* Main_iPhone.storyboard */,
 				5CC57CCE18196E4C0070AFE8 /* main.m */,
 				5CE2342A18197509003CCECA /* SLSAppDelegate.h */,

@@ -36,6 +36,7 @@
 #pragma mark - Symmetric key management
 - (void) deleteSymmetricKey:(NSString*)policy;         // updates state
 - (NSString*) generateSymmetricKey:(NSString*)policy;  // updates state
+- (BOOL) haveKey:(NSString*)policy;
 - (BOOL) haveAllKeys;
 - (BOOL) haveAnyKeys;
 

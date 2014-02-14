@@ -194,7 +194,7 @@
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                                 <connections>
-                                    <segue destination="JRk-2C-IDZ" kind="modal" identifier="ShowQRDecodeChallengeView" id="hNz-7M-AUF"/>
+                                    <segue destination="JRk-2C-IDZ" kind="modal" identifier="ShowQRDecodeChallengeViewID" id="hNz-7M-AUF"/>
                                 </connections>
                             </button>
                             <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="RbQ-HZ-M5t">
@@ -214,7 +214,7 @@
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                                 <connections>
-                                    <segue destination="y27-oW-DDh" kind="modal" identifier="ShowQRDecodePKView" id="Azd-Zh-Ae6"/>
+                                    <segue destination="y27-oW-DDh" kind="modal" identifier="ShowQRDecodePKViewID" id="Azd-Zh-Ae6"/>
                                 </connections>
                             </button>
                             <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="PZe-MM-b6t">
@@ -228,7 +228,7 @@
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                                 <connections>
-                                    <segue destination="ubA-Py-3Zq" kind="modal" identifier="ShowQREncodeChallengeView" id="nBS-tc-tH2"/>
+                                    <segue destination="ubA-Py-3Zq" kind="modal" identifier="ShowQREncodeChallengeViewID" id="nBS-tc-tH2"/>
                                 </connections>
                             </button>
                             <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="MeJ-Rn-NA4">
@@ -247,6 +247,9 @@
                                 <state key="normal" title="Yes">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
+                                <connections>
+                                    <action selector="encodeResponseYes:" destination="d5G-6E-5L5" eventType="touchUpInside" id="wez-nP-5pI"/>
+                                </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Qvv-h0-2OL">
                                 <rect key="frame" x="168" y="329" width="80" height="30"/>
@@ -254,6 +257,9 @@
                                 <state key="normal" title="No">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
+                                <connections>
+                                    <action selector="encodeResponseNo:" destination="d5G-6E-5L5" eventType="touchUpInside" id="F0y-EJ-GoQ"/>
+                                </connections>
                             </button>
                             <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="XzJ-JY-Jnu">
                                 <rect key="frame" x="258" y="323" width="42" height="42"/>
@@ -266,7 +272,7 @@
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                                 <connections>
-                                    <segue destination="nxn-zH-Yfh" kind="modal" identifier="ShowQREncodeDepositView" id="5Uc-cg-fwY"/>
+                                    <segue destination="nxn-zH-Yfh" kind="modal" identifier="ShowQREncodeDepositViewID" id="5Uc-cg-fwY"/>
                                 </connections>
                             </button>
                             <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="xnu-KA-2gR">
@@ -286,7 +292,7 @@
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                                 <connections>
-                                    <segue destination="h7o-1g-68Y" kind="modal" identifier="ShowQREncodePKView" id="93T-Nr-6nV"/>
+                                    <segue destination="h7o-1g-68Y" kind="modal" identifier="ShowQREncodePKViewID" id="93T-Nr-6nV"/>
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="SN9-EQ-LwI">
@@ -295,6 +301,9 @@
                                 <state key="normal" title="Tap To Scan Their Deposit">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
+                                <connections>
+                                    <segue destination="rea-ax-r28" kind="modal" identifier="ShowQRDecodeDepositViewID" id="TxV-ae-aQ8"/>
+                                </connections>
                             </button>
                             <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="h5J-At-LzX">
                                 <rect key="frame" x="258" y="423" width="42" height="42"/>
@@ -392,7 +401,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="foC-vc-1Ud" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="5644" y="-1253"/>
+            <point key="canvasLocation" x="4710" y="-520"/>
         </scene>
         <!--DecodePK View Controller - Scan Public Key-->
         <scene sceneID="zKt-n3-FEN">
@@ -451,7 +460,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="4EO-xr-7xg" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="4592" y="-522"/>
+            <point key="canvasLocation" x="4886" y="1728"/>
         </scene>
         <!--Encode Challenge View Controller - Display Challenge-->
         <scene sceneID="Vqg-Ah-mfg">
@@ -493,7 +502,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="Ul3-LI-H7m" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="4066" y="243"/>
+            <point key="canvasLocation" x="5118" y="243"/>
         </scene>
         <!--Decode Challenge View Controller - Scan Challenge-->
         <scene sceneID="oXy-Aj-t3E">
@@ -547,7 +556,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="lro-wp-No5" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="4066" y="973"/>
+            <point key="canvasLocation" x="5118" y="977"/>
         </scene>
         <!--Decode Deposit View Controller - Scan Deposit-->
         <scene sceneID="PsR-Ob-QxH">
@@ -564,7 +573,7 @@
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="EQH-UT-TD0">
                                 <rect key="frame" x="20" y="102" width="280" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <state key="normal" title="Button">
+                                <state key="normal" title="Tap To Start Scan">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                                 <connections>
@@ -640,7 +649,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="ghV-2n-bWs" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="4066" y="1695"/>
+            <point key="canvasLocation" x="4294" y="-1282"/>
         </scene>
         <!--Consumer Data View Controller - Config-->
         <scene sceneID="1w4-U9-fJe">
@@ -1438,7 +1447,7 @@
                 </navigationController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="zL4-bO-5cq" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="5118" y="-1253"/>
+            <point key="canvasLocation" x="4184" y="-520"/>
         </scene>
         <!--Navigation Controller-->
         <scene sceneID="71k-tg-ATN">
@@ -1456,7 +1465,7 @@
                 </navigationController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="6YD-4N-MKC" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="4066" y="-522"/>
+            <point key="canvasLocation" x="4360" y="1728"/>
         </scene>
         <!--Navigation Controller-->
         <scene sceneID="CsN-83-c37">
@@ -1474,7 +1483,7 @@
                 </navigationController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="tdw-na-Efi" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="3540" y="243"/>
+            <point key="canvasLocation" x="4592" y="243"/>
         </scene>
         <!--Navigation Controller-->
         <scene sceneID="MtX-Ko-L7L">
@@ -1492,7 +1501,7 @@
                 </navigationController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="LRe-AY-Mrp" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="3540" y="973"/>
+            <point key="canvasLocation" x="4592" y="977"/>
         </scene>
         <!--Navigation Controller-->
         <scene sceneID="G4Z-uQ-co2">
@@ -1510,7 +1519,7 @@
                 </navigationController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="CmS-ZM-Ppq" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="3540" y="1695"/>
+            <point key="canvasLocation" x="3768" y="-1282"/>
         </scene>
         <!--Navigation Controller-->
         <scene sceneID="DX9-Wz-S4i">
@@ -1542,7 +1551,7 @@
                         <rect key="frame" x="0.0" y="0.0" width="320" height="568"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                         <subviews>
-                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" misplaced="YES" text="Identity:" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zIp-gi-I9k">
+                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Identity:" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zIp-gi-I9k">
                                 <rect key="frame" x="20" y="114" width="67" height="21"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <constraints>
@@ -1650,6 +1659,16 @@
                         <rect key="frame" x="0.0" y="0.0" width="320" height="568"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                         <subviews>
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="akX-cn-woy">
+                                <rect key="frame" x="18" y="79" width="230" height="30"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="Tap To Scan Their Key">
+                                    <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
+                                </state>
+                                <connections>
+                                    <segue destination="y27-oW-DDh" kind="modal" identifier="ShowQRDecodePKViewID" id="AL3-Az-aDQ"/>
+                                </connections>
+                            </button>
                             <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="p84-cc-v4N">
                                 <rect key="frame" x="258" y="73" width="42" height="42"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
@@ -1661,7 +1680,7 @@
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                                 <connections>
-                                    <segue destination="rzr-nw-ARg" kind="modal" id="8cC-ne-i5C"/>
+                                    <segue destination="ubA-Py-3Zq" kind="modal" identifier="ShowQREncodeChallengeViewID" id="5iC-sC-G8V"/>
                                 </connections>
                             </button>
                             <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="rZj-4A-qQY">
@@ -1674,6 +1693,30 @@
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <nil key="highlightedColor"/>
                             </label>
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Mcc-gO-2Uf">
+                                <rect key="frame" x="18" y="194" width="80" height="30"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="Yes">
+                                    <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
+                                </state>
+                                <connections>
+                                    <action selector="encodeResponseYes:" destination="V3l-bS-1k1" eventType="touchUpInside" id="8de-Fg-qzI"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="gjW-gw-zcz">
+                                <rect key="frame" x="168" y="194" width="80" height="30"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="No">
+                                    <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
+                                </state>
+                                <connections>
+                                    <action selector="encodeResponseNo:" destination="V3l-bS-1k1" eventType="touchUpInside" id="nhs-2y-9yt"/>
+                                </connections>
+                            </button>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="T0i-iM-v4S">
+                                <rect key="frame" x="258" y="188" width="42" height="42"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                            </imageView>
                             <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ugp-HY-2iE">
                                 <rect key="frame" x="18" y="244" width="232" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
@@ -1681,7 +1724,7 @@
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                                 <connections>
-                                    <segue destination="7eV-3I-cKo" kind="modal" id="KJU-GI-FTK"/>
+                                    <segue destination="h7o-1g-68Y" kind="modal" identifier="ShowQREncodePKViewID" id="IZz-LX-A7b"/>
                                 </connections>
                             </button>
                             <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="FRZ-np-g0j">
@@ -1695,7 +1738,7 @@
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                                 <connections>
-                                    <segue destination="TNI-yE-LRI" kind="modal" id="ASx-wX-Sd3"/>
+                                    <segue destination="JRk-2C-IDZ" kind="modal" identifier="ShowQRDecodeChallengeViewID" id="ZJK-kw-AlM"/>
                                 </connections>
                             </button>
                             <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="mNA-vC-bNm">
@@ -1708,24 +1751,6 @@
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Mcc-gO-2Uf">
-                                <rect key="frame" x="18" y="194" width="80" height="30"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <state key="normal" title="Yes">
-                                    <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
-                                </state>
-                            </button>
-                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="gjW-gw-zcz">
-                                <rect key="frame" x="168" y="194" width="80" height="30"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <state key="normal" title="No">
-                                    <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
-                                </state>
-                            </button>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="T0i-iM-v4S">
-                                <rect key="frame" x="258" y="188" width="42" height="42"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                            </imageView>
                             <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="iXT-a6-d6Z">
                                 <rect key="frame" x="18" y="367" width="230" height="30"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
@@ -1733,11 +1758,25 @@
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                                 <connections>
-                                    <segue destination="Xvj-Po-BJd" kind="modal" id="ac9-c9-htC"/>
+                                    <segue destination="rea-ax-r28" kind="modal" identifier="ShowQRDecodeDepositViewID" id="Bw5-vl-uW8"/>
                                 </connections>
                             </button>
                             <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="xnz-Oy-gk3">
                                 <rect key="frame" x="258" y="361" width="42" height="42"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                            </imageView>
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="MsU-Uq-wec">
+                                <rect key="frame" x="20" y="417" width="230" height="30"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="Tap To Display Our Deposit">
+                                    <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
+                                </state>
+                                <connections>
+                                    <segue destination="nxn-zH-Yfh" kind="modal" identifier="ShowQREncodeDepositViewID" id="Cle-6v-9eg"/>
+                                </connections>
+                            </button>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="iW8-EW-g2n">
+                                <rect key="frame" x="258" y="411" width="42" height="42"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                             </imageView>
                             <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Label" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="ETi-6Q-wm7">
@@ -1746,27 +1785,6 @@
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="akX-cn-woy">
-                                <rect key="frame" x="18" y="79" width="230" height="30"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <state key="normal" title="Tap To Scan Their Key">
-                                    <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
-                                </state>
-                                <connections>
-                                    <segue destination="ghh-JE-gzH" kind="modal" id="HSH-QQ-Xpq"/>
-                                </connections>
-                            </button>
-                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="MsU-Uq-wec">
-                                <rect key="frame" x="20" y="417" width="230" height="30"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <state key="normal" title="Tap To Display Our Deposit">
-                                    <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
-                                </state>
-                            </button>
-                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="iW8-EW-g2n">
-                                <rect key="frame" x="258" y="411" width="42" height="42"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                            </imageView>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
                         <constraints>
@@ -2455,10 +2473,11 @@
         <simulatedScreenMetrics key="destination" type="retina4"/>
     </simulatedMetricsContainer>
     <inferredMetricsTieBreakers>
-        <segue reference="KJU-GI-FTK"/>
-        <segue reference="HSH-QQ-Xpq"/>
-        <segue reference="ac9-c9-htC"/>
-        <segue reference="ASx-wX-Sd3"/>
-        <segue reference="8cC-ne-i5C"/>
+        <segue reference="nBS-tc-tH2"/>
+        <segue reference="5Uc-cg-fwY"/>
+        <segue reference="TxV-ae-aQ8"/>
+        <segue reference="93T-Nr-6nV"/>
+        <segue reference="hNz-7M-AUF"/>
+        <segue reference="Azd-Zh-Ae6"/>
     </inferredMetricsTieBreakers>
 </document>

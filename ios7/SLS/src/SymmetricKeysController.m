@@ -16,7 +16,7 @@
 
 static const int kDebugLevel = 1;
 
-static const size_t kChosenCipherKeySize = CIPHER_KEY_SIZE;
+static const size_t kChosenCipherKeySize = CIPHER_KEY_SIZE;  // 16 bytes
 //static const size_t kChosenCipherBlockSize = CIPHER_BLOCK_SIZE;
 
 static const char* kPolicyKeysFilename = "policy.keys";  // state filename which holds policies array
@@ -33,7 +33,6 @@ static const char* kSymmetricKey = "symmetric-key";  // prefix in key-chain
 @synthesize policies = _policies;
 
 // TOOD(aka) I have no idea what CSSM_ALGID_AES is being set to, i.e, 0x8000000L + 1, 0x8000000L * 2, or just 2?
-
 enum {
     CSSM_ALGID_NONE = 0x00000000L,
     CSSM_ALGID_VENDOR_DEFINED = CSSM_ALGID_NONE + 0x80000000L,
@@ -50,11 +49,6 @@ enum {
         // TODO(aka) Depending on when loadState: is called in the master VC, this init's may not be necessary.
         _symmetric_keys = [[NSMutableDictionary alloc] initWithCapacity:kNumPrecisionLevels];
         _policies = [[NSMutableArray alloc] initWithCapacity:kNumPrecisionLevels];
-        NSLog(@"SymmetricKeysController:init: XXXXX policies count: %ld.", (unsigned long)[_policies count]);
-        [_policies addObject:[NSString stringWithFormat:@"city"]];
-        NSLog(@"SymmetricKeysController:init: XXXXX policies count: %ld.", (unsigned long)[_policies count]);
-        [_policies removeObject:[NSString stringWithFormat:@"city"]];
-        NSLog(@"SymmetricKeysController:init: XXXXX policies count: %ld.", (unsigned long)[_policies count]);
     }
     
     return self;
@@ -62,16 +56,19 @@ enum {
 
 - (id) copyWithZone:(NSZone*)zone {
     if (kDebugLevel > 2)
-        NSLog(@"Consumer:copywithZone: called.");
+        NSLog(@"SymmetricKeysController:copywithZone: called.");
     
     SymmetricKeysController* tmp_symmetric_keys_controller = [[SymmetricKeysController alloc] init];
     tmp_symmetric_keys_controller.symmetric_keys = _symmetric_keys;
     tmp_symmetric_keys_controller.policies = _policies;
-    
+
     return tmp_symmetric_keys_controller;
 }
 
 - (void) setSymmetric_keys:(NSMutableDictionary*)symmetric_keys {
+    if (kDebugLevel > 2)
+        NSLog(@"SymmetricKeysController:setSymmetric_keys: called.");
+    
     // We need to override the default setter, because we declared our dictionary to be a copy (on assignment) and we need to ensure we stay mutable!
     
     if (_symmetric_keys != symmetric_keys) {
@@ -80,6 +77,9 @@ enum {
 }
 
 - (void) setPolicies:(NSMutableArray*)policies {
+    if (kDebugLevel > 2)
+        NSLog(@"SymmetricKeysController:setPolicies: called.");
+    
     // We need to override the default setter, because we declared our array to be a copy (on assignment) and we need to ensure we stay mutable!
     
     if (_policies != policies) {
@@ -95,8 +95,9 @@ enum {
     
     // First, we load in our _policies array; this will act as our guide in fetching any existing symmetric keys from our key-chain in step two!
     
-    _policies = [[PersonalDataController loadStateArray:[[NSString alloc] initWithCString:kPolicyKeysFilename encoding:[NSString defaultCStringEncoding]]] mutableCopy];
-    
+    NSArray* tmp_policies = [PersonalDataController loadStateArray:[[NSString alloc] initWithCString:kPolicyKeysFilename encoding:[NSString defaultCStringEncoding]]];
+    if ([tmp_policies count] > 0)
+        _policies = [tmp_policies mutableCopy];
     if ([_policies count] == 0) {
         if (kDebugLevel > 0)
             NSLog(@"SymmetricKeysController:loadState: No policy keys found on disk!");
@@ -234,9 +235,11 @@ enum {
     
     // Remove the symmetric key from our controller and our dictionary keys array, then save the latter's state.
     [self removeObjectForKey:policy];
-    
-    NSLog(@"SymmetricKeysController:deleteSymmetricKey: XXX removing policy: %@, from policies (%ld)", policy, (unsigned long)[_policies count]);
     [_policies removeObject:policy];
+    
+    if (kDebugLevel > 0)
+        NSLog(@"SymmetricKeysController:deleteSymmetricKey: after removal of %@, policies at %ld, symmetric_keys at %ld.", policy, (unsigned long)[_policies count], (unsigned long)[_symmetric_keys count]);
+    
     [PersonalDataController saveState:[[NSString alloc] initWithCString:kPolicyKeysFilename encoding:[NSString defaultCStringEncoding]] array:_policies];
 }
 
@@ -312,17 +315,31 @@ enum {
     }
     
     if (kDebugLevel > 0)
-        NSLog(@"SymmetricKeysController:generateSymmetricKey: returning %luB key using tag: %s.", (unsigned long)[symmetric_key length], [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        NSLog(@"SymmetricKeysController:generateSymmetricKey: generated %luB key using tag: %s.", (unsigned long)[symmetric_key length], [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     // And finally, save the symmetric key and precision level in our local data members.
     [_symmetric_keys setObject:symmetric_key forKey:policy];
-    NSLog(@"SymmetricKeysController:generateSymmetricKey: XXX After adding %@, key dictionary: (%ld).", policy, (unsigned long)[_symmetric_keys count]);
-    NSLog(@"SymmetricKeysController:generateSymmetricKey: XXX Before adding %@, policies = %ld.", policy, (unsigned long)[_policies count]);
     [_policies addObject:policy];
-    NSLog(@"SymmetricKeysController:generateSymmetricKey: XXX After adding policy: %@, policies = %ld.", policy, (unsigned long)[_policies count]);
+
+    if (kDebugLevel > 0)
+        NSLog(@"SymmetricKeysController:generateSymmetricKey: after adding %@, policies at %ld, symmetric_keys at %ld.", policy, (unsigned long)[_policies count], (unsigned long)[_symmetric_keys count]);
+
     [PersonalDataController saveState:[[NSString alloc] initWithCString:kPolicyKeysFilename encoding:[NSString defaultCStringEncoding]] array:_policies];
     
     return nil;
+}
+
+- (BOOL) haveKey:(NSString*)policy {
+    if (kDebugLevel > 2)
+        NSLog(@"SymmetricKeysController:haveKey: called.");
+    
+    if ([_policies containsObject:policy]) {
+        NSData* sym_key = [_symmetric_keys objectForKey:policy];
+        if (sym_key != nil && [sym_key length] > 0)
+            return true;
+    }
+    
+    return false;
 }
 
 - (BOOL) haveAllKeys {

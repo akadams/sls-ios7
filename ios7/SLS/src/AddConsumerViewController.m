@@ -138,9 +138,9 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
         // User hit CANCEL; clear our consumer object if it's set.
         if (_consumer != nil)
             _consumer = nil;  // probably not necessary, as the ConsumerMasterVC ignores unwinds from here
-    } else if ([[segue identifier] isEqualToString:@"ShowAddConsumerCTView"]) {
+    } else if ([[segue identifier] isEqualToString:@"ShowAddConsumerCTViewID"]) {
         if (kDebugLevel > 0)
-            NSLog(@"AddConsumerViewController:prepareForSeque: Segue'ng to ShowAddConsumerCTView.");
+            NSLog(@"AddConsumerViewController:prepareForSeque: Segue'ng to ShowAddConsumerCTViewID.");
         
         // Pass in *our_data* and (potentially) new consumer's info from our AddressBook.
         UINavigationController* nav_controller = (UINavigationController*)segue.destinationViewController;

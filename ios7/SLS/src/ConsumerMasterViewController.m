@@ -855,13 +855,16 @@ static const size_t kNSKeyedArchiverKeyBundleSize = 724;
     
     // Verify the signature over the meta-data, which was built via the Provider MVC via:
     /*
-    NSString* four_tuple = [[NSString alloc] initWithFormat:@"%s%s%s%ld", [_our_data.identity_hash cStringUsingEncoding:[NSString defaultCStringEncoding]], [[history_log_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[key_bundle_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]], now.tv_sec];
-    NSString* signature = nil;
-    NSString* err_msg = [PersonalDataController signHashString:four_tuple privateKeyRef:_our_data.privateKeyRef signedHash:&signature];
+     NSString* four_tuple = [[NSString alloc] initWithFormat:@"%s%s%s%ld", [_our_data.identity_hash cStringUsingEncoding:[NSString defaultCStringEncoding]], [[history_log_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[key_bundle_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]], now.tv_sec];
+     NSData* hash = [PersonalDataController hashSHA256StringToData:four_tuple];
+     NSString* signature = nil;
+     [PersonalDataController signHashData:four_tuple privateKeyRef:_our_data.privateKeyRef signedHash:&signature];
      */
-
+    
     NSString* four_tuple = [[NSString alloc] initWithFormat:@"%s%s%s%ld", [identity_hash cStringUsingEncoding:[NSString defaultCStringEncoding]], [[history_log_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[key_bundle_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]], time_stamp];
-    if (![PersonalDataController verifySignatureString:four_tuple secKeyRef:[provider publicKeyRef] signature:signature]) {
+    NSData* hash = [PersonalDataController hashSHA256StringToData:four_tuple];
+    
+    if (![PersonalDataController verifySignatureData:hash secKeyRef:[provider publicKeyRef] signature:signature]) {
         err_msg = [[NSString alloc] initWithFormat:@"ConsumerMasterViewController:checkNSUserDefaults: Unable to verify signature for provider: %s.", [provider.identity cStringUsingEncoding:[NSString defaultCStringEncoding]]];
         return err_msg;
     }
@@ -1017,6 +1020,17 @@ static const size_t kNSKeyedArchiverKeyBundleSize = 724;
         NSLog(@"ConsumerMasterViewController:addConsumerToProviders: called.");
     
     // Add this consumer as a provider.  Note, if this consumer already exists in our list, then we don't add it (as important information like symmetric keys or file-stores could be overwritten, i.e., the ConsumerMaster VC gets that info, the ProviderMaster VC does not have it!).
+    
+#if 1  // SIMULATOR HACK:
+    // The stupid simulator can't scroll up to the "delete principal" button in ProviderListDataViewController!
+    UIDevice* ui_device = [UIDevice currentDevice];
+    if ([ui_device.name caseInsensitiveCompare:@"iPhone Simulator"] == NSOrderedSame) {
+        NSLog(@"ConsumerMasterVC:addConsumerToProvider: Found device iPhone Simulator.");
+        
+        if ([_provider_list containsObject:consumer])
+            [_provider_list deleteProvider:consumer saveState:NO];
+    }
+#endif
     
     if (![_provider_list containsObject:consumer]) {
         if (kDebugLevel > 0)

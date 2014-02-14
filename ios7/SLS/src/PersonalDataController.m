@@ -1987,9 +1987,6 @@ static const int kInitialDictionarySize = 5;
     if (hash == nil) {
         NSLog(@"PersonalDataController:verifySignatureData: ERROR: TODO(aka) hash is nil.");
         return false;
-    } else {
-        if (kDebugLevel > 1)
-            NSLog(@"PersonalDataController:verifySignatureData: verifying hash of size %ld.", (unsigned long)[hash length]);
     }
     
     if (public_key_ref == NULL) {
@@ -1997,7 +1994,10 @@ static const int kInitialDictionarySize = 5;
         return false;
     }
     
-    // Get the size of the assymetric block.
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:verifySignatureData: verifying hash of size %ld.", (unsigned long)[hash length]);
+    
+    // Get the size of the asymmetric block.
     size_t signed_hash_buf_size = SecKeyGetBlockSize(public_key_ref);
     
     // Verify using the public key.
