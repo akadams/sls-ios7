@@ -246,7 +246,6 @@
 			files = (
 				374CBFCF18FDB4B0000F1EC7 /* SystemConfiguration.framework in Frameworks */,
 				374CBFCD18FDB4A7000F1EC7 /* Security.framework in Frameworks */,
-				374CBFCB18FDB489000F1EC7 /* libGTLTouchStaticLib.a in Frameworks */,
 				5CBC3F1E18196D0E00379C2F /* CoreGraphics.framework in Frameworks */,
 				5CBC3F2018196D0E00379C2F /* UIKit.framework in Frameworks */,
 				5CBC3F1C18196D0E00379C2F /* Foundation.framework in Frameworks */,
@@ -254,6 +253,7 @@
 				5C7F50CB1819941A001F5515 /* AddressBook.framework in Frameworks */,
 				5C7F50CD18199421001F5515 /* AddressBookUI.framework in Frameworks */,
 				5CE2342518197081003CCECA /* MapKit.framework in Frameworks */,
+				374CBFCB18FDB489000F1EC7 /* libGTLTouchStaticLib.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
