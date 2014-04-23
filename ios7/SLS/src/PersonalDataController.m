@@ -8,7 +8,7 @@
 
 #import <sys/time.h>
 
-#import <AWSS3/AWSS3.h>
+#import <S3/AWSS3.h>
 
 #import "NSData+Base64.h"
 
