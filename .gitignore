@@ -1,0 +1,14 @@
+# SLS
+build/*
+.DS_Store
+*.xcuserdatad
+/Users/Shared/src/google-api-objectivec-client-read-only
+Drive Test4.xcworkspace
+Drive-Test2.xcworkspace
+Google Drive Test.xcworkspace
+Secure Location Sharing iOS 5.xcworkspace
+TestDrive
+ext-library-archive
+info
+ios5
+tmp
