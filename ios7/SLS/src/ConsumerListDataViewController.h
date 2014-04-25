@@ -25,6 +25,7 @@
 @property (nonatomic) BOOL track_consumer;
 @property (nonatomic) BOOL delete_principal;
 @property (nonatomic) BOOL send_file_store_info;
+@property (nonatomic) BOOL upload_key_bundle;
 
 #pragma mark - Outlets
 @property (weak, nonatomic) IBOutlet UIBarButtonItem* done_button;
@@ -35,6 +36,7 @@
 @property (weak, nonatomic) IBOutlet UISlider* precision_slider;
 @property (weak, nonatomic) IBOutlet UILabel* precision_label;
 @property (weak, nonatomic) IBOutlet UIButton* send_file_store_button;
+@property (weak, nonatomic) IBOutlet UIButton* upload_key_bundle_button;
 @property (weak, nonatomic) IBOutlet UIButton* track_consumer_button;
 @property (weak, nonatomic) IBOutlet UIButton* delete_button;
 
@@ -48,6 +50,7 @@
 
 - (IBAction) precisionValueChanged:(id)sender;
 - (IBAction) sendFileStore:(id)sender;
+- (IBAction) uploadKeyBundle:(id)sender;
 - (IBAction) makeConsumerAProvider:(id)sender;
 - (IBAction) deletePrincipal:(id)sender;
 

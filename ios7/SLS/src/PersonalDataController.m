@@ -8,11 +8,12 @@
 
 #import <sys/time.h>
 
-#import <AWSS3/AWSS3.h>
-
+#import "GTMOAuth2ViewControllerTouch.h"
+#import "GTLDriveFile.h"
 #import "NSData+Base64.h"
 
 #import "PersonalDataController.h"
+#import "Principal.h"
 #import "security-defines.h"
 
 
@@ -22,41 +23,60 @@ static const int kDebugLevel = 1;
 // Crypto constants.
 static const size_t kChosenCipherKeySize = CIPHER_KEY_SIZE;
 static const size_t kChosenCipherBlockSize = CIPHER_BLOCK_SIZE;
-static const int kChosenKeyBitSize = 1024;
+//static const int kChosenKeyBitSize = 1024;
+static const int kChosenKeyBitSize = 2048;
+
+static const char* kAccessGroupCT = KC_ACCESS_GROUP_CT;
 
 static const char* kPublicKeyExt = KC_QUERY_KEY_PUBLIC_KEY_EXT;
 static const char* kPrivateKeyExt = KC_QUERY_KEY_PRIVATE_KEY_EXT;
 
-// Identity constants.
+// Local disk storage names.
 static const char* kIdentityFilename = "identity.txt";
+static const char* kFSFilename = "file-store.dict";
+static const char* kDepositFilename = "deposit.dict";
 
-// Deposit dictionary keys and constants.
+// Deposit NSDictionary keys and constants.
 static const char* kDepositKeyType = "type";
 static const char* kDepositKeyPhoneNumber = "phone-number";
 static const char* kDepositKeyAddress = "address";
+static const char* kDepositDelimiter = ":";              // used when exporting key/value pairs from NSDictionary
 
+// Deposit types.  TODO(aka) Currently, we only support SMS, though.
 static const char* kDepositNone = "None Selected";
 static const char* kDepositSMS = "SMS";
 static const char* kDepositEMail = "E-mail";
 
-static const char* kDepositDelimiter = ":";
-static const char* kDepositFilename = "deposit.dict";
+// XXX TODO(aka) We need a FileStoreController class, which just has the NSDictionary and Class functions.
 
-// File Store dictionary keys and constants.
-static const char* kFSKeyService = "service";
-static const char* kFSKeyAccessKey = "access-key";
-static const char* kFSKeySecretKey = "secret-key";
+// File-store NSDictionary keys and constants.
 static const char* kFSKeyScheme = "scheme";
 static const char* kFSKeyHost = "host";
+static const char* kFSKeyNonce = "nonce";                   // unique tag created when file-store is chosen
+static const char* kFSKeyService = "service";
+static const char* kFSKeyAccessKey = "access-key";          // the following two are for Amazon S3
+static const char* kFSKeySecretKey = "secret-key";
+static const char* kFSKeyKeychainTag = "keychain-tag";      // the following six are for Google Drive
+static const char* kFSKeyClientID = "client-id";
+static const char* kFSKeyClientSecret = "client-secret";
 
+// File-store types.
 static const char* kFSNone = "None Selected";
 static const char* kFSAmazonS3 = "Amazon S3";
+static const char* kFSGoogleDrive = "Google Drive";
+static const char* kFSDropBox = "Drop Box";
 
+// File-store URL handling.
 static const char* kFSSchemeHTTPS = "https";
 // static const char* kFSDelimiter = ":";
 static const char* kFSHostAmazonS3 = "s3.amazonaws.com";
+static const char* kFSHostGoogleDrive = "googledrive.com";
 
-static const char* kFSFilename = "file-store.dict";
+static const char* kGDriveIDsFilename = "drive-ids.dict";         // filename to store the drive_ids dictionary on local disk
+static const char* kGDriveWVLsFilename = "drive-wvls.dict";       // filename to store the drive_wvls dictionary on local disk
+
+static const char* kFSHistoryLogFile = PDC_HISTORY_LOG_FILENAME;  // filename for history-log in file-store
+static const char* kFSKeyBundleExt = PDC_KEY_BUNDLE_EXTENSION;    // extension of key-bundle in file-store
 
 // QR Encoding constants.
 static const int qr_margin = 3;
@@ -66,16 +86,19 @@ static const char* kQRKeyPublicKey = "key";
 
 //static const int kQRMode = QR_MODE_NUM;    // Numeric mode
 //static const int kQRMode = QR_MODE_AN;     // Alphabet-numeric mode
-static const int kQRMode = QR_MODE_8;        // 8-bit data mode
+// XXX static const int kQRMode = QR_MODE_8;        // 8-bit data mode
 //static const int kQRMode = QR_MODE_KANJI;  // Kanji (shift-jis) mode
 
 //static const int kQRErrorCorrection = QR_ECLEVEL_L;  // lowest
 //static const int kQRErrorCorrection = QR_ECLEVEL_M;
 //static const int kQRErrorCorrection = QR_ECLEVEL_Q;
-static const int kQRErrorCorrection = QR_ECLEVEL_H;    // highest
+// XXX static const int kQRErrorCorrection = QR_ECLEVEL_H;    // highest
 
 // Miscellaneous
 static const int kInitialDictionarySize = 5;
+
+
+// TODO(aka) We may want to change the Foo** parameters to Foo*, and simply assign within the functions (it does cost an extra copy, though).
 
 @interface PersonalDataController ()
 - (void) getAsymmetricKeys;       // attempt to get keys from key chain
@@ -89,11 +112,16 @@ static const int kInitialDictionarySize = 5;
 @synthesize identity = _identity;
 @synthesize identity_hash = _identity_hash;
 @synthesize deposit = _deposit;
+
 @synthesize file_store = _file_store;
+@synthesize s3 = _s3;
+@synthesize drive = _drive;
+@synthesize drive_ids = _drive_ids;
+@synthesize drive_wvls = _drive_wvls;
 
 #pragma mark - Initialization
 - (id) init {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:init: called.");
     
     if (self = [super init]) {
@@ -101,6 +129,10 @@ static const int kInitialDictionarySize = 5;
         _identity_hash = nil;
         _deposit = nil;
         _file_store = nil;
+        _s3 = nil;
+        _drive = nil;
+        _drive_ids = nil;
+        _drive_wvls = nil;
         publicKeyRef = NULL;
         privateKeyRef = NULL;
     }
@@ -109,7 +141,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 - (void)setDeposit:(NSMutableDictionary*)deposit {
-    // We need to override the default setter, because masterProviderList property is a copy, and we must ensure that the new copy is also mutable.
+    // We need to override the default setter, because data member property is a copy, and we must ensure that the new copy is also mutable.
     
     if (_deposit != deposit) {
         _deposit = [deposit mutableCopy];
@@ -117,15 +149,31 @@ static const int kInitialDictionarySize = 5;
 }
 
 - (void)setFile_store:(NSMutableDictionary*)file_store {
-    // We need to override the default setter, because masterProviderList property is a copy, and we must ensure that the new copy is also mutable.
+    // We need to override the default setter, because data member property is a copy, and we must ensure that the new copy is also mutable.
     
     if (_file_store != file_store) {
         _file_store = [file_store mutableCopy];
     }
 }
 
+- (void)setDrive_ids:(NSMutableDictionary*)drive_ids {
+    // We need to override the default setter, because data member property is a copy, and we must ensure that the new copy is also mutable.
+    
+    if (_drive_ids != drive_ids) {
+        _drive_ids = [drive_ids mutableCopy];
+    }
+}
+
+- (void)setDrive_wvls:(NSMutableDictionary*)drive_wvls {
+    // We need to override the default setter, because data member property is a copy, and we must ensure that the new copy is also mutable.
+    
+    if (_drive_wvls != drive_wvls) {
+        _drive_wvls = [drive_wvls mutableCopy];
+    }
+}
+
 - (id) copyWithZone:(NSZone*)zone {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:copyWithZone: called.");
     
     PersonalDataController* tmp_controller = [[PersonalDataController alloc] init];
@@ -147,13 +195,25 @@ static const int kInitialDictionarySize = 5;
     if (_file_store)
         tmp_controller.file_store = _file_store;
     
+    if (_s3)
+        tmp_controller.s3 = _s3;
+    
+    if (_drive)
+        tmp_controller.drive = _drive;
+    
+    if (_drive_ids)
+        tmp_controller.drive_ids = _drive_ids;
+    
+    if (_drive_wvls)
+        tmp_controller.drive_wvls = _drive_wvls;
+    
     return tmp_controller;
 }
 
 #pragma mark - State backup & restore
 
 - (void) loadState {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:loadState: called.");
     
     // Load in our identity, keys, file store and deposit parameters (dictionary) from disk.
@@ -233,13 +293,35 @@ static const int kInitialDictionarySize = 5;
         _file_store = [[NSMutableDictionary alloc] initWithCapacity:kInitialDictionarySize];
     }
     
-    if (kDebugLevel > 0)
+    // Load in any additional state files, depending on the file-store service.
+    if ([PersonalDataController isFileStoreServiceGoogleDrive:_file_store]) {
+        // Build the file-store Google Drive IDs &WVLs dictionary filename and load it in (if it exists).
+        
+#if 0 // XXX Why doesn't this work!?!
+        NSString* drive_ids_file = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], kGDriveIDsFilename];
+        
+        // If it exists, load it in, else ignore it, as we may never use Google Drive.
+        if ([[NSFileManager defaultManager] fileExistsAtPath:drive_ids_file]) {
+            if (kDebugLevel > 1)
+                NSLog(@"PersonalDataController:loadState: %s exists, initializing file store dictionary with contents.", [drive_ids_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            
+            _drive_ids = [[NSMutableDictionary alloc] initWithContentsOfFile:drive_ids_file];
+        }
+#endif
+        _drive_ids = [[PersonalDataController loadStateDictionary:[NSString stringWithFormat:@"%s", kGDriveIDsFilename]] mutableCopy];
+        _drive_wvls = [[PersonalDataController loadStateDictionary:[NSString stringWithFormat:@"%s", kGDriveWVLsFilename]] mutableCopy];
+
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:loadState: Loaded %lu Google Drive IDs, and %lu WVLs.", (unsigned long)[_drive_ids count], (unsigned long)[_drive_wvls count]);
+    }
+    
+    if (kDebugLevel > 1)
         NSLog(@"PersonalDataController:loadState: Loaded identity: %s, pubKeyRef: %d, pubKeyBase64: %s, deposit: %s, file store: %s.", [_identity cStringUsingEncoding:[NSString defaultCStringEncoding]], (publicKeyRef == NULL) ? false : true,
-              [[[self getPublicKey] base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[PersonalDataController absoluteStringDeposit:_deposit] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[PersonalDataController absoluteStringFileStore:_file_store] cStringUsingEncoding:[NSString defaultCStringEncoding]]);        
+              [[[self getPublicKey] base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[_deposit description] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[_file_store description] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
 }
 
 - (void) saveIdentityState {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:saveIdentityState: called.");
     
     // Store our (newly) updated identity to disk.
@@ -262,7 +344,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 - (void) saveDepositState {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:saveDepositState: called.");
     
     // Store our (newly) updated file store dictionary to disk.
@@ -281,7 +363,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 - (void) saveFileStoreState {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:saveFileStoreState: called.");
     
     // Store our (newly) updated file store dictionary to disk.
@@ -297,12 +379,18 @@ static const int kInitialDictionarySize = 5;
         NSLog(@"PersonalDataController:saveFileStoreState: writing updated dictionary to %s.", [fs_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     [_file_store writeToFile:fs_file atomically:YES];
+    
+    // Save any addtionally data based on the file-store service.
+    if ([PersonalDataController isFileStoreServiceGoogleDrive:_file_store]) {
+        [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveIDsFilename] dictionary:_drive_ids];
+        [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveWVLsFilename] dictionary:_drive_wvls];
+    }
 }
 
 #pragma mark - State Class functions
 
 + (void) saveState:(NSString*)filename boolean:(BOOL)boolean {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:saveState:boolean: called.");
     
     // Get Document path.
@@ -323,7 +411,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (void) saveState:(NSString*)filename string:(NSString*)string {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:saveState:string: called.");
     
     // Get Document path.
@@ -332,7 +420,7 @@ static const int kInitialDictionarySize = 5;
     
     // Build the state filename and write it out to disk.
     NSString* state_file = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], [filename cStringUsingEncoding:[NSString defaultCStringEncoding]]];
-    if (kDebugLevel > 0)
+    if (kDebugLevel > 1)
         NSLog(@"PersonalDataController:saveState:string: writing updated string to %s.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     NSError* status = nil;
@@ -343,8 +431,13 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (void) saveState:(NSString*)filename array:(NSArray*)array {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:saveState:array: called.");
+    
+    if (array == nil) {
+        NSLog(@"PersonalDataControll:saveState:dictionary: ERROR: unable to save %s, array is nil.", [filename cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        return;
+    }
     
     // Get Document path.
     NSArray* dir_list = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
@@ -352,7 +445,7 @@ static const int kInitialDictionarySize = 5;
     
     // Build the state filename and write it out to disk.
     NSString* state_file = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], [filename cStringUsingEncoding:[NSString defaultCStringEncoding]]];
-    if (kDebugLevel > 0)
+    if (kDebugLevel > 1)
         NSLog(@"PersonalDataController:saveState:array: writing updated array to %s.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     if (![array writeToFile:state_file atomically:YES])
@@ -360,9 +453,14 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (void) saveState:(NSString*)filename dictionary:(NSDictionary*)dict {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:saveState:dictionary: called.");
     
+    if (dict == nil) {
+        NSLog(@"PersonalDataControll:saveState:dictionary: ERROR: unable to save %s, dict is nil.", [filename cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        return;
+    }
+
     // Get Document path.
     NSArray* dir_list =
     NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
@@ -370,15 +468,15 @@ static const int kInitialDictionarySize = 5;
     
     // Build the state filename and write it out to disk.
     NSString* state_file = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], [filename cStringUsingEncoding:[NSString defaultCStringEncoding]]];
-    if (kDebugLevel > 0)
-        NSLog(@"PersonalDataController:saveState:dictionary: writing updated string to %s.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:saveState:dictionary: writing updated dictionary to %s.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     if (![dict writeToFile:state_file atomically:YES])
         NSLog(@"PersonalDataControll:saveState:dictionary: ERROR: writeToFile(%s) failed.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
 }
 
 + (BOOL) loadStateBoolean:(NSString*)filename {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:loadStateBoolean: called.");
     
     BOOL flag = false;
@@ -390,7 +488,7 @@ static const int kInitialDictionarySize = 5;
     // Build the state filename and load it into our NSString (if it exists).
     NSString* state_file = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], [filename cStringUsingEncoding:[NSString defaultCStringEncoding]]];
     if ([[NSFileManager defaultManager] fileExistsAtPath:state_file]) {
-        if (kDebugLevel > 2)
+        if (kDebugLevel > 3)
             NSLog(@"PersonalDataController:loadStateBoolean: %s exists, initializing sharing_enabled with contents.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         
         NSError* status = nil;
@@ -403,7 +501,7 @@ static const int kInitialDictionarySize = 5;
         
         flag = [flag_str boolValue];
         
-        if (kDebugLevel > 1)
+        if (kDebugLevel > 2)
             NSLog(@"PersonalDataController:loadStateBoolean: Initialized boolean state %d with the contents of: %s.", flag, [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     }
     
@@ -411,7 +509,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) loadStateString:(NSString*)filename {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 3)
         NSLog(@"PersonalDataController:loadStateString: called.");
     
     NSString* string = nil;
@@ -423,7 +521,7 @@ static const int kInitialDictionarySize = 5;
     // Build the state filename and load it into our NSString (if it exists).
     NSString* state_file = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], [filename cStringUsingEncoding:[NSString defaultCStringEncoding]]];
     if ([[NSFileManager defaultManager] fileExistsAtPath:state_file]) {
-        if (kDebugLevel > 2)
+        if (kDebugLevel > 3)
             NSLog(@"PersonalDataController:loadStateString: %s exists, initializing string with contents.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         
         NSError* status = nil;
@@ -434,7 +532,7 @@ static const int kInitialDictionarySize = 5;
             return nil;
         }
         
-        if (kDebugLevel > 1)
+        if (kDebugLevel > 2)
             NSLog(@"PersonalDataController:loadStateString: Initialized string state %s with the contents of: %s.", [string cStringUsingEncoding:[NSString defaultCStringEncoding]], [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     }
     
@@ -442,7 +540,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSArray*) loadStateArray:(NSString*)filename {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 3)
         NSLog(@"PersonalDataController:loadStateArray: called.");
     
     NSMutableArray* array = nil;
@@ -454,7 +552,7 @@ static const int kInitialDictionarySize = 5;
     // Build the state filename and load it into our NSString (if it exists).
     NSString* state_file = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], [filename cStringUsingEncoding:[NSString defaultCStringEncoding]]];
     if ([[NSFileManager defaultManager] fileExistsAtPath:state_file]) {
-        if (kDebugLevel > 2)
+        if (kDebugLevel > 3)
             NSLog(@"PersonalDataController:loadStateArray: %s exists, initializing array with contents.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         
         array = [[NSMutableArray alloc] initWithContentsOfFile:state_file];
@@ -464,7 +562,7 @@ static const int kInitialDictionarySize = 5;
             return nil;
         }
         
-        if (kDebugLevel > 1)
+        if (kDebugLevel > 2)
             NSLog(@"PersonalDataController:loadStateArray: Initialized array with the %lu items in: %s.", (unsigned long)[array count], [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     }
     
@@ -472,7 +570,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSDictionary*) loadStateDictionary:(NSString*)filename {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:loadStateDictionary: called.");
     
     NSMutableDictionary* dict = nil;
@@ -484,8 +582,8 @@ static const int kInitialDictionarySize = 5;
     // Build the state filename and load it into our NSString (if it exists).
     NSString* state_file = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], [filename cStringUsingEncoding:[NSString defaultCStringEncoding]]];
     if ([[NSFileManager defaultManager] fileExistsAtPath:state_file]) {
-        if (kDebugLevel > 2)
-            NSLog(@"PersonalDataController:loadStateDictionary: %s exists, initializing array with contents.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        if (kDebugLevel > 3)
+            NSLog(@"PersonalDataController:loadStateDictionary: %s exists, initializing dict with contents.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         
         dict = [[NSMutableDictionary alloc] initWithContentsOfFile:state_file];
         if (dict == nil) {
@@ -494,7 +592,7 @@ static const int kInitialDictionarySize = 5;
             return nil;
         }
         
-        if (kDebugLevel > 1)
+        if (kDebugLevel > 2)
             NSLog(@"PersonalDataController:loadStateDictionary: Initialized dictionary with the %lu items in: %s.", (unsigned long)[dict count], [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     }
     
@@ -504,7 +602,7 @@ static const int kInitialDictionarySize = 5;
 #pragma mark - Cryptography Management
 
 - (SecKeyRef) publicKeyRef {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:publicKeyRef: called.");
     
     if (publicKeyRef != NULL)
@@ -524,7 +622,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 - (SecKeyRef) privateKeyRef {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:privateKeyRef: called.");
     
     if (privateKeyRef != NULL)
@@ -544,7 +642,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 - (NSData*) getPublicKey {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:getPublicKey: called.");
     
     if (_identity == nil || [_identity length] == 0)
@@ -564,7 +662,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 - (void) setPublicKeyRef:(SecKeyRef)public_key_ref {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:setPublicKeyRef: called.");
     
     // Note, it is up to the calling routine to make sure that the key is loaded in the key-chain (genAsymmetricKeys() *does* load the keys in the key-chain).
@@ -573,7 +671,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 - (void) setPrivateKeyRef:(SecKeyRef)private_key_ref {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:setPrivateKeyRef: called.");
     
     // Note, as with setPublicKeyRef, it is up to the calling routine to make sure that the key is loaded in the key-chain (genAsymmetricKeys() *does* load the keys in the key-chain).
@@ -582,7 +680,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 - (void) getAsymmetricKeys {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:getAsymmetricKeys: called.");
  
     NSLog(@"PersonalDataController:getAsymmetricKeys: XXX TODO(aka) This routine is not used!");
@@ -685,7 +783,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 - (void) genAsymmetricKeys {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:genAsymmetricKeys: called.");
     
     NSLog(@"PersonalDataController:genAsymmetricKeys: TODO(aka) This routine must return any error messages!");
@@ -720,7 +818,7 @@ static const int kInitialDictionarySize = 5;
     privateKeyRef = NULL;
     
     /* 
-     *  TODO(aka) To use CoreFoundation instead of NS to bulid dictionaries.
+     *  TODO(aka) To use CoreFoundation instead of NSMutableDictionary to build dictionaries.
      
      // TOOD(aka) Unfortunately, I don't know how to add two arrays (*key_keys[] & *key_values[]) to another array (top_level_values[])!
      const void* private_key_keys[] = {kSecClass, kSecAttrApplicationTag, kSecAttrKeyType, kSecReturnData};
@@ -743,9 +841,9 @@ static const int kInitialDictionarySize = 5;
     // Sets the key-type and key-size attributes in the top-level dictionary.
     [dict setObject:(__bridge id)kSecAttrKeyTypeRSA forKey:(__bridge id)kSecAttrKeyType];
     [dict setObject:[NSNumber numberWithInt:kChosenKeyBitSize] forKey:(__bridge id)kSecAttrKeySizeInBits];
+    [dict setObject:[NSString stringWithFormat:@"%s", kAccessGroupCT] forKey:(__bridge id)kSecAttrAccessGroup];  // note, private key is now accessible to other applications!
     
     // Sets an attribute specifying that the private & public key is to be stored permanently (that is, put them into the keychain).
-    
     [private_key_dict setObject:[NSNumber numberWithBool:YES] forKey:(__bridge id)kSecAttrIsPermanent];
     [public_key_dict setObject:[NSNumber numberWithBool:YES] forKey:(__bridge id)kSecAttrIsPermanent];
     
@@ -773,7 +871,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 - (NSData*) decryptSymmetricKey:(NSData*)encrypted_symmetric_key {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:decryptSymmetricKey: called.");
     
     if (encrypted_symmetric_key == nil) {
@@ -832,7 +930,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 - (NSString*) decryptString:(NSString*)encrypted_string_b64 decryptedString:(NSString**)string {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:decryptString:decryptedString: called.");
     
     if (encrypted_string_b64 == nil) {
@@ -899,7 +997,7 @@ static const int kInitialDictionarySize = 5;
 #pragma mark - Cryptography Class functions
 
 + (NSString*) queryKeyRef:(NSData*)application_tag keyRef:(SecKeyRef*)key_ref {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:queryKeyRef: called.");
     
     if (application_tag == nil || [application_tag length] == 0) {
@@ -968,7 +1066,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) queryKeyData:(NSData*)application_tag keyData:(NSData**)key_data {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:queryKeyData: called.");
     
     if (kDebugLevel > 1) {
@@ -1027,7 +1125,7 @@ static const int kInitialDictionarySize = 5;
 
 #if 0
 + (NSData*) queryKeyData:(NSData*)application_tag {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:queryKeyData: called.");
     
     NSLog(@"PersonalDataController:queryKeyData: TODO(aka) This routine needs to return the error message and pass in a pointer to the SecKeyRef!");
@@ -1063,8 +1161,8 @@ static const int kInitialDictionarySize = 5;
 }
 #endif
 
-+ (NSString*) saveKeyData:(NSData*)key_data withTag:(NSData*)application_tag {
-    if (kDebugLevel > 2)
++ (NSString*) saveKeyData:(NSData*)key_data withTag:(NSData*)application_tag accessGroup:(NSString*)access_group {
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:saveKeyData: called.");
     
     if (kDebugLevel > 1)
@@ -1090,6 +1188,8 @@ static const int kInitialDictionarySize = 5;
             [key_dict setObject:application_tag forKey:(__bridge id)kSecAttrApplicationTag];
             [key_dict setObject:(__bridge id)kSecAttrKeyTypeRSA forKey:(__bridge id)kSecAttrKeyType];
             [key_dict setObject:[NSNumber numberWithBool:YES] forKey:(__bridge id)kSecReturnAttributes];
+            if (access_group != nil && [access_group length] > 0)
+                [key_dict setObject:access_group forKey:(__bridge id)kSecAttrAccessGroup];
             
             // Attempt to get the key's attributes from the key chain.
             CFDictionaryRef return_dict_ref = NULL;
@@ -1114,6 +1214,8 @@ static const int kInitialDictionarySize = 5;
     [key_dict setObject:key_data forKey:(__bridge id)kSecValueData];
     [key_dict setObject:[NSNumber numberWithBool:YES] forKey:(__bridge id)kSecReturnAttributes];
     //[key_dict setObject:[NSNumber numberWithBool:YES] forKey:(__bridge id)kSecReturnPersistentRef];
+    if (access_group != nil && [access_group length] > 0)
+        [key_dict setObject:access_group forKey:(__bridge id)kSecAttrAccessGroup];
     
     // Attempt to store the key data into the key chain.
     CFDictionaryRef return_dict_ref = NULL;
@@ -1140,7 +1242,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (void) deleteKeyRef:(NSData*)application_tag {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:deleteKeyRef: called.");
     
     // Setup the asymmetric key query dictionary.
@@ -1162,7 +1264,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) hashAsymmetricKey:(NSData*)asymmetric_key {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:hashAsymmetricKey: called.");
     
     // Get a buffer to hold the hashed key.
@@ -1190,7 +1292,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) hashSHA256Data:(NSData*)data {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:hashSHA256Data: called.");
     
     // Note, CC_SHA256_DIGEST_LENGTH == 32 bytes.
@@ -1220,7 +1322,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) hashSHA256String:(NSString*)string {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:hashSHA256String: called.");
     
     // Convert our string to data.
@@ -1253,7 +1355,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSData*) hashSHA256DataToData:(NSData*)data {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:hashSHA256DataToData: called.");
     
     // Get a buffer to hold the hashed string.
@@ -1279,7 +1381,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSData*) hashSHA256StringToData:(NSString*)string {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:hashSHA256StringToData: called.");
     
     // Convert our string to data.
@@ -1310,7 +1412,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) hashMD5Data:(NSData*)data {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:hashMD5Data: called.");
     
     // Note, CC_MD5_DIGEST_LENGTH == 16 bytes.
@@ -1340,7 +1442,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) hashMD5String:(NSString*)string {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:hashMD5String: called.");
     
     // Note, we use MD5 in here, as we're not looking for strong pre-image resistance, but we are looking to save as much bytes as possible (to make our QR codes easier to manage!).  That is, CC_MD5_DIGEST_LENGTH == 16 bytes.
@@ -1373,7 +1475,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) asymmetricEncryptData:(NSData*)data publicKeyRef:(SecKeyRef)public_key_ref encryptedData:(NSData**)encrypted_data {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:asymmetricEncryptData: called.");
     
     if (data == nil)
@@ -1429,7 +1531,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) asymmetricDecryptData:(NSData*)encrypted_data privateKeyRef:(SecKeyRef)private_key_ref data:(NSData**)data  {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:asymmetricDecryptData: called.");
     
     if (encrypted_data == nil)
@@ -1477,7 +1579,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) asymmetricEncryptString:(NSString*)plain_text publicKeyRef:(SecKeyRef)public_key_ref encryptedString:(NSString**)cipher_text_b64 {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:asymmetricEncryptString: called.");
     
     if (plain_text == nil)
@@ -1552,7 +1654,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) asymmetricDecryptString:(NSString*)cipher_text_b64 privateKeyRef:(SecKeyRef)private_key_ref string:(NSString**)plain_text {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:asymmetricDecryptString: called.");
     
     if (cipher_text_b64 == nil)
@@ -1570,6 +1672,7 @@ static const int kInitialDictionarySize = 5;
     NSString* err_msg = [PersonalDataController asymmetricDecryptData:encrypted_data privateKeyRef:private_key_ref data:&data];
     if (err_msg != nil)
         return err_msg;
+    
     *plain_text = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
     
 #else
@@ -1624,11 +1727,11 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) symmetricEncryptData:(NSData*)data symmetricKey:(NSData*)symmetric_key encryptedData:(NSData**)encrypted_data {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:symmetricEncryptData:symmetricKey:encryptedData: called.");
     
     // Encrypt with symmetric key (using the CommonCrypto library).
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 3)
         NSLog(@"PersonalDataController:symmetricEncryptData: cipher block size: %ld, plain text size: %ld.", kChosenCipherBlockSize, (unsigned long)[data length]);
     
     // Setup an initialization vector.
@@ -1818,7 +1921,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) symmetricDecryptData:(NSData*)encrypted_data symmetricKey:(NSData*)symmetric_key data:(NSData**)data  {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:symmetricDecryptData:symmetricKey:data: called.");
     
     // Decrypt the data with the symmetric key (using the CommonCrypto library).
@@ -1901,7 +2004,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) signHashData:(NSData*)hash privateKeyRef:(SecKeyRef)private_key_ref signedHash:(NSString**)signed_hash_b64 {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:signHashData: called.");
     
     if (hash == nil)
@@ -1970,7 +2073,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) signHashString:(NSString*)hash privateKeyRef:(SecKeyRef)private_key_ref signedHash:(NSString**)signed_hash_b64 {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:signHashString: called.");
     
     // Convert our string to data.
@@ -1981,7 +2084,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (BOOL) verifySignatureData:(NSData*)hash secKeyRef:(SecKeyRef)public_key_ref signature:(NSData*)signed_hash {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:verifySignatureData: called.");
     
     if (hash == nil) {
@@ -2014,7 +2117,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (BOOL) verifySignatureString:(NSString*)hash secKeyRef:(SecKeyRef)public_key_ref signature:(NSData*)signed_hash {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:verifySignatureString: called.");
     
     // Convert our string to data.
@@ -2027,7 +2130,7 @@ static const int kInitialDictionarySize = 5;
 #pragma mark - QR Code Utilities
 
 - (UIImage*) printQRPublicKey:(CGFloat)width {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:printQRPublicKey: called.");
     
     // Call QRcode to generate a binary buffer of the encoded ID + base-64 public key.
@@ -2076,12 +2179,12 @@ static const int kInitialDictionarySize = 5;
 }
 
 - (UIImage*) printQRDeposit:(CGFloat)width {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:printQRDeposit: called.");
     
     // Call QRcode to generate a binary buffer of the encoded deposit.
     QRcode* qr_code = NULL;
-    if ((qr_code = QRcode_encodeString([[PersonalDataController absoluteStringDeposit:_deposit] UTF8String], 0, QR_ECLEVEL_H, QR_MODE_8, 0)) == NULL) {
+    if ((qr_code = QRcode_encodeString([[PersonalDataController serializeDeposit:_deposit] UTF8String], 0, QR_ECLEVEL_H, QR_MODE_8, 0)) == NULL) {
         NSLog(@"PersonalDataController:printQRDeposit: ERROR: QRcode_encodeString() failed!");
         return nil;
     }
@@ -2098,7 +2201,7 @@ static const int kInitialDictionarySize = 5;
 #pragma mark - QR Code Class functions
 
 + (NSString*) printQRString:(NSString*)string width:(CGFloat)width image:(UIImage**)image {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:printQRString:width:image: called.");
     
     if (string == nil)
@@ -2110,7 +2213,7 @@ static const int kInitialDictionarySize = 5;
         return @"PersonalDataController:printQRString: ERROR: QRcode_encodeString() failed!";
     }
     
-    // Conver the QRcode to a UIImage.
+    // Convert the QRcode to a UIImage.
     *image = [PersonalDataController qrCodeToUIImage:qr_code width:width];
     
     // Clean up QRcode.
@@ -2120,7 +2223,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) parseQRScanResult:(NSString*)scan_result identityHash:(NSString**)identity_hash publicKey:(NSString**)public_key {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:parseQRScanResult:identityHash:publicKey: called.");
     
     if (scan_result == nil)
@@ -2160,7 +2263,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (UIImage*) qrCodeToUIImage:(QRcode*)qr_code width:(CGFloat)width {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:qrCodeToUIImage: called.");
     
     // Map the QRcode buffer to a CGContext via a CGRect.
@@ -2208,10 +2311,12 @@ static const int kInitialDictionarySize = 5;
     return image;
 }
 
+#pragma mark - Deposit utilities
+
 #pragma mark - Deposit Class functions
 
 + (NSArray*) supportedDeposits {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:supportedDeposits: called.");
     
     static NSArray* deposits = nil;
@@ -2223,7 +2328,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) getDepositType:(NSDictionary*)deposit {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:getDepositType: called.");
     
     if (deposit == nil)
@@ -2234,7 +2339,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) getDepositPhoneNumber:(NSDictionary*)deposit {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:getDepositPhoneNumber: called.");
     
     if (deposit == nil)
@@ -2245,7 +2350,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) getDepositAddress:(NSDictionary*)deposit {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:getDepositAddress: called.");
     
     if (deposit == nil)
@@ -2256,7 +2361,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (void) setDeposit:(NSMutableDictionary*)deposit type:(NSString*)type {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:setDeposit:type: called.");
     
     if (deposit == nil)
@@ -2265,7 +2370,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (void) setDeposit:(NSMutableDictionary*)deposit phoneNumber:(NSString*)phone_number {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:setDeposit:phoneNumber: called.");
     
     if (deposit == nil)
@@ -2274,80 +2379,62 @@ static const int kInitialDictionarySize = 5;
     [deposit setObject:phone_number forKey:[NSString stringWithCString:kDepositKeyPhoneNumber encoding:[NSString defaultCStringEncoding]]];
 }
 
-+ (NSURL*) absoluteURLDeposit:(NSDictionary*)deposit {
-    if (kDebugLevel > 2)
-        NSLog(@"PersonalDataController:absoluteURLDeposit: called.");
++ (NSString*) serializeDeposit:(NSDictionary*)deposit {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:serializeDeposit: called.");
     
-    // TODO(aka) Why do we have this routine?
-    
-    NSURL* url = nil;
-    
-    // Build URL based on type.
-    if ([PersonalDataController isDepositTypeSMS:deposit]) {
-        url = [[NSURL alloc] initWithScheme:[NSString stringWithCString:kDepositSMS encoding:[NSString defaultCStringEncoding]] host:@"" path:[PersonalDataController getDepositPhoneNumber:deposit]];        
-    } else if ([PersonalDataController isDepositTypeEMail:deposit]) {
-        url = [[NSURL alloc] initWithScheme:[NSString stringWithCString:kDepositEMail encoding:[NSString defaultCStringEncoding]] host:@"" path:[PersonalDataController getDepositAddress:deposit]];        
-    } else {
-        NSLog(@"PersonalDataController:absoluteURLDeposit: ERROR: unknown type!");
-    }
-    
-    return url;
-}
-
-+ (NSString*) absoluteStringDeposit:(NSDictionary*)deposit {
-    if (kDebugLevel > 2)
-        NSLog(@"PersonalDataController:absoluteStringDeposit: called.");
-    
-    NSString* absolute_string = [[NSString alloc] initWithFormat:@""];
+    NSString* serialized_string = [[NSString alloc] initWithFormat:@""];
     
     if (deposit == nil) {
-        absolute_string = [absolute_string stringByAppendingFormat:@"nil"];
-        return absolute_string;
+        serialized_string = [serialized_string stringByAppendingFormat:@"nil"];
+        return serialized_string;
     }
     
     NSEnumerator* enumerator = [deposit keyEnumerator];
     id key = [enumerator nextObject];
     while (key != nil) {
-        absolute_string = [absolute_string stringByAppendingFormat:@"%s", [[deposit objectForKey:key] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+        serialized_string = [serialized_string stringByAppendingFormat:@"%s", [[deposit objectForKey:key] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
         
         if (key = [enumerator nextObject])
-            absolute_string = [absolute_string stringByAppendingFormat:@"%s", kDepositDelimiter];
+            serialized_string = [serialized_string stringByAppendingFormat:@"%s", kDepositDelimiter];
     }
     
-    return absolute_string;
+    return serialized_string;
 }
 
-+ (NSString*) absoluteStringDebugDeposit:(NSDictionary*)deposit {
-    if (kDebugLevel > 2)
-        NSLog(@"PersonalDataController:absoluteStringDeposit: called.");
-    
-    NSString* absolute_string = [[NSString alloc] initWithFormat:@"Deposit: "];
-    
-    if (deposit == nil) {
-        absolute_string = [absolute_string stringByAppendingFormat:@"nil"];
-        return absolute_string;
-    }
-    
-    NSEnumerator* enumerator = [deposit keyEnumerator];
-    id key = [enumerator nextObject];
-    while (key != nil) {
-        absolute_string = [absolute_string stringByAppendingFormat:@"%s=%s", [key cStringUsingEncoding:[NSString defaultCStringEncoding]], [[deposit objectForKey:key] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
-        
-        if (key = [enumerator nextObject])
-            absolute_string = [absolute_string stringByAppendingFormat:@", "];
-    }
-    
-    return absolute_string;
-}
+/*  XXX Not needed, description: does this for us!
+ + (NSString*) absoluteStringDebugDeposit:(NSDictionary*)deposit {
+ if (kDebugLevel > 4)
+ NSLog(@"PersonalDataController:absoluteStringDeposit: called.");
+ 
+ NSString* serialized_string = [[NSString alloc] initWithFormat:@"Deposit: "];
+ 
+ if (deposit == nil) {
+ serialized_string = [serialized_string stringByAppendingFormat:@"nil"];
+ return serialized_string;
+ }
+ 
+ NSEnumerator* enumerator = [deposit keyEnumerator];
+ id key = [enumerator nextObject];
+ while (key != nil) {
+ serialized_string = [serialized_string stringByAppendingFormat:@"%s=%s", [key cStringUsingEncoding:[NSString defaultCStringEncoding]], [[deposit objectForKey:key] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+ 
+ if (key = [enumerator nextObject])
+ serialized_string = [serialized_string stringByAppendingFormat:@", "];
+ }
+ 
+ return serialized_string;
+ }
+ */
 
 + (NSMutableDictionary*) stringToDeposit:(NSString*)string {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:stringToDeposit: called.");
     
     if (string == nil)
         return nil;
     
-    // A absoluteString deposit looks like type:parameter[:parameter].  So, we break the string up into elements (by our delimiter) and get the remaining parameters based on the type.
+    // A serialized deposit looks like type:parameter[:parameter].  So, we break the string up into elements (by our delimiter) and get the remaining parameters based on the type.
     
     NSMutableDictionary* deposit = [[NSMutableDictionary alloc] initWithCapacity:kInitialDictionarySize];
     
@@ -2368,9 +2455,29 @@ static const int kInitialDictionarySize = 5;
     return deposit;
 }
 
++ (NSURL*) genDepositURL:(NSDictionary*)deposit {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:genDepositURL: called.");
+    
+    // TODO(aka) Why do we have this routine?
+    
+    NSURL* url = nil;
+    
+    // Build URL based on type.
+    if ([PersonalDataController isDepositTypeSMS:deposit]) {
+        url = [[NSURL alloc] initWithScheme:[NSString stringWithCString:kDepositSMS encoding:[NSString defaultCStringEncoding]] host:@"" path:[PersonalDataController getDepositPhoneNumber:deposit]];        
+    } else if ([PersonalDataController isDepositTypeEMail:deposit]) {
+        url = [[NSURL alloc] initWithScheme:[NSString stringWithCString:kDepositEMail encoding:[NSString defaultCStringEncoding]] host:@"" path:[PersonalDataController getDepositAddress:deposit]];        
+    } else {
+        NSLog(@"PersonalDataController:genDepositURL: ERROR: unknown type!");
+    }
+    
+    return url;
+}
+
 // Note, this routine should be used by the consumer.
 + (BOOL) isDepositComplete:(NSDictionary*)deposit {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:isDepositComplete: called.");
     
     if (deposit == nil)
@@ -2400,7 +2507,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (BOOL) isDepositTypeSMS:(NSDictionary*)deposit {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:isDepositTypeSMS: called.");
     
     if (deposit == nil)
@@ -2419,7 +2526,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (BOOL) isDepositTypeEMail:(NSDictionary*)deposit {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:isDepositTypeEMail: called.");
     
     if (deposit == nil)
@@ -2440,32 +2547,153 @@ static const int kInitialDictionarySize = 5;
     return false;
 }
 
+#pragma mark - File-store utilities
+
+- (BOOL) isFileStoreAuthorized {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:isFileStoreAuthorized: called.");
+    
+    if (_file_store == nil)
+        return false;
+    
+    // Depending on the file-store type, see if we're authorized.
+    if ([PersonalDataController isFileStoreServiceAmazonS3:_file_store]) {
+        return (_s3 == nil) ? false : true;
+    } else if ([PersonalDataController isFileStoreServiceGoogleDrive:_file_store]) {
+        return [self googleDriveIsAuthorized];
+    }
+    
+    return false;
+}
+
+- (NSString*) genFileStoreKeyBundle:(Principal*)consumer URL:(NSURL**)url {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:genFileStoreKeyBundle:URL: called.");
+    
+    if (_file_store == nil || consumer == nil)
+        return @"File store or consumer are nil";
+    
+    if (kDebugLevel > 3)
+        NSLog(@"PersonalDataController:genFileStoreKeyBundle:URL: file_store has %lu objects.", (unsigned long)[_file_store count]);
+    
+    // Routine to build the full URL to the key-bundle for this consumer, e.g., https://s3.amazonaws.com/consumer-identity+nonce/consumer-identity-token.kFSKeyBundleExtension or https://googledrive.com/host/0B_Z2PRmWhpcKRlphVkNqMzU4UWM/consumer-identity-token.kFSKeyBundleExtension.
+    
+    NSString* scheme = [[NSString alloc] initWithCString:kFSSchemeHTTPS encoding:[NSString defaultCStringEncoding]];
+    NSString* host = [_file_store objectForKey:[NSString stringWithCString:kFSKeyHost encoding:[NSString defaultCStringEncoding]]];
+    
+    // Build this consumer's personal bucket.
+    NSNumber* nonce = [_file_store objectForKey:[NSString stringWithCString:kFSKeyNonce encoding:[NSString defaultCStringEncoding]]];
+    NSString* bucket = [PersonalDataController hashMD5String:[[NSString alloc] initWithFormat:@"%s%d", [consumer.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [nonce intValue]]];
+    
+    NSString* err_msg = nil;
+    
+    // Depending on the file-store type, build the URL.
+    if ([PersonalDataController isFileStoreServiceAmazonS3:_file_store]) {
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:genFileStoreKeyBundle:URL: building for S3 service.");
+        
+        NSString* path = [[NSString alloc] initWithFormat:@"/%s/%s.%s", [bucket cStringUsingEncoding:[NSString defaultCStringEncoding]], [consumer.identity_hash cStringUsingEncoding:[NSString defaultCStringEncoding]], kFSKeyBundleExt];
+        
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:genFileStoreKeyBundle:URL: using: %s, %s, and %s.", [scheme cStringUsingEncoding:[NSString defaultCStringEncoding]], [host cStringUsingEncoding:[NSString defaultCStringEncoding]], [path cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        
+        *url = [[NSURL alloc] initWithScheme:scheme host:host path:path];
+    } else if ([PersonalDataController isFileStoreServiceGoogleDrive:_file_store]) {
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:genFileStoreKeyBundle:URL: building for Drive service.");
+        
+        // Google Drive's API builds (and keeps) the public URL in the bucket's WevViewLink ...
+        NSString* bucket_wvl = [_drive_wvls objectForKey:bucket];
+        if (bucket_wvl == nil || [bucket_wvl length] == 0) {
+            err_msg = [NSString stringWithFormat:@"bucket (%s) does not have a WebViewLink", [bucket cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+            return err_msg;
+        }
+        
+        NSURL* tmp_url = [[NSURL alloc] initWithString:bucket_wvl];
+        
+        NSString* path = [[NSString alloc] initWithFormat:@"%s.%s", [consumer.identity_hash cStringUsingEncoding:[NSString defaultCStringEncoding]], kFSKeyBundleExt];
+        *url = [tmp_url URLByAppendingPathComponent:path];
+        
+        if (kDebugLevel > 0)
+            NSLog(@"PersonalDataController:genFileStoreKeyBundle:URL: using path: %s, returning: %s.", [path cStringUsingEncoding:[NSString defaultCStringEncoding]], [[*url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    } else {
+        err_msg = [NSString stringWithFormat:@"PersonalDataController:genFileStoreKeyBundle:URL: TODO(aka) unknown service: %s", [[_file_store objectForKey:[NSString stringWithCString:kFSKeyService encoding:[NSString defaultCStringEncoding]]] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+        return err_msg;
+    }
+    
+    return nil;
+}
+
+- (NSString*) genFileStoreHistoryLog:(NSString*)policy path:(NSString**)path {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:genFileStoreHistoryLogPath: called.");
+    
+    if (_file_store == nil || policy == nil)
+        return @"file store or policy are nil";
+    
+    if (kDebugLevel > 3)
+        NSLog(@"PersonalDataController:genFileStoreHistoryLog: _file_store has %lu objects.", (unsigned long)[_file_store count]);
+    
+    // Routine to return the path component of our file-store URL.  E.g., /SLS/our-identity-token+policy+nonce/kHistoryLogFilename.
+    
+    // Build this policy's personal bucket.
+    NSNumber* nonce = [_file_store objectForKey:[NSString stringWithCString:kFSKeyNonce encoding:[NSString defaultCStringEncoding]]];
+    NSString* bucket = [PersonalDataController hashMD5String:[[NSString alloc] initWithFormat:@"%s%s%d", [_identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [policy cStringUsingEncoding:[NSString defaultCStringEncoding]], [nonce intValue]]];
+    
+    NSString* err_msg = nil;
+    
+    // Depending on the type of file-store, build the path.
+    if ([PersonalDataController isFileStoreServiceAmazonS3:_file_store]) {
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:genFileStoreHistoryLog: building for S3 service.");
+        
+        // Note, Amazon's S3 service doesn't use a root folder of 'SLS', it just starts with the bucket (i.e., our-identity-token+policy).
+        *path = [[NSString alloc] initWithFormat:@"/%s/%s", [bucket cStringUsingEncoding:[NSString defaultCStringEncoding]], kFSHistoryLogFile];
+    } else if ([PersonalDataController isFileStoreServiceGoogleDrive:_file_store]) {
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:genFileStoreHistoryLog: building for Drive service.");
+        
+        // Google Drive's API builds (and keeps) the public URL in the bucket's WevViewLink ...
+        NSString* bucket_wvl = [_drive_wvls objectForKey:bucket];
+        if (bucket_wvl == nil || [bucket_wvl length] == 0) {
+            err_msg = [NSString stringWithFormat:@"bucket (%s) does not have a WebViewLink", [bucket cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+            return err_msg;
+        }
+        
+        NSURL* tmp_url = [[NSURL alloc] initWithString:bucket_wvl];
+        NSString* bucket_path = [tmp_url path];  // this should be "/host/DRIVE_ID_OF_BUCKET"
+        
+        *path = [[NSString alloc] initWithFormat:@"%s/%s", [bucket_path cStringUsingEncoding:[NSString defaultCStringEncoding]], kFSHistoryLogFile];
+        
+        if (kDebugLevel > 0)
+            NSLog(@"PersonalDataController:genFileStoreHistoryLog: using bucket path: %s, returning: %s.", [bucket_path cStringUsingEncoding:[NSString defaultCStringEncoding]], [*path cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    } else {
+        err_msg = [NSString stringWithFormat:@"PersonalDataController:genFileStoreHistoryLogPath: TODO(aka) unknown service: %s", [[_file_store objectForKey:[NSString stringWithCString:kFSKeyService encoding:[NSString defaultCStringEncoding]]] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+        return err_msg;
+    }
+
+    return nil;
+}
+
 #pragma mark - File-store Class functions
 
 // File Store dictionary class functions (as the Provider Class also uses the file store NSMutableDictionary type).
 
 + (NSArray*) supportedFileStores {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:supportedFileStores: called.");
     
     static NSArray* stores = nil;
     
+    // Note, make sure kFSNone is first!
     if (stores == nil)
-        stores = [[NSArray alloc] initWithObjects:[NSString stringWithCString:kFSNone encoding:[NSString defaultCStringEncoding]], [NSString stringWithCString:kFSAmazonS3 encoding:[NSString defaultCStringEncoding]], nil];
+        stores = [[NSArray alloc] initWithObjects:[NSString stringWithCString:kFSNone encoding:[NSString defaultCStringEncoding]], [NSString stringWithCString:kFSAmazonS3 encoding:[NSString defaultCStringEncoding]], [NSString stringWithCString:kFSGoogleDrive encoding:[NSString defaultCStringEncoding]], nil];
     
     return stores;
 }
 
-+ (NSString*) getFileStoreService:(NSDictionary*)file_store {
-    if (kDebugLevel > 2)
-        NSLog(@"PersonalDataController:getFileStoreService: called.");
-    
-    NSString* service = [file_store objectForKey:[NSString stringWithCString:kFSKeyService encoding:[NSString defaultCStringEncoding]]];
-    return service;
-}
-
 + (NSString*) getFileStoreScheme:(NSDictionary*)file_store {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:getFileStoreScheme: called.");
     
     NSString* scheme = [file_store objectForKey:[NSString stringWithCString:kFSKeyScheme encoding:[NSString defaultCStringEncoding]]];
@@ -2473,15 +2701,31 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) getFileStoreHost:(NSDictionary*)file_store {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:getFileStoreHost: called.");
     
     NSString* host = [file_store objectForKey:[NSString stringWithCString:kFSKeyHost encoding:[NSString defaultCStringEncoding]]];
     return host;
 }
 
++ (NSNumber*) getFileStoreNonce:(NSDictionary*)file_store {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:getFileStoreNonce: called.");
+    
+    NSNumber* nonce = [file_store objectForKey:[NSString stringWithCString:kFSKeyNonce encoding:[NSString defaultCStringEncoding]]];
+    return nonce;
+}
+
++ (NSString*) getFileStoreService:(NSDictionary*)file_store {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:getFileStoreService: called.");
+    
+    NSString* service = [file_store objectForKey:[NSString stringWithCString:kFSKeyService encoding:[NSString defaultCStringEncoding]]];
+    return service;
+}
+
 + (NSString*) getFileStoreAccessKey:(NSDictionary*)file_store {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:getFileStoreAccessKey: called.");
     
     NSString* key = [file_store objectForKey:[NSString stringWithCString:kFSKeyAccessKey encoding:[NSString defaultCStringEncoding]]];
@@ -2489,36 +2733,74 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (NSString*) getFileStoreSecretKey:(NSDictionary*)file_store {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:getFileStoreSecretKey: called.");
     
     NSString* key = [file_store objectForKey:[NSString stringWithCString:kFSKeySecretKey encoding:[NSString defaultCStringEncoding]]];
     return key;
 }
 
++ (NSString*) getFileStoreKeychainTag:(NSDictionary*)file_store {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:getFileStoreKeychainTag: called.");
+    
+    NSString* keychain_tag = [file_store objectForKey:[NSString stringWithCString:kFSKeyKeychainTag encoding:[NSString defaultCStringEncoding]]];
+    return keychain_tag;
+}
+
++ (NSString*) getFileStoreClientID:(NSDictionary*)file_store {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:getFileStoreClientID: called.");
+    
+    NSString* client_id = [file_store objectForKey:[NSString stringWithCString:kFSKeyClientID encoding:[NSString defaultCStringEncoding]]];
+    return client_id;
+}
+
++ (NSString*) getFileStoreClientSecret:(NSDictionary*)file_store {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:getFileStoreClientSecret: called.");
+    
+    NSString* client_secret = [file_store objectForKey:[NSString stringWithCString:kFSKeyClientSecret encoding:[NSString defaultCStringEncoding]]];
+    return client_secret;
+}
+
++ (void) setFileStore:(NSMutableDictionary*)file_store nonce:(NSNumber*)nonce {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:setFileStore:nonce: called.");
+    
+    if (file_store == nil) {
+        NSLog(@"PersonalDataController:setFileStore:nonce: ERROR: XXX  TODO(aka) file_store is nil!");
+        return;
+    }
+    
+    [file_store setObject:nonce forKey:[NSString stringWithCString:kFSKeyNonce encoding:[NSString defaultCStringEncoding]]];
+}
+
 + (void) setFileStore:(NSMutableDictionary*)file_store service:(NSString*)service {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:setFileStore:service: called.");
     
     if (file_store == nil)
-        file_store = [[NSMutableDictionary alloc] initWithCapacity:5];  // TODO(aka) does this work? don't we need a Dict**?
+        file_store = [[NSMutableDictionary alloc] initWithCapacity:5];  // XXX TODO(aka) does this even work? don't we need a Dict**?
     
     [file_store setObject:service forKey:[NSString stringWithCString:kFSKeyService encoding:[NSString defaultCStringEncoding]]];
     
     // In some cases, setting the service also determines the scheme and host of the service, so we can set those now, as well.
-    
     if ([service caseInsensitiveCompare:[NSString stringWithCString:kFSAmazonS3 encoding:[NSString defaultCStringEncoding]]] == NSOrderedSame) {
         [file_store setObject:[NSString stringWithCString:kFSSchemeHTTPS encoding:[NSString defaultCStringEncoding]] forKey:[NSString stringWithCString:kFSKeyScheme encoding:[NSString defaultCStringEncoding]]];
         [file_store setObject:[NSString stringWithCString:kFSHostAmazonS3 encoding:[NSString defaultCStringEncoding]] forKey:[NSString stringWithCString:kFSKeyHost encoding:[NSString defaultCStringEncoding]]];
+    } else if ([service caseInsensitiveCompare:[NSString stringWithCString:kFSGoogleDrive encoding:[NSString defaultCStringEncoding]]] == NSOrderedSame) {
+        [file_store setObject:[NSString stringWithCString:kFSSchemeHTTPS encoding:[NSString defaultCStringEncoding]] forKey:[NSString stringWithCString:kFSKeyScheme encoding:[NSString defaultCStringEncoding]]];
+        [file_store setObject:[NSString stringWithCString:kFSHostGoogleDrive encoding:[NSString defaultCStringEncoding]] forKey:[NSString stringWithCString:kFSKeyHost encoding:[NSString defaultCStringEncoding]]];
     }
 }
 
 + (void) setFileStore:(NSMutableDictionary*)file_store accessKey:(NSString*)access_key {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:setFileStore:accessKey: called.");
     
     if (file_store == nil) {
-        NSLog(@"PersonalDataController:setFileStore:accessKey: ERROR: file_store is nil!");
+        NSLog(@"PersonalDataController:setFileStore:accessKey: ERROR: XXX TODO(aka) file_store is nil!");
         return;
     }
     
@@ -2526,19 +2808,113 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (void) setFileStore:(NSMutableDictionary*)file_store secretKey:(NSString*)secret_key {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:setFileStore:secretKey: called.");
     
     if (file_store == nil) {
-        NSLog(@"PersonalDataController:setFileStore:secretKey: ERROR: file_store is nil!");
+        NSLog(@"PersonalDataController:setFileStore:secretKey: ERROR:  XXX TODO(aka) file_store is nil!");
         return;
     }
     
     [file_store setObject:secret_key forKey:[NSString stringWithCString:kFSKeySecretKey encoding:[NSString defaultCStringEncoding]]];
 }
 
++ (void) setFileStore:(NSMutableDictionary*)file_store keychainTag:(NSString*)keychain_tag {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:setFileStore:keychainTag: called.");
+    
+    if (file_store == nil) {
+        NSLog(@"PersonalDataController:setFileStore:keychainTag: ERROR:  XXX TODO(aka) file_store is nil!");
+        return;
+    }
+    
+    [file_store setObject:keychain_tag forKey:[NSString stringWithCString:kFSKeyKeychainTag encoding:[NSString defaultCStringEncoding]]];
+}
+
++ (void) setFileStore:(NSMutableDictionary*)file_store clientID:(NSString*)client_id {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:setFileStore:clientID: called.");
+    
+    if (file_store == nil) {
+        NSLog(@"PersonalDataController:setFileStore:clientID: ERROR:  XXX TODO(aka) file_store is nil!");
+        return;
+    }
+    
+    [file_store setObject:client_id forKey:[NSString stringWithCString:kFSKeyClientID encoding:[NSString defaultCStringEncoding]]];
+}
+
++ (void) setFileStore:(NSMutableDictionary*)file_store clientSecret:(NSString*)client_secret {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:setFileStore:clientSecret: called.");
+    
+    if (file_store == nil) {
+        NSLog(@"PersonalDataController:setFileStore:clientSecret: ERROR:  XXX TODO(aka) file_store is nil!");
+        return;
+    }
+    
+    [file_store setObject:client_secret forKey:[NSString stringWithCString:kFSKeyClientSecret encoding:[NSString defaultCStringEncoding]]];
+}
+
++ (NSString*) serializeFileStore:(NSDictionary*)file_store {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:serializeFileStore: called.");
+    
+    NSString* serialized_string = [[NSString alloc] initWithFormat:@"File Store: "];
+    
+    if (file_store == nil) {
+        serialized_string = [serialized_string stringByAppendingFormat:@"nil"];
+        return serialized_string;
+    }
+    
+    NSEnumerator* enumerator = [file_store keyEnumerator];
+    id key = [enumerator nextObject];
+    while (key != nil) {
+        serialized_string = [serialized_string stringByAppendingFormat:@"%s=%s", [key cStringUsingEncoding:[NSString defaultCStringEncoding]], [[file_store objectForKey:key] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+        
+        if (key = [enumerator nextObject])
+            serialized_string = [serialized_string stringByAppendingFormat:@", "];
+    }
+    
+    return serialized_string;
+}
+
++ (NSURL*) genFileStoreURLAuthority:(NSDictionary*)file_store {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:genFileStoreURLAuthority: called.");
+    
+    if (file_store == nil)
+        return nil;
+    
+    if (kDebugLevel > 3)
+        NSLog(@"PersonalDataController:genFileStoreURLAuthority: file_store has %lu objects.", (unsigned long)[file_store count]);
+    
+    // Routine to build the URL sans the path component, i.e., the scheme and authority.  E.g., https://s3.amazonaws.com/.
+    
+    NSString* scheme = [[NSString alloc] initWithCString:kFSSchemeHTTPS encoding:[NSString defaultCStringEncoding]];
+    NSString* host = [file_store objectForKey:[NSString stringWithCString:kFSKeyHost encoding:[NSString defaultCStringEncoding]]];
+    
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:genFileStoreURLAuthority: using: %s and %s.", [scheme cStringUsingEncoding:[NSString defaultCStringEncoding]], [host cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    
+    // Depending on the type of file-store, build the URL.
+    if ([PersonalDataController isFileStoreServiceAmazonS3:file_store] || [PersonalDataController isFileStoreServiceGoogleDrive:file_store]) {
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:genFileStoreURLAuthority: building for either Drive or S3 service.");
+        
+        NSURL* url = [[NSURL alloc] initWithScheme:scheme host:host path:@"/"];
+        return url;
+    } else {
+        NSLog(@"PersonalDataController:genFileStoreURLAuthority: TODO(aka) unknown service: %s", [[file_store objectForKey:[NSString stringWithCString:kFSKeyService encoding:[NSString defaultCStringEncoding]]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    }
+    
+    // If we made it here, something went wrong.
+    return nil;
+}
+
+// XXX Deprecated.
+/*
 + (NSURL*) absoluteURLFileStore:(NSDictionary*)file_store withBucket:(NSString*)bucket_name withFile:(NSString*)file_name {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:absoluteURLFileStore:withBucket:withFile: called.");
     
     // See what file store we are using.
@@ -2570,33 +2946,11 @@ static const int kInitialDictionarySize = 5;
     // If we made it here, something went wrong.
     return nil;
 }
-
-+ (NSString*) absoluteStringFileStore:(NSDictionary*)file_store {
-    if (kDebugLevel > 2)
-        NSLog(@"PersonalDataController:absoluteStringFileStore: called.");
-    
-    NSString* absolute_string = [[NSString alloc] initWithFormat:@"File Store: "];
-    
-    if (file_store == nil) {
-        absolute_string = [absolute_string stringByAppendingFormat:@"nil"];
-        return absolute_string;
-    }
-    
-    NSEnumerator* enumerator = [file_store keyEnumerator];
-    id key = [enumerator nextObject];
-    while (key != nil) {
-        absolute_string = [absolute_string stringByAppendingFormat:@"%s=%s", [key cStringUsingEncoding:[NSString defaultCStringEncoding]], [[file_store objectForKey:key] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
-        
-        if (key = [enumerator nextObject])
-            absolute_string = [absolute_string stringByAppendingFormat:@", "];
-    }
-    
-    return absolute_string;
-}
+*/
 
 // Note, this routine should be used by the consumer.
 + (BOOL) isFileStoreValid:(NSDictionary*)file_store {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:isFileStoreValid: called.");
     
     if (file_store == nil)
@@ -2613,6 +2967,11 @@ static const int kInitialDictionarySize = 5;
         NSString* host = [PersonalDataController getFileStoreHost:file_store];
         if (scheme == nil || [scheme length] == 0 || host == nil || [host length] == 0)
             return false;
+    } else if ([PersonalDataController isFileStoreServiceGoogleDrive:file_store]) {
+        NSString* scheme = [PersonalDataController getFileStoreScheme:file_store];
+        NSString* host = [PersonalDataController getFileStoreHost:file_store];
+        if (scheme == nil || [scheme length] == 0 || host == nil || [host length] == 0)
+            return false;
     } else {
         NSLog(@"PersonalDataController:isFileStoreValid: WARN: unknown service: %s", [service cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         return false;
@@ -2624,7 +2983,7 @@ static const int kInitialDictionarySize = 5;
 
 // Note, this routine should be used by the provider.
 + (BOOL) isFileStoreComplete:(NSDictionary*)file_store {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:isFileStoreComplete: called.");
     
     if (file_store == nil)
@@ -2639,6 +2998,11 @@ static const int kInitialDictionarySize = 5;
         NSString* secret_key = [PersonalDataController getFileStoreSecretKey:file_store];
         if (access_key == nil || [access_key length] == 0 || secret_key == nil || [secret_key length] == 0)
             return false;
+    } else if ([PersonalDataController isFileStoreServiceGoogleDrive:file_store]) {
+        NSString* client_id = [PersonalDataController getFileStoreClientID:file_store];
+        NSString* client_secret = [PersonalDataController getFileStoreClientSecret:file_store];
+        if (client_id == nil || [client_id length] == 0 || client_secret == nil || [client_secret length] == 0)
+            return false;
     } else {
         NSLog(@"PersonalDataController:isFileStoreComplete: WARN: unknown service: %s", [[PersonalDataController getFileStoreService:file_store] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         return false;
@@ -2649,7 +3013,7 @@ static const int kInitialDictionarySize = 5;
 }
 
 + (BOOL) isFileStoreServiceAmazonS3:(NSDictionary*)file_store {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:isFileStoreServiceAmazonS3: called.");
     
     if (file_store == nil)
@@ -2667,77 +3031,289 @@ static const int kInitialDictionarySize = 5;
     return false;
 }
 
-#pragma mark - Cloud Management
-
-#if 0  // XXX TODO(aka) Deprecated
-- (NSString*) genFileStoreDepositMsg:(NSString*)consumer_identity_hash withPrecision:(NSNumber*)precision {
-    if (kDebugLevel > 2)
-        NSLog(@"PersonalDataController:genFileStoreDepositMsg: called: %d.", [precision intValue]);
++ (BOOL) isFileStoreServiceGoogleDrive:(NSDictionary*)file_store {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:isFileStoreServiceGoogleDrive: called.");
     
-    if (_file_store == nil) {
-        NSLog(@"PersonalDataController:genFileStoreDepositMsg: ERROR: TODO(aka) file_store is nil!");
-        return nil;
-    }
-    
-    static const char kMsgDelimiter = ' ';  // for now, let's make it whitespace
-    
-    // Build the File-store meta data bundle, which includes; (i) our identity token, (ii) the URI of the our File-store for this precision, (iii) the URI for this consumer's key-bundle (currently, only difference is the path component of the URI, i.e., the final filename), (iv) a time stamp, and (v) a signature across the preceeding four fields.
-    
-    NSString* bucket_name = [[NSString alloc] initWithFormat:@"%s%d", [_identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [precision intValue]];
-            NSString* location_data_filename = [[NSString alloc] initWithFormat:@"%s", kLocationDataFilename];
-    NSString* key_bundle_filename = [[NSString alloc] initWithFormat:@"%s.kb", [consumer_identity_hash cStringUsingEncoding:[NSString defaultCStringEncoding]]];
-    NSURL* key_bundle_url = [PersonalDataController absoluteURLFileStore:_file_store withBucket:bucket_name withFile:key_bundle_filename];
-    NSURL* location_data_url = [PersonalDataController absoluteURLFileStore:_file_store withBucket:bucket_name withFile:location_data_filename];
-    struct timeval now;
-    gettimeofday(&now, NULL);
-
-    
-    NSString* four_tuple = [[NSString alloc] initWithFormat:@"%s%c%s%c%s%c%ld", [_identity_hash cStringUsingEncoding:[NSString defaultCStringEncoding]], kMsgDelimiter, [[location_data_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]], kMsgDelimiter, [[key_bundle_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]], kMsgDelimiter, now.tv_sec];
-    
-    // Get signature over the four tuple.
-    NSString* signature = nil;
-    NSString* err_msg = [PersonalDataController signHashOfString:four_tuple privateKeyRef:privateKeyRef signedHash:&signature];
-    if (err_msg != nil) {
-        NSLog(@"PersonalDataController:genFileStoreDepositMsg: ERROR: TODO(aka) unable to sign %@!", four_tuple);
-        return nil;
-    }
-    
-    if (kDebugLevel > 0)
-        NSLog(@"PersonalDataController:genFileStoreDepositMsg: four tuple: %@, signature: %@.", four_tuple, signature);
-    
-    NSString* msg = [[NSString alloc] initWithFormat:@"%s%c%s", [four_tuple cStringUsingEncoding:[NSString defaultCStringEncoding]], kMsgDelimiter, [signature cStringUsingEncoding:[NSString defaultCStringEncoding]]];
-    
-    return msg;
-}
-#endif
-
-- (NSString*) uploadData:(NSString*)data bucketName:(NSString*)bucket_name filename:(NSString*)filename {
-    if (kDebugLevel > 2)
-        NSLog(@"PersonalDataController:uploadData:bucketName:filename: called.");
-    
-    if (_file_store == nil) {
-        NSLog(@"PersonalDataController:uploadData: file_store is nil!");
-        return @"File Store is not set";
-    }
+    if (file_store == nil)
+        return false;
     
     // See what file store we are using.
-    if ([PersonalDataController isFileStoreServiceAmazonS3:_file_store]) {
-        if (kDebugLevel > 1)
-            NSLog(@"PersonalDataController:uploadData:bucketName: using S3 as file store.");
-        
-        NSString* err_msg = [self amazonS3Upload:data bucketName:bucket_name filename:filename];
+    NSString* service = [file_store objectForKey:[NSString stringWithCString:kFSKeyService encoding:[NSString defaultCStringEncoding]]];
+    
+    // Note, here's how to search for a subset within the string:
+    // if ([some_string rangeOfString:@"s3"].location != NSNotFound)
+    
+    if ([service caseInsensitiveCompare:[NSString stringWithCString:kFSGoogleDrive encoding:[NSString defaultCStringEncoding]]] == NSOrderedSame)
+        return true;
+    
+    return false;
+}
+
+#pragma mark - Cloud Management
+
+- (NSString*) amazonS3Auth:(NSString*)access_key secretKey:(NSString*)secret_key {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:amazonS3Auth: called.");
+    
+    if (_s3 != nil)
+        return nil;  // already initialized
+    
+    if (_file_store == nil)
+        return @"File-store is not set";
+    
+    // Make sure we have an Amazon S3 file store.
+    NSString* err_msg = nil;
+    if (![PersonalDataController isFileStoreServiceAmazonS3:_file_store]) {
+       err_msg = [[NSString alloc] initWithFormat:@"Service (%s) is not Amazon S3", [[_file_store objectForKey:[NSString stringWithCString:kFSKeyService encoding:[NSString defaultCStringEncoding]]] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+        NSLog(@"PersonalDataController:amazonS3Auth: %s.", [err_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         return err_msg;
-    } else {
-        NSString* err_msg = [[NSString alloc] initWithFormat:@"Unknown service: %s", [[_file_store objectForKey:[NSString stringWithCString:kFSKeyService encoding:[NSString defaultCStringEncoding]]] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
-        NSLog(@"PersonalDataController:uploadData:bucketName: %s.", [err_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    }
+    
+    if (access_key == nil || [access_key length] == 0 || secret_key == nil || [secret_key length] == 0) {
+        err_msg = [[NSString alloc] initWithFormat:@"Amazon S3 credentials either empty or null (access key: %s, secret key: %s).", [access_key cStringUsingEncoding:[NSString defaultCStringEncoding]], [secret_key cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+        NSLog(@"PersonalDataController:amazonS3Auth: %s.", [err_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        return err_msg;
+    }
+    
+    // ASW SDK can throw exceptions, joy.
+    @try {
+        // Try to initialize the S3 client.
+        _s3 = [[AmazonS3Client alloc] initWithAccessKey:access_key withSecretKey:secret_key];
+    }
+    @catch (AmazonClientException* exception) {
+        err_msg = [[NSString alloc] initWithFormat:@"Amazon S3 authorization failure: %s", [exception.message cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+        _s3 = nil;
         return err_msg;
     }
     
     return nil;
 }
 
+- (NSString*) amazonS3Upload:(NSString*)data bucket:(NSString*)bucket filename:(NSString*)filename {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:amazonS3Upload:bucket:filename: called.");
+    
+    NSString* err_msg = [self amazonS3Auth:[_file_store objectForKey:[NSString stringWithCString:kFSKeyAccessKey encoding:[NSString defaultCStringEncoding]]] secretKey:[_file_store objectForKey:[NSString stringWithCString:kFSKeySecretKey encoding:[NSString defaultCStringEncoding]]]];
+    if (err_msg != nil)
+        return err_msg;
+    
+    if (kDebugLevel > 0)
+        NSLog(@"PersonalDataController:amazonS3Upload: uploading \"%s\", to %s, as %s.", [data cStringUsingEncoding:[NSString defaultCStringEncoding]], [bucket cStringUsingEncoding:[NSString defaultCStringEncoding]], [filename cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    
+    // ASW SDK can throw exceptions, joy.
+    @try {
+        // Create the bucket (if it doesn't already exist).
+        [_s3 createBucket:[[S3CreateBucketRequest alloc] initWithName:bucket]];
+        
+        // Setup the HTTP "PUT" Request ...
+        S3PutObjectRequest* request = [[S3PutObjectRequest alloc] initWithKey:filename inBucket:bucket];
+        request.contentType = @"application/octet-stream";
+        request.cannedACL = [S3CannedACL publicRead];
+        request.data = [data dataUsingEncoding:[NSString defaultCStringEncoding]];
+        
+        // ... and send it off to S3.
+        [_s3 putObject:request];
+    }
+    @catch (AmazonClientException* exception) {
+        NSString* err_msg = [[NSString alloc] initWithFormat:@"Amazon S3 upload failure: %s", [exception.message cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+        NSLog(@"PersonalDataController:amazonS3Upload: %s!", [err_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        return err_msg;
+    }
+    
+    return nil;
+}
+
+- (NSString*) googleDriveInit {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:googleDriveInit: called.");
+    
+    if (_drive != nil) {
+        if (_drive_ids == nil)
+            _drive_ids = [[NSMutableDictionary alloc] initWithCapacity:5];
+        
+        if (_drive_wvls == nil)
+            _drive_wvls = [[NSMutableDictionary alloc] initWithCapacity:5];
+        
+        return nil;  // already initialized
+    }
+    
+    if (_file_store == nil)
+        return @"File-store is not set";
+    
+    // Make sure we have an Google Drive file store.
+    NSString* err_msg = nil;
+    if (![PersonalDataController isFileStoreServiceGoogleDrive:_file_store]) {
+        err_msg = [[NSString alloc] initWithFormat:@"Service (%s) is not Google Drive", [[_file_store objectForKey:[NSString stringWithCString:kFSKeyService encoding:[NSString defaultCStringEncoding]]] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+        NSLog(@"PersonalDataController:googleDriveInit: %s.", [err_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        return err_msg;
+    }
+    
+    // Initialize our data memebers.
+    _drive = [[GTLServiceDrive alloc] init];
+    if (_drive_ids == nil)
+        _drive_ids = [[NSMutableDictionary alloc] initWithCapacity:5];
+    if (_drive_wvls == nil)
+        _drive_wvls = [[NSMutableDictionary alloc] initWithCapacity:5];
+    
+    // Have the service object set tickets to retry temporary error conditions automatically.
+    _drive.retryEnabled = YES;
+    
+    // And make sure we continue to operate when the user switches us to the background.
+    _drive.shouldFetchInBackground = YES;
+    
+    return nil;
+}
+
+- (NSString*) googleDriveKeychainAuth:(NSString*)keychain_tag clientID:(NSString*)client_id clientSecret:(NSString*)client_secret {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:googleDriveKeychainAuth: called.");
+    
+    NSString* err_msg = nil;
+    if (_drive == nil) {
+        err_msg = [self googleDriveInit];
+        if (err_msg != nil)
+            return err_msg;
+    }
+    
+    // Attempt to get the credentials from the keychain.
+    if (kDebugLevel > 0)
+        NSLog(@"PersonalDataController:googleDriveKeychainAuth: using id: %@, secret: %@.", client_id, client_secret);
+    
+    _drive.authorizer = [GTMOAuth2ViewControllerTouch authForGoogleFromKeychainForName:keychain_tag clientID:client_id clientSecret:client_secret];
+    
+    return nil;
+}
+
+- (BOOL) googleDriveIsAuthorized {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:googleDriveIsAuthorized: called.");
+    
+    if (_drive != nil && [_drive.authorizer canAuthorize])
+        return true;
+    
+    return false;
+}
+
+/* XXX  Not currently used
+- (NSString*) getGoogleDriveAuth {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:googleDriveKeychainAuth: called.");
+    
+    NSString* err_msg = nil;
+    if (_drive == nil) {
+        err_msg = [self googleDriveInit];
+        
+        if (err_msg != nil)
+            return err_msg;
+    }
+    
+    // Attempt to get the credentials from the keychain.
+    _drive.authorizer = [GTMOAuth2ViewControllerTouch authForGoogleFromKeychainForName:[NSString stringWithFormat:@"%s", kGDKeychainTag] clientID:[NSString stringWithFormat:@"%s", kGDSLSID] clientSecret:[NSString stringWithFormat:@"%s", kGDSLSSecret]];
+    
+    return nil;
+}
+*/
+
+/* XXX Deprecated, see Provider MVC
+- (NSString*) googleDriveUpload:(NSString*)data bucket:(NSString*)bucket filename:(NSString*)filename {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:googleDriveUpload:: called.");
+    
+    if (_file_store == nil)
+        return @"File Store is not set";
+    
+    if (![self googleDriveIsAuthorized])
+        return @"Not authorized";
+    
+    // See if the root folder exists in Drive.
+    if ([_drive_ids objectForKey:[NSString stringWithFormat:@"%s", kFSRootFolderName]] == nil)
+        return @"Root SLS folder not found";
+
+    return @"Google Drive upload not done yet";
+    
+    NSString* sls_folder_id = [_drive_ids objectForKey:[NSString stringWithFormat:@"%s", kFSRootFolderName]];
+    if (sls_folder_id == nil || [sls_folder_id length] == 0)
+        return @"Unable to find/create the SLS root folder";
+    
+    // Next, make sure the bucket exists.
+    if ([_drive_ids objectForKey:bucket] == nil) {
+        // Try to fetch the bucket folder ID.
+        __block NSString* blk_err_msg = nil;
+        GTLQueryDrive* search_query = [GTLQueryDrive queryForFilesList];
+        search_query.q = [NSString stringWithFormat:@"title = '%s'", [bucket cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+        [_drive executeQuery:search_query completionHandler:^(GTLServiceTicket* ticket, GTLDriveFileList* files, NSError* gtl_err) {
+            if (gtl_err != nil) {
+                blk_err_msg = [NSString stringWithFormat:@"PersonalDataController:googleDriveUpload: %@", gtl_err];
+            } else {
+                if ([files.items count] == 0) {
+                    // Didn't find the file.
+                } else if ([files.items count] == 1) {
+                    GTLDriveFile* bucket_folder = [files.items objectAtIndex:0];
+                    [_drive_ids setObject:bucket_folder.identifier forKey:bucket];
+                } else {
+                    // Argh!  How can we have more than one file called "SLS"!?!
+                    blk_err_msg = [NSString stringWithFormat:@"PersonalDataController:googleDriveUpload: GTLDriveFileList has %ld files called %@!", (unsigned long)[files.items count], bucket];
+                }
+            }
+        }];
+        
+        if (blk_err_msg != nil)
+            return blk_err_msg;
+        
+        if ([_drive_ids objectForKey:bucket] == nil) {
+            // It doesn't exist on the file-store, so creat it.
+            GTLDriveFile* bucket_folder = [GTLDriveFile object];
+            bucket_folder.title = bucket;
+            bucket_folder.mimeType = @"application/vnd.google-apps.folder";
+            GTLQueryDrive* create_query = [GTLQueryDrive queryForFilesInsertWithObject:bucket_folder uploadParameters:nil];
+            __block NSString* blk_err_msg = nil;
+            [_drive executeQuery:create_query completionHandler:^(GTLServiceTicket* ticket, GTLDriveFile* updated_file, NSError* gtl_err) {
+                if (gtl_err != nil) {
+                    blk_err_msg = [NSString stringWithFormat:@"PersonalDataController:googleDriveUpload: %@", gtl_err];
+                } else {
+                    [_drive_ids setObject:updated_file.identifier forKey:bucket];
+                }
+            }];
+            
+            if (blk_err_msg != nil)
+                return blk_err_msg;
+        }
+    }
+    
+    NSString* bucket_id = [_drive_ids objectForKey:bucket];
+    if (bucket_id == nil || [bucket_id length] == 0)
+        return @"Unable to find/create the bucket folder";
+    
+    // TODO(aka) Let's just try to create the file, without checking if it already exists!
+    
+    // Upload the file.
+    GTLDriveFile* metadata = [GTLDriveFile object];
+    metadata.title = filename;
+    
+    NSData* data_as_data = [data dataUsingEncoding:NSUTF8StringEncoding];
+    GTLUploadParameters* parameters = [GTLUploadParameters uploadParametersWithData:data_as_data MIMEType:@"application/octet-stream"];
+    GTLQueryDrive* upload_query = [GTLQueryDrive queryForFilesInsertWithObject:metadata uploadParameters:parameters];
+    __block NSString* blk_err_msg = nil;
+    [_drive executeQuery:upload_query completionHandler:^(GTLServiceTicket* ticket, GTLDriveFile* updated_file, NSError* gtl_err) {
+        if (gtl_err != nil) {
+            blk_err_msg = [NSString stringWithFormat:@"PersonalDataController:googleDriveUpload: %@", gtl_err];
+        } else {
+            if (kDebugLevel > 0)
+                NSLog(@"PersonalDataController:googleDriveUpload:: uploaded %s/%s/%s.", kFSRootFolderName, [bucket cStringUsingEncoding:[NSString defaultCStringEncoding]], [filename cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        }
+    }];
+    
+    if (blk_err_msg != nil)
+        return blk_err_msg;
+    
+    return nil;
+}
+*/
+ 
+#if 0 // XXX Deprecated.
 - (NSString*) amazonS3Upload:(NSString*)data bucketName:(NSString*)bucket_name filename:(NSString*)filename {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:amazonS3Upload:bucketName:filename: called.");
     
     if (_file_store == nil) {
@@ -2767,6 +3343,7 @@ static const int kInitialDictionarySize = 5;
     
     // ASW SDK can throw exceptions, joy.
     @try {
+        xxx; // Okay, this needs to change, we need to keep the s3 client around in our PersonalDataController.
         // Initialize the S3 client.
         AmazonS3Client* s3 = [[AmazonS3Client alloc] initWithAccessKey:access_key withSecretKey:secret_key];
         
@@ -2790,5 +3367,83 @@ static const int kInitialDictionarySize = 5;
     
     return nil;
 }
+#endif
+
+#if 0  // XXX TODO(aka) Deprecated
+- (NSString*) genFileStoreDepositMsg:(NSString*)consumer_identity_hash withPrecision:(NSNumber*)precision {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:genFileStoreDepositMsg: called: %d.", [precision intValue]);
+    
+    if (_file_store == nil) {
+        NSLog(@"PersonalDataController:genFileStoreDepositMsg: ERROR: TODO(aka) file_store is nil!");
+        return nil;
+    }
+    
+    static const char kMsgDelimiter = ' ';  // for now, let's make it whitespace
+    
+    // Build the File-store meta data bundle, which includes; (i) our identity token, (ii) the URI of the our File-store for this precision, (iii) the URI for this consumer's key-bundle (currently, only difference is the path component of the URI, i.e., the final filename), (iv) a time stamp, and (v) a signature across the preceeding four fields.
+    
+    NSString* bucket_name = [[NSString alloc] initWithFormat:@"%s%d", [_identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [precision intValue]];
+    NSString* location_data_filename = [[NSString alloc] initWithFormat:@"%s", kLocationDataFilename];
+    NSString* key_bundle_filename = [[NSString alloc] initWithFormat:@"%s.kb", [consumer_identity_hash cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+    NSURL* key_bundle_url = [PersonalDataController absoluteURLFileStore:_file_store withBucket:bucket_name withFile:key_bundle_filename];
+    NSURL* location_data_url = [PersonalDataController absoluteURLFileStore:_file_store withBucket:bucket_name withFile:location_data_filename];
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    
+    
+    NSString* four_tuple = [[NSString alloc] initWithFormat:@"%s%c%s%c%s%c%ld", [_identity_hash cStringUsingEncoding:[NSString defaultCStringEncoding]], kMsgDelimiter, [[location_data_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]], kMsgDelimiter, [[key_bundle_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]], kMsgDelimiter, now.tv_sec];
+    
+    // Get signature over the four tuple.
+    NSString* signature = nil;
+    NSString* err_msg = [PersonalDataController signHashOfString:four_tuple privateKeyRef:privateKeyRef signedHash:&signature];
+    if (err_msg != nil) {
+        NSLog(@"PersonalDataController:genFileStoreDepositMsg: ERROR: TODO(aka) unable to sign %@!", four_tuple);
+        return nil;
+    }
+    
+    if (kDebugLevel > 0)
+        NSLog(@"PersonalDataController:genFileStoreDepositMsg: four tuple: %@, signature: %@.", four_tuple, signature);
+    
+    NSString* msg = [[NSString alloc] initWithFormat:@"%s%c%s", [four_tuple cStringUsingEncoding:[NSString defaultCStringEncoding]], kMsgDelimiter, [signature cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+    
+    return msg;
+}
+#endif
+
+#if 0 // XXX Deprecated.  TODO(aka) I can see hwo this would be useful, though, i.e., uploading any data to any path ...
+- (NSString*) uploadData:(NSString*)data path:(NSString*)path filename:(NSString*)filename {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:uploadData:bucketName:filename: called.");
+    
+    xxx;  // do we still need bucket?
+    if (_file_store == nil) {
+        NSLog(@"PersonalDataController:uploadData: file_store is nil!");
+        return @"File Store is not set";
+    }
+    
+    // See what file store we are using.
+    if ([PersonalDataController isFileStoreServiceAmazonS3:_file_store]) {
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:uploadData:bucketName: using S3 as file store.");
+        
+        NSString* err_msg = [self amazonS3Upload:data bucketName:bucket_name filename:filename];
+        return err_msg;
+    } else if ([PersonalDataController isFileStoreServiceGoogleDrive:_file_store]) {
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:uploadData:bucketName: using S3 as file store.");
+        
+        NSString* err_msg = [self amazonS3Upload:data bucketName:bucket_name filename:filename];
+        return err_msg;
+        
+    } else {
+        NSString* err_msg = [[NSString alloc] initWithFormat:@"Unknown service: %s", [[_file_store objectForKey:[NSString stringWithCString:kFSKeyService encoding:[NSString defaultCStringEncoding]]] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+        NSLog(@"PersonalDataController:uploadData:bucketName: %s.", [err_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        return err_msg;
+    }
+    
+    return nil;
+}
+#endif
 
 @end

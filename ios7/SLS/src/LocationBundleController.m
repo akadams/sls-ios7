@@ -7,26 +7,36 @@
 //
 
 #import <sys/time.h>
+#include <stdlib.h>
+
+#import "NSData+Base64.h"
 
 #import "PersonalDataController.h"
+#import "PolicyController.h"
 #import "LocationBundleController.h"
 
 static const int kDebugLevel = 1;
-static const char kMsgDelimiter = ' ';  // for now, let's make it whitespace
+
+static const char kLocationDelimiter = LOCATION_BUNDLE_LOCATION_DELIMITER;
+static const char kComponentDelimiter = LOCATION_BUNDLE_COMPONENT_DELIMITER;
 
 
 @implementation LocationBundleController
 
 #pragma mark - Local variables
 
+@synthesize serialized_location = _serialized_location;
+@synthesize time_stamp = _time_stamp;
+@synthesize signature = _signature;
+
 #pragma mark - Initialization
 
 - (id) init {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"LocationBundleController:init: called.");
     
     if (self = [super init]) {
-        _location = nil;
+        _serialized_location = nil;
         _time_stamp = 0;
         _signature = nil;
     }
@@ -35,11 +45,11 @@ static const char kMsgDelimiter = ' ';  // for now, let's make it whitespace
 }
 
 - (id) copyWithZone:(NSZone*)zone {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"LocationBundleController:copywithZone: called.");
     
     LocationBundleController* tmp_controller = [[LocationBundleController alloc] init];
-    tmp_controller.location = _location;
+    tmp_controller.serialized_location = _serialized_location;
     tmp_controller.time_stamp = _time_stamp;
     tmp_controller.signature = _signature;
     
@@ -47,12 +57,12 @@ static const char kMsgDelimiter = ' ';  // for now, let's make it whitespace
 }
 
 - (id) initWithCoder:(NSCoder*)decoder {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"LocationBundleController:initWithCoder: called.");
     
     self = [super init];
     if (self) {
-        _location = [decoder decodeObjectForKey:@"encrypted-key"];
+        _serialized_location = [decoder decodeObjectForKey:@"location"];
         _time_stamp = [decoder decodeObjectForKey:@"time-stamp"];
         _signature = [decoder decodeObjectForKey:@"signature"];
     }
@@ -61,101 +71,216 @@ static const char kMsgDelimiter = ' ';  // for now, let's make it whitespace
 }
 
 - (void) encodeWithCoder:(NSCoder*)encoder {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"LocationBundleController:encodeWithCoder: called.");
     
-    [encoder encodeObject:_location forKey:@"encrypted-key"];
+    [encoder encodeObject:_serialized_location forKey:@"location"];
     [encoder encodeObject:_time_stamp forKey:@"time-stamp"];
     [encoder encodeObject:_signature forKey:@"signature"];
 }
 
 #pragma mark - Data management
 
-- (NSString*) build:(CLLocation*)location privateKeyRef:(SecKeyRef)private_key_ref {
-    if (kDebugLevel > 2)
+- (NSString*) build:(CLLocation*)location privateKeyRef:(SecKeyRef)private_key_ref policy:(NSNumber*)policy {
+    if (kDebugLevel > 4)
         NSLog(@"LocationBundleController:generate:privateKeyRef: called.");
     
     if (location == nil)
         return @"LocationBundleController:generate: location is nil.";
     
-    _location = location;  // grab CLLocation
+    double latitude = location.coordinate.latitude;
+    double longitude = location.coordinate.longitude;
+    double course = location.course;
+    double altitude = location.altitude;
+    NSDate* location_time = location.timestamp;
+    
+    if (kDebugLevel > 2)
+        NSLog(@"LocationBundleController:generate: description: %s, latitude %+.7f, longitude %+.7f, course: %+.7f.", [location.description cStringUsingEncoding:[NSString defaultCStringEncoding]], latitude, longitude, course);
+    
+    switch ([policy intValue]) {
+        case PC_PRECISION_IDX_STATE :  // 0 decimal places (110km)
+        {
+            NSLog(@"LocationBundleController:generate: XXX before applying state mask, latitude %+.7f, longitude %+.7f.", latitude, longitude);
+            
+            // HACK: Attempt at quickly diffusing a double's precision.
+            static uint64_t mask = 0xFFFF000000000000;
+            double* lon_ptr = &longitude;
+            double* lat_ptr = &latitude;
+            uint64_t diffused_lon = (*(uint64_t*)lon_ptr) & mask;
+            uint64_t diffused_lat = (*(uint64_t*)lat_ptr) & mask;
+            longitude = *(double*)&diffused_lon;
+            latitude = *(double*)&diffused_lat;
+        }
+            break;
+
+        case PC_PRECISION_IDX_COUNTY:  // 1 decimal place (11km)
+        {
+            NSLog(@"LocationBundleController:generate: XXX before applying county mask, latitude %+.7f, longitude %+.7f.", latitude, longitude);
+            
+            // HACK: Attempt at quickly diffusing a double's precision.
+            static uint64_t mask = 0xFFFFFE0000000000;
+            double* lon_ptr = &longitude;
+            double* lat_ptr = &latitude;
+            uint64_t diffused_lon = (*(uint64_t*)lon_ptr) & mask;
+            uint64_t diffused_lat = (*(uint64_t*)lat_ptr) & mask;
+            longitude = *(double*)&diffused_lon;
+            latitude = *(double*)&diffused_lat;
+        }
+            break;
+        
+        case PC_PRECISION_IDX_CITY :   // 2 decimal places (1.1km)
+        {
+            NSLog(@"LocationBundleController:generate: XXX before applying city mask, latitude %+.7f, longitude %+.7f.", latitude, longitude);
+            
+            // HACK: Attempt at quickly diffusing a double's precision.
+            static uint64_t mask = 0xFFFFFFC000000000;
+            double* lon_ptr = &longitude;
+            double* lat_ptr = &latitude;
+            uint64_t diffused_lon = (*(uint64_t*)lon_ptr) & mask;
+            uint64_t diffused_lat = (*(uint64_t*)lat_ptr) & mask;
+            longitude = *(double*)&diffused_lon;
+            latitude = *(double*)&diffused_lat;
+        }
+            break;
+        
+        case PC_PRECISION_IDX_NEIGHBORHOOD :  // 3 decimal places (110m)
+        {
+            NSLog(@"LocationBundleController:generate: XXX before applying neighborhood mask, latitude %+.7f, longitude %+.7f.", latitude, longitude);
+            
+            // HACK: Attempt at quickly diffusing a double's precision.
+            static uint64_t mask = 0xFFFFFFF800000000;
+            double* lon_ptr = &longitude;
+            double* lat_ptr = &latitude;
+            uint64_t diffused_lon = (*(uint64_t*)lon_ptr) & mask;
+            uint64_t diffused_lat = (*(uint64_t*)lat_ptr) & mask;
+            longitude = *(double*)&diffused_lon;
+            latitude = *(double*)&diffused_lat;
+        }
+            break;
+        
+        case PC_PRECISION_IDX_BUILDING :  // 4 decimal places (11m)
+        {
+            NSLog(@"LocationBundleController:generate: XXX before applying building mask, latitude %+.7f, longitude %+.7f.", latitude, longitude);
+            
+            // HACK: Attempt at quickly diffusing a double's precision.
+            static uint64_t mask = 0xFFFFFFFF00000000;
+            double* lon_ptr = &longitude;
+            double* lat_ptr = &latitude;
+            uint64_t diffused_lon = (*(uint64_t*)lon_ptr) & mask;
+            uint64_t diffused_lat = (*(uint64_t*)lat_ptr) & mask;
+            longitude = *(double*)&diffused_lon;
+            latitude = *(double*)&diffused_lat;
+        }
+            break;
+        
+        case PC_PRECISION_IDX_EXACT :  // 5 decimal places (1.1m)
+            break;  // we don't want to muck with the precision
+            
+        default :
+        {
+            NSString* err_msg = [NSString stringWithFormat:@"LocationBundleController:generate: unknown policy: %d.", [policy intValue]];
+            return err_msg;
+        }
+    }
+
+    if (kDebugLevel > 0)
+        NSLog(@"LocationBundleController:generate: DEBUG: After applying mask, latitude %+.7f, longitude %+.7f.", latitude, longitude);
+
+    // TODO(aka) We need to add accuracy and speed!
+    _serialized_location = [[NSString alloc] initWithFormat:@"%+.7f%c%+.7f%c%+.7f%c%+.6f", latitude, kLocationDelimiter, longitude, kLocationDelimiter, course, kLocationDelimiter, altitude];
     
     // Convert NSDate within CLLocation to time_t, then convert that to our NSNumber.
-    time_t utc = (time_t)[_location.timestamp timeIntervalSince1970];
+    time_t utc = (time_t)[location_time timeIntervalSince1970];
     _time_stamp = [[NSNumber alloc] initWithLong:utc];
     
     // Generate the signature over the concatination of our serialized location & time stamp.
     NSString* signature = nil;
     
-#if 1
     // Our attempt at an O/S agnostic framing/encoding scheme for the location, course and timestamp!
-    double latitude = _location.coordinate.latitude;
-    double longitude = _location.coordinate.longitude;
-    double course = _location.course;
-    
-    if (kDebugLevel > 1)
-        NSLog(@"LocationBundleController:generate: description: %s, latitude %+.6f, longitude %+.6f, course: %+.6f\n", [_location.description cStringUsingEncoding:[NSString defaultCStringEncoding]], latitude, longitude, course);
-    
-    NSString* location_str = [[NSString alloc] initWithFormat:@"%+.6f:%+.6f:%+.6f", latitude, longitude, course];
-    NSString* two_tuple = [[NSString alloc] initWithFormat:@"%s%ld", [location_str cStringUsingEncoding:[NSString defaultCStringEncoding]], [_time_stamp longValue]];  // note, lack of kMsgDelimiter
+    NSString* two_tuple = [[NSString alloc] initWithFormat:@"%s%ld", [_serialized_location cStringUsingEncoding:[NSString defaultCStringEncoding]], [_time_stamp longValue]];  // note, lack of kMsgDelimiter
     NSData* hash = [PersonalDataController hashSHA256StringToData:two_tuple];
     NSString* error_msg = [PersonalDataController signHashData:hash privateKeyRef:private_key_ref signedHash:&signature];
     if (error_msg != nil)
         return error_msg;
     
-    if (kDebugLevel > 0)
+    if (kDebugLevel > 1)
         NSLog(@"LocationBundleController:generate: two tuple: %@, signature: %@.", two_tuple, signature);
 
-    // XXX NSData* serialized_location_data = [location_str dataUsingEncoding:[NSString defaultCStringEncoding]];
-#else
-    // For simplicity, we are going to serialize the CLLocation object (as it conforms to NSCoding).
-    
-    // XXX TODO(aka) But how do we add the time stamp for the signature?
-    // XXX NSData* serialized_location_data = [NSKeyedArchiver archivedDataWithRootObject:location];
-#endif
-    
     _signature = signature;
     
     return nil;
 }
 
-// TODO(aka) I think the following two routines are deprecated, until we move to O/S agnostic ways in storing history log.
 - (NSString*) generateWithString:(NSString*)serialized_str {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"LocationBundleController:generateWithString: called.");
     
     if (serialized_str == nil || [serialized_str length] == 0)
         return @"LocationBundleController:generateWithString: serialized string empty or nil!";
     
-    NSArray* components = [serialized_str componentsSeparatedByString:[NSString stringWithFormat:@"%c", kMsgDelimiter]];
+    NSArray* components = [serialized_str componentsSeparatedByString:[NSString stringWithFormat:@"%c", kComponentDelimiter]];
     if ([components count] != 3)
         return @"LocationBundleController:generateWithString: serialized string does not have three commponent!";
     
-    _location = [components objectAtIndex:0];
+    _serialized_location = [components objectAtIndex:0];
     
     NSNumberFormatter* formatter = [[NSNumberFormatter alloc] init];
     [formatter setNumberStyle:NSNumberFormatterDecimalStyle];
     _time_stamp = [formatter numberFromString:[components objectAtIndex:1]];
     
     _signature = [components objectAtIndex:2];
-    
+
     return nil;
 }
 
 - (NSString*) serialize {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"LocationBundleController:serialize: called.");
     
-    double latitude = _location.coordinate.latitude;
-    double longitude = _location.coordinate.longitude;
-    double course = _location.course;
+    if (kDebugLevel > 2)
+        NSLog(@"LocationBundleController:generate: serialized loc: %@, time stamp: %@, sig: %@.", _serialized_location, _time_stamp, _signature);
     
-    if (kDebugLevel > 1)
-        NSLog(@"LocationBundleController:generate: description: %s, latitude %+.6f, longitude %+.6f, course: %+.6f\n", [_location.description cStringUsingEncoding:[NSString defaultCStringEncoding]], latitude, longitude, course);
-    
-    NSString* location_bundle = [[NSString alloc] initWithFormat:@"%+.6f%c%+.6f%c%+6.f%c%ld%c%s", latitude, kMsgDelimiter, longitude, kMsgDelimiter, course, kMsgDelimiter, [_time_stamp longValue], kMsgDelimiter, [_signature cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+    NSString* location_bundle = [[NSString alloc] initWithFormat:@"%s%c%ld%c%s", [_serialized_location cStringUsingEncoding:[NSString defaultCStringEncoding]], kComponentDelimiter, [_time_stamp longValue], kComponentDelimiter, [_signature cStringUsingEncoding:[NSString defaultCStringEncoding]]];
     
     return location_bundle;
+}
+
+- (BOOL) verifySignature:(SecKeyRef)public_key_ref {
+    if (kDebugLevel > 4)
+        NSLog(@"LocationBundleControler:verifySignature: called.");
+    
+    // Verify our signature over the hash of the concatenation of the key & time stamp.
+    NSString* two_tuple = [[NSString alloc] initWithFormat:@"%s%ld", [_serialized_location cStringUsingEncoding:[NSString defaultCStringEncoding]], [_time_stamp longValue]];  // note, lack of kMsgDelimiter
+    NSData* hash = [PersonalDataController hashSHA256StringToData:two_tuple];
+    
+    return [PersonalDataController verifySignatureData:hash secKeyRef:public_key_ref signature:[NSData dataFromBase64String:_signature]];
+}
+
+- (CLLocation*) generateCLLocation {
+    if (kDebugLevel > 4)
+        NSLog(@"LocationBundleController:generateCLLocation: called.");
+    
+    // Build CLLocation.
+    NSArray* components = [_serialized_location componentsSeparatedByString:[NSString stringWithFormat:@"%c", kLocationDelimiter]];
+    if ([components count] < 4)
+        NSLog(@"LocationBundleController:generateCLLocation: ERROR: TODO(aka) insufficient components within serialized location: %lu.", (unsigned long)[components count]);
+    
+    double latitude = strtod([[components objectAtIndex:0] cStringUsingEncoding:[NSString defaultCStringEncoding]], (char**)NULL);
+    double longitude = strtod([[components objectAtIndex:1] cStringUsingEncoding:[NSString defaultCStringEncoding]], (char**)NULL);
+    double course = strtod([[components objectAtIndex:2] cStringUsingEncoding:[NSString defaultCStringEncoding]], (char**)NULL);
+    double altitude = strtod([[components objectAtIndex:3] cStringUsingEncoding:[NSString defaultCStringEncoding]], (char**)NULL);
+    double accuracy = 1.0;  // for now, just default to best (it's in meters)
+    double speed = 0.0;  // again, for now, just make this empty
+    CLLocationCoordinate2D coordinate;
+	coordinate.latitude = latitude;
+	coordinate.longitude = longitude;
+    
+    CLLocation* location = [[CLLocation alloc] initWithCoordinate:coordinate altitude:altitude horizontalAccuracy:accuracy verticalAccuracy:accuracy course:course speed:speed timestamp:[NSDate dateWithTimeIntervalSince1970:[_time_stamp intValue]]];
+    
+    if (kDebugLevel > 1)
+        NSLog(@"LocationBundleController:generateCLLocation: generated %@.", location.description);
+    
+    return location;
 }
 
 @end

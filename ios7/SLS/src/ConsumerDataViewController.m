@@ -152,26 +152,28 @@ static const char* kAlertButtonGenKeysMessage = "Yes, generate new keys.";
         NSLog(@"ConsumerDataViewController:configureView: called.");
     
     // Show our identity.
-    if (_our_data != nil && [_our_data.identity length]) {
-        NSLog(@"ConsumerDataViewController:configureView: setting identity: %@.", _our_data.identity);
+    if (_our_data != nil && _our_data.identity != nil && [_our_data.identity length] > 0) {
         [_identity_label setText:_our_data.identity];
         [_identity_hash_label setText:_our_data.identity_hash];
-        
-        // And our deposit.
-        if (_our_data != nil && _our_data.deposit != nil && [PersonalDataController isDepositComplete:_our_data.deposit]) {
-            // Note, if we ever go back to e-mail file-store deposits, then we'd need to change this!
-            NSLog(@"ConsumerDataViewController:configureView: setting deposit: %@.", [PersonalDataController getDepositPhoneNumber:_our_data.deposit]);
-            _deposit_label.text = [PersonalDataController getDepositPhoneNumber:_our_data.deposit];
-        } else {
-            // If we have an identity, but not a deposit, that's a problem.
-            _deposit_label.text = @"ERROR: Make sure \"mobile\" entry exists!";
-        }
     } else {
         [_identity_label setText:@""];
         [_identity_hash_label setText:@""];
         [_deposit_label setText:@""];
     }
     
+    // And our deposit.
+    if (_our_data != nil && _our_data.deposit != nil && [PersonalDataController isDepositComplete:_our_data.deposit]) {
+        // Note, if we ever go back to e-mail file-store deposits, then we'd need to change this!
+        _deposit_label.text = [PersonalDataController getDepositPhoneNumber:_our_data.deposit];
+    } else {
+        // Okay, we don't have a deposit.  However, if we *have* an identity, but not a deposit, that's a problem.
+        if (_our_data != nil && _our_data.identity != nil && [_our_data.identity length]) {
+            _deposit_label.text = @"ERROR: \"mobile\" entry does not exist!";
+        } else {
+            _deposit_label.text = @"";
+        }
+    }
+
     // See if we should grey out the gen-keys button.
     SecKeyRef public_key_ref = [_our_data publicKeyRef];
     SecKeyRef private_key_ref = [_our_data privateKeyRef];

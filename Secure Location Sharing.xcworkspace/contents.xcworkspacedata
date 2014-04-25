@@ -2,6 +2,9 @@
 <Workspace
    version = "1.0">
    <FileRef
+      location = "group:../../../Shared/src/google-api-objectivec-client-read-only/Source/GTL.xcodeproj">
+   </FileRef>
+   <FileRef
       location = "group:ios7/SLS/SLS.xcodeproj">
    </FileRef>
 </Workspace>

@@ -6,10 +6,15 @@
 //  Copyright (c) 2013 Andrew K. Adams. All rights reserved.
 //
 
-#import "AddConsumerCTViewController.h"
 #import "NSData+Base64.h"
 
+#import "AddConsumerCTViewController.h"
+#import "security-defines.h"
+
+
 static const int kDebugLevel = 1;
+
+static const char* kAccessGroupCT = KC_ACCESS_GROUP_CT;
 
 
 @interface AddConsumerCTViewController ()
@@ -76,7 +81,7 @@ enum {
 #pragma mark - Initialization
 
 - (id) init {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"AddConsumerCTViewController:init: called.");
     
     if (self = [super init]) {
@@ -89,7 +94,7 @@ enum {
 }
 
 - (id) initWithNibName:(NSString*)nib_name_or_nil bundle:(NSBundle*)nib_bundle_or_nil {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"AddConsumerCTViewController:initWithNibName: called.");
     
     self = [super initWithNibName:nib_name_or_nil bundle:nib_bundle_or_nil];
@@ -106,14 +111,14 @@ enum {
 #pragma mark - View management
 
 - (void) viewDidLoad {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"AddConsumerCTViewController:viewDidLoad: called.");
     
     [super viewDidLoad];
     
 	// Do any additional setup after loading the view.
-    _checkbox_empty = [UIImage imageNamed:@"checkbox_empty_T"];
-    _checkbox_checked = [UIImage imageNamed:@"checkbox_checked_T"];
+    _checkbox_empty = [UIImage imageNamed:@"checkbox_empty-42"];
+    _checkbox_checked = [UIImage imageNamed:@"checkbox_checked-42"];
     
     [self configureView];
 }
@@ -245,6 +250,9 @@ enum {
             NSLog(@"AddConsumerCTViewController:configureView: ERROR: TODO(aka) unknown mode: %d.", _current_state);
             break;
     }
+    
+    if (kDebugLevel > 3)
+        NSLog(@"AddConsumerCTViewController:configureView: exiting.");
 }
 
 #pragma mark - Memory management
@@ -257,7 +265,7 @@ enum {
 #pragma mark - Navigation
 
 - (void) prepareForSegue:(UIStoryboardSegue*)segue sender:(id)sender {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"AddConsumerCTViewController:prepareForSeque: called.");
     
     // TODO(aka) The QR[Encode|Decode] VCs should really be called CT[Encode|Decode] VCs!
@@ -284,7 +292,7 @@ enum {
         view_controller.delegate = self;
         
         if (kDebugLevel > 1)
-            NSLog(@"AddConsumerCTViewController:prepareForSegue: ShowQREncodePKView controller's identity: %s, hash: %s, deposit: %s, public-key: %s, and consumer's identity: %s.", [view_controller.our_data.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [view_controller.our_data.identity_hash cStringUsingEncoding: [NSString defaultCStringEncoding]],[[PersonalDataController absoluteStringDeposit:view_controller.our_data.deposit] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[view_controller.our_data.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [view_controller.identity cStringUsingEncoding: [NSString defaultCStringEncoding]]);
+            NSLog(@"AddConsumerCTViewController:prepareForSegue: ShowQREncodePKView controller's identity: %s, hash: %s, deposit: %s, public-key: %s, and consumer's identity: %s.", [view_controller.our_data.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [view_controller.our_data.identity_hash cStringUsingEncoding: [NSString defaultCStringEncoding]],[[view_controller.our_data.deposit description] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[view_controller.our_data.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [view_controller.identity cStringUsingEncoding: [NSString defaultCStringEncoding]]);
     } else if ([[segue identifier] isEqualToString:@"ShowQRDecodePKViewID"]) {
         if (kDebugLevel > 0)
             NSLog(@"AddConsumerCTViewController:prepareForSeque: Segue'ng to QRDecodePKView.");
@@ -319,7 +327,7 @@ enum {
         view_controller.encrypted_challenge = encrypted_challenge;
         
         if (kDebugLevel > 0)
-            NSLog(@"AddConsumerCTViewController:prepareForSegue: ShowQREncodeChallengeView controller's identity: %s, hash: %s, deposit: %s, public-key: %s, consumer's identity: %s and challenge: %s.", [view_controller.our_data.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [view_controller.our_data.identity_hash cStringUsingEncoding: [NSString defaultCStringEncoding]],[[PersonalDataController absoluteStringDeposit:view_controller.our_data.deposit] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[view_controller.our_data.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [view_controller.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [view_controller.encrypted_challenge cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            NSLog(@"AddConsumerCTViewController:prepareForSegue: ShowQREncodeChallengeView controller's identity: %s, hash: %s, deposit: %s, public-key: %s, consumer's identity: %s and challenge: %s.", [view_controller.our_data.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [view_controller.our_data.identity_hash cStringUsingEncoding: [NSString defaultCStringEncoding]],[[view_controller.our_data.deposit description] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[view_controller.our_data.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [view_controller.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [view_controller.encrypted_challenge cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     } else if ([[segue identifier] isEqualToString:@"ShowQRDecodeChallengeViewID"]) {
         if (kDebugLevel > 0)
             NSLog(@"AddConsumerCTViewController:prepareForSeque: Segue'ng to QRDecodeChallengeView.");
@@ -342,7 +350,7 @@ enum {
         view_controller.delegate = self;
         
         if (kDebugLevel > 1)
-            NSLog(@"AddConsumerCTViewController:prepareForSegue: ShowQREncodeDepositView controller's identity: %s, hash: %s, deposit: %s, public-key: %s, and consumer's identity: %s.", [view_controller.our_data.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [view_controller.our_data.identity_hash cStringUsingEncoding: [NSString defaultCStringEncoding]],[[PersonalDataController absoluteStringDeposit:view_controller.our_data.deposit] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[view_controller.our_data.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [view_controller.identity cStringUsingEncoding: [NSString defaultCStringEncoding]]);
+            NSLog(@"AddConsumerCTViewController:prepareForSegue: ShowQREncodeDepositView controller's identity: %s, hash: %s, deposit: %s, public-key: %s, and consumer's identity: %s.", [view_controller.our_data.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [view_controller.our_data.identity_hash cStringUsingEncoding: [NSString defaultCStringEncoding]],[[view_controller.our_data.deposit description] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[view_controller.our_data.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [view_controller.identity cStringUsingEncoding: [NSString defaultCStringEncoding]]);
     } else if ([[segue identifier] isEqualToString:@"ShowQRDecodeDepositViewID"]) {
         if (kDebugLevel > 0)
             NSLog(@"AddConsumerCTViewController:prepareForSeque: Segue'ng to QRDecodeDepositView.");
@@ -362,7 +370,7 @@ enum {
 #pragma mark - Actions
 
 - (IBAction) encodeResponseYes:(id)sender {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"AddConsumerCTViewController:encodeResponseYes: called.");
     
     _current_state = MODE_ENCODE_RESPONSE_YES;
@@ -370,7 +378,7 @@ enum {
 }
 
 - (IBAction) encodeResponseNo:(id)sender {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"AddConsumerCTViewController:encodeResponseNo: called.");
     
     _current_state = MODE_INITIAL;  // re-do scan of their key
@@ -387,7 +395,7 @@ enum {
 
 // QREncodePKViewController delegate functions.
 - (void) qrEncodePKViewControllerDidFinish {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"AddConsumerCTViewController:qrEncodePKViewControllerDidFinish: called.");
     
     NSLog(@"AddConsumerCTViewController:qrEncodePKViewControllerDidFinish: identity: %s.", [_consumer.identity cStringUsingEncoding: [NSString defaultCStringEncoding]]);
@@ -398,7 +406,7 @@ enum {
 }
 
 - (void) qrEncodePKViewControllerDidCancel:(QREncodePKViewController*)controller {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"AddConsumerCTViewController:qrEncodePKViewControllerDidCancel: called.");
     
     [self configureView];
@@ -407,7 +415,7 @@ enum {
 
 // QRDecodePKViewController delegate functions.
 - (void) qrDecodePKViewControllerDidFinish:(NSString*)identity_hash publicKey:(NSData*)public_key {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"AddConsumerCTViewController:qrDecodePKViewControllerDidFinish: called.");
     
     if (identity_hash != nil || public_key == nil) {
@@ -436,8 +444,10 @@ enum {
     }
     
     // Add our identity hash and new public key to our Consumer object.
-    _consumer.identity_hash = identity_hash;
-    [_consumer setPublicKey:public_key];
+    if (identity_hash != nil)
+        _consumer.identity_hash = identity_hash;
+    if (public_key != nil)
+        [_consumer setPublicKey:public_key accessGroup:[NSString stringWithFormat:@"%s", kAccessGroupCT]];
     
     if (kDebugLevel > 0)
         NSLog(@"AddConsumerCTViewController:qrDecodePKViewControllerDidFinish: identity: %s, hash: %s, public key: %s, publicKeyRef: %d.", [_consumer.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [_consumer.identity_hash cStringUsingEncoding: [NSString defaultCStringEncoding]], [[_consumer.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], ([_consumer publicKeyRef] == NULL ? false : true));
@@ -448,7 +458,7 @@ enum {
 }
 
 - (void) qrDecodePKViewControllerDidCancel:(QRDecodePKViewController*)controller {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"AddConsumerCTViewController:qrDecodePKViewControllerDidCancel: called.");
     
     [self configureView];
@@ -457,7 +467,7 @@ enum {
 
 // QREncodeChallengeViewController delegate functions.
 - (void) qrEncodeChallengeViewControllerDidFinish {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"AddConsumerCTViewController:qrEncodeChallengeViewControllerDidFinish: called.");
     
     _current_state = MODE_ENCODE_CHALLENGE;
@@ -466,7 +476,7 @@ enum {
 }
 
 - (void) qrEncodeChallengeViewControllerDidCancel:(QREncodeChallengeViewController *)controller {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"AddConsumerCTViewController:qrEncodeChallengeViewControllerDidCancel: called.");
     
     [self configureView];
@@ -475,7 +485,7 @@ enum {
 
 // QRDecodeChallengeViewController delegate functions.
 - (void) qrDecodeChallengeViewControllerDidFinish:(NSString*)scan_results {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"AddConsumerCTViewController:qrDecodeChallengeViewControllerDidFinish: called.");
     
     if (scan_results == nil) {
@@ -529,7 +539,7 @@ enum {
 
 // QREncodeDepositViewController delegate functions.
 - (void) qrEncodeDepositViewControllerDidFinish {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"AddConsumerCTViewController:qrEncodeDepositViewControllerDidFinish: called.");
     
     _current_state = MODE_ENCODE_DEPOSIT;
@@ -538,7 +548,7 @@ enum {
 }
 
 - (void) qrEncodeDepositViewControllerDidCancel:(QREncodeDepositViewController*)controller {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"AddConsumerCTViewController:qrEncodeDepositViewControllerDidCancel: called.");
     
     [self configureView];
@@ -547,7 +557,7 @@ enum {
 
 // QRDecodeDepositViewController delegate functions.
 - (void) qrDecodeDepositViewControllerDidFinish:(NSMutableDictionary*)deposit {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"AddConsumerCTViewController:qrDecodeDepositViewControllerDidFinish: called.");
     
     if (deposit == nil) {
@@ -560,10 +570,10 @@ enum {
             UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"qrDecodeDepositViewControllerDidFinish:" message:[NSString stringWithFormat:@"done: called, but using simulator, so faking deposit."] delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
             [alert show];
             
-            NSArray* obj_dict = [[NSArray alloc] initWithObjects:@"412-268-5142", nil];
-            NSArray* key_dict = [[NSArray alloc] initWithObjects:@"sms", nil];
-            deposit = [[NSMutableDictionary alloc] initWithObjects:obj_dict forKeys:key_dict];
-            
+            deposit = [[NSMutableDictionary alloc] initWithCapacity:5];
+            [PersonalDataController setDeposit:deposit type:@"sms"];
+            [PersonalDataController setDeposit:deposit phoneNumber:@"412-268-5142"];
+
             // Fall-through so deposit can be processed.
         }
 #else
@@ -579,7 +589,7 @@ enum {
     [_consumer setDeposit:deposit];
     
     if (kDebugLevel > 0)
-        NSLog(@"AddConsumerCTViewController:qrDecodeDepositViewControllerDidFinish: identity: %s, deposit %s, public key: %s.", [_consumer.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [[PersonalDataController absoluteStringDeposit:_consumer.deposit] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[_consumer.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        NSLog(@"AddConsumerCTViewController:qrDecodeDepositViewControllerDidFinish: identity: %s, deposit %s, public key: %s.", [_consumer.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [[_consumer.deposit description] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[_consumer.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     _current_state = MODE_DECODE_DEPOSIT;
     [self configureView];
@@ -587,7 +597,7 @@ enum {
 }
 
 - (void) qrDecodeDepositViewControllerDidCancel:(QRDecodeDepositViewController*)controller {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"AddConsumerCTViewController:qrDecodeDepositViewControllerDidCancel: called.");
     
     [self configureView];

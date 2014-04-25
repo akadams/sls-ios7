@@ -42,7 +42,7 @@ enum {
 #pragma mark - Initialization
 
 - (id) init {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"SymmetricKeysController:init: called.");
     
     if (self = [super init]) {
@@ -55,7 +55,7 @@ enum {
 }
 
 - (id) copyWithZone:(NSZone*)zone {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"SymmetricKeysController:copywithZone: called.");
     
     SymmetricKeysController* tmp_symmetric_keys_controller = [[SymmetricKeysController alloc] init];
@@ -66,7 +66,7 @@ enum {
 }
 
 - (void) setSymmetric_keys:(NSMutableDictionary*)symmetric_keys {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"SymmetricKeysController:setSymmetric_keys: called.");
     
     // We need to override the default setter, because we declared our dictionary to be a copy (on assignment) and we need to ensure we stay mutable!
@@ -77,7 +77,7 @@ enum {
 }
 
 - (void) setPolicies:(NSMutableArray*)policies {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"SymmetricKeysController:setPolicies: called.");
     
     // We need to override the default setter, because we declared our array to be a copy (on assignment) and we need to ensure we stay mutable!
@@ -90,19 +90,18 @@ enum {
 #pragma mark - State backup & restore
 
 - (NSString*) loadState {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"SymmetricKeysController:loadState: called.");
     
     // First, we load in our _policies array; this will act as our guide in fetching any existing symmetric keys from our key-chain in step two!
-    
     NSArray* tmp_policies = [PersonalDataController loadStateArray:[[NSString alloc] initWithCString:kPolicyKeysFilename encoding:[NSString defaultCStringEncoding]]];
-    if ([tmp_policies count] > 0)
-        _policies = [tmp_policies mutableCopy];
-    if ([_policies count] == 0) {
+    if (tmp_policies == nil || [tmp_policies count] == 0) {
         if (kDebugLevel > 0)
             NSLog(@"SymmetricKeysController:loadState: No policy keys found on disk!");
         
         return nil;
+    } else {
+        _policies = [tmp_policies mutableCopy];
     }
     
     // For each dictionary key we have in _policies now, fetch the corresponding symmetric key from our key-chain.
@@ -113,7 +112,7 @@ enum {
         NSString* application_tag_str = [[NSString alloc] initWithFormat:@"%s.%s", kSymmetricKey, [dict_key cStringUsingEncoding:[NSString defaultCStringEncoding]]];
         NSData* application_tag = [application_tag_str dataUsingEncoding:[NSString  defaultCStringEncoding]];
         
-        if (kDebugLevel > 1)
+        if (kDebugLevel > 3)
             NSLog(@"SymmetricKeysController:loadState: querying key-chain for %s, key type: %u.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]], CSSM_ALGID_AES);
         
         // Build the key-chain dictionary for our symmetric key.
@@ -141,7 +140,7 @@ enum {
         } else {
             symmetric_key = (__bridge_transfer NSData*)symmetric_key_ref;
             
-            if (kDebugLevel > 0)
+            if (kDebugLevel > 2)
                 NSLog(@"SymmetricKeysController:loadState: fetched %luB key using tag: %s.", (unsigned long)[symmetric_key length], [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         }
         
@@ -171,28 +170,28 @@ enum {
 }
 
 - (NSData*) objectForKey:(NSString*)policy {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"SymmetricKeysController:objectForKey: called.");
     
     return [_symmetric_keys objectForKey:policy];
 }
 
 - (void) setObject:(NSData*)symmetric_key forKey:(NSString*)policy {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"SymmetricKeysController:setObject: called.");
     
     [_symmetric_keys setObject:symmetric_key forKey:policy];
 }
 
 - (void) removeObjectForKey:(NSString*)policy {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"SymmetricKeysController:removeObjectForKey: called.");
     
     [_symmetric_keys removeObjectForKey:policy];
 }
 
 - (NSEnumerator*) keyEnumerator {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"SymmetricKeysController:keyEnumerator: called.");
     
     return [_symmetric_keys keyEnumerator];
@@ -201,7 +200,7 @@ enum {
 #pragma mark - Symmetric key management
 
 - (void) deleteSymmetricKey:(NSString*)policy {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"SymmetricKeysController:deleteSymmetricKey: called.");
     
     if (policy == nil || [policy length] == 0)
@@ -244,7 +243,7 @@ enum {
 }
 
 - (NSString*) generateSymmetricKey:(NSString*)policy {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"SymmetricKeysController:generateSymmetricKey: called.");
     
     if (policy == nil || [policy length] == 0)
@@ -330,7 +329,7 @@ enum {
 }
 
 - (BOOL) haveKey:(NSString*)policy {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"SymmetricKeysController:haveKey: called.");
     
     if ([_policies containsObject:policy]) {
@@ -343,7 +342,7 @@ enum {
 }
 
 - (BOOL) haveAllKeys {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"SymmetricKeysController:haveAllKeys: called.");
     
     if ([_symmetric_keys count] == (kNumPrecisionLevels - 1))  // note "- 1", as we never have a key for PC_PRECISION_IDX_NONE
@@ -353,7 +352,7 @@ enum {
 }
 
 - (BOOL) haveAnyKeys {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"SymmetricKeysController:haveAnyKeys: called.");
     
     if ([_symmetric_keys count] > 0)
@@ -364,7 +363,7 @@ enum {
 
 /* XXX Deprecated in favor for loadState:
  - (void) loadDefaultData {
- if (kDebugLevel > 2)
+ if (kDebugLevel > 4)
  NSLog(@"SymmetricKeysController:loadDefaultData: called.");
  
  // For each precision level, see if our key is in the key-chain, if not, generate a key and send it out to our Consumers.

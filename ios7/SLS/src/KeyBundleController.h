@@ -8,13 +8,12 @@
 
 #import <Foundation/Foundation.h>
 
-#define KEY_BUNDLE_EXTENSION ".kb"
-
 
 @interface KeyBundleController : NSObject <NSCoding>
 
 #pragma mark - Local variables
-@property (copy, nonatomic) NSString* encrypted_key;       // base64 encrypted shared symmetric key
+@property (copy, nonatomic) NSString* symmetric_key;       // base64 encrypted shared symmetric key
+@property (copy, nonatomic) NSString* history_log_path;    // file-store URL path component where history-log for this key is kept
 @property (copy, nonatomic) NSNumber* time_stamp;          // timestamp
 @property (copy, nonatomic) NSString* signature;           // base64 signature over key and timestamp
 
@@ -24,7 +23,7 @@
 - (void) encodeWithCoder:(NSCoder*)encoder;
 
 #pragma mark - Data management
-- (NSString*) build:(NSString*)encrypted_key privateKeyRef:(SecKeyRef)private_key_ref;
+- (NSString*) build:(NSString*)symmetric_key privateKeyRef:(SecKeyRef)private_key_ref historyLogPath:(NSString*)path;
 - (NSString*) generateWithString:(NSString*)serialized_str;
 - (NSString*) serialize;
 - (BOOL) verifySignature:(SecKeyRef)public_key_ref;

@@ -11,8 +11,9 @@
 #import <AVFoundation/AVMediaFormat.h>
 #import <AVFoundation/AVMetadataObject.h>
 
-#import "QRDecodePKViewController.h"
 #import "NSData+Base64.h"
+
+#import "QRDecodePKViewController.h"
 
 
 static const int kDebugLevel = 1;
@@ -29,8 +30,15 @@ static const int kDebugLevel = 1;
 @synthesize delegate = _delegate;
 
 #pragma mark - Local variables
+@synthesize device = _device;
+@synthesize input = _input;
+@synthesize output = _output;
+@synthesize session = _session;
+@synthesize preview_layer = _preview_layer;
+@synthesize scan_view = _scan_view;
 @synthesize identity_hash = _identity_hash;
 @synthesize public_key = _public_key;
+
 @synthesize label = _label;
 @synthesize scan_button = _scan_button;
 @synthesize text_view = _text_view;
@@ -45,8 +53,14 @@ static const int kDebugLevel = 1;
         _our_data = nil;
         _identity = nil;
         _delegate = nil;
+        _device = nil;
+        _input = nil;
+        _output = nil;
+        _session = nil;
+        _preview_layer = nil;
         _identity_hash = nil;
         _public_key = nil;
+        
         _scan_button = nil;
         _text_view = nil;
     }
@@ -64,8 +78,14 @@ static const int kDebugLevel = 1;
         _our_data = nil;
         _identity = nil;
         _delegate = nil;
+        _device = nil;
+        _input = nil;
+        _output = nil;
+        _session = nil;
+        _preview_layer = nil;
         _identity_hash = nil;
         _public_key = nil;
+        
         _scan_button = nil;
         _text_view = nil;
     }
@@ -126,34 +146,48 @@ static const int kDebugLevel = 1;
     
     NSError* status = nil;
     
-    // Setup an AVCaptureSession, an AVCaptureDevice and Input, then add the Input to the session.
-    AVCaptureSession* captureSession = [[AVCaptureSession alloc] init];
-    AVCaptureDevice* videoCaptureDevice = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
-    NSLog(@"QRDecodePKViewController:scanStart: TODO(aka) Need to set preset!");
-    
-    AVCaptureDeviceInput* videoInput = [AVCaptureDeviceInput deviceInputWithDevice:videoCaptureDevice error:&status];
-    if (!videoInput || status != nil) {
+    // Setup an AVCaptureDevice an AVCaptureDeviceInput, AVCaptureOutput and an AVCaptureSession.
+    _device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+    NSLog(@"QRDecodePKViewController:scanStart: TODO(aka) Need to set preset ... maybe!");
+    _input = [AVCaptureDeviceInput deviceInputWithDevice:_device error:&status];
+    if (!_input || status != nil) {
         NSString* err_msg = [[status localizedDescription] stringByAppendingString:([status localizedFailureReason] ? [status localizedFailureReason] :@"")];
         UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"QRDecodePKViewController:scanStart: deviceInputWithDevice()" message:err_msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
         [alert show];
         return;
     }
     
-    if ([captureSession canAddInput:videoInput]) {
-        [captureSession addInput:videoInput];
+    _output = [[AVCaptureMetadataOutput alloc] init];
+    _session = [[AVCaptureSession alloc] init];
+    
+    // Add the output to the session.
+    [_session addOutput:_output];
+    
+
+    // Add the input to the session.
+    if ([_session canAddInput:_input]) {
+        [_session addInput:_input];
     } else {
         NSString* err_msg = @"AVCaptureSession:canAddInput: returned false.";
-        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"QRDecodePKViewController:scanStart: deviceInputWithDevice()" message:err_msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
+        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"QRDecodePKViewController:scanStart: " message:err_msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
         [alert show];
         return;
     }
     
-    // Get a MetadataOutput, assign its delegate and type, then add it to our session.
-    AVCaptureMetadataOutput* metadataOutput = [[AVCaptureMetadataOutput alloc] init];
-    [metadataOutput setMetadataObjectsDelegate:self queue:dispatch_get_main_queue()];
+    // Set us up to get AVCaptureMetadataOutput callbacks.
+    [_output setMetadataObjectsDelegate:self queue:dispatch_get_main_queue()];
     
-    // If we have a QR type, add it to our session.
-    NSArray* types = [metadataOutput availableMetadataObjectTypes];
+    // Add the QR Type to our output ...
+#if 0
+    // Make sure we have a QR type.
+    NSArray* types = [_output availableMetadataObjectTypes];
+    if (types == nil || [types count] == 0) {
+        NSString* err_msg = @"AVCaptureSession:availableMetadataObjectTypes: no types available!";
+        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"QRDecodePKViewController:scanStart: " message:err_msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
+        [alert show];
+        return;
+    }
+    
     bool found = false;
     for (id object in types) {
         NSString* type = (NSString*)object;
@@ -168,28 +202,55 @@ static const int kDebugLevel = 1;
         [alert show];
         return;
     }
-
+    
     NSArray* array = [NSArray arrayWithObject:AVMetadataObjectTypeQRCode];
-    [metadataOutput setMetadataObjectTypes:array];
-    [captureSession addOutput:metadataOutput];
+    [_output setMetadataObjectTypes:array];
+#else
+    // TODO(aka) Perhaps I misunderstood the description of availableMetadataObjectTypes:, because the above doesn't work.  <sigh>
+    _output.metadataObjectTypes = @[AVMetadataObjectTypeQRCode];
+#endif
     
-    NSLog(@"QRDecodePKViewController:scanStart: TODO(aka) starting captureSession, but not sure where to stop it!");
+    // Build the preview layer.
+    _session.sessionPreset = AVCaptureSessionPresetPhoto;  // TODO(aka) not sure if this is necessary ...
+    _preview_layer = [AVCaptureVideoPreviewLayer layerWithSession:_session];
+    CGRect bounds = self.view.bounds;  // TODO(aka) self.view.layer.bounds?
+    _scan_view = [[UIView alloc] initWithFrame:bounds];
     
-    [captureSession startRunning];
+#if 0 // TODO(aka) Not sure if we need this ...
+    _preview_layer.videoGravity = AVLayerVideoGravityResizeAspectFill;
+    _preview_layer.frame = CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height);
+    
+    AVCaptureConnection* con = _preview_layer.connection;
+    con.videoOrientation = AVCaptureVideoOrientationLandscapeLeft;
+#endif
+
+    _preview_layer.frame = _scan_view.frame;
+    [_scan_view.layer addSublayer:_preview_layer];
+    [self.view addSubview:_scan_view];
+
+    [_session startRunning];
 }
 
 #pragma mark - Delegate routines
 
 // AVCaptureMetadataOutput delegate functions.
-- (void) captureOutput:(AVCaptureOutput*)captureOutput didOutputMetadataObjects:(NSArray*)metadataObjects fromConnection:(AVCaptureConnection*)connection {
+- (void) captureOutput:(AVCaptureOutput*)capture_output didOutputMetadataObjects:(NSArray*)metadata_objects fromConnection:(AVCaptureConnection*)connection {
     if (kDebugLevel > 0)
         NSLog(@"QRDecodePKViewController:captureOutput:didOutputMetadataObjects:fromConnection: called.");
     
-    // Get decode results from array.
-    NSLog(@"QRDecodePKViewController:captureOutput:didOutputMetadataObjects:fromConnection: TODO(aka) Check to see if there is more than one object!");
+    if (metadata_objects == nil || [metadata_objects count] == 0) {
+        NSString* err_msg = @"objects nil or empty!";
+        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"QRDecodePKViewController:captureOutput:didOutputMetadataObjects: " message:err_msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
+        [alert show];
+        [_session stopRunning];
+        return;
+    }
     
-    NSString* scan_result = [metadataObjects objectAtIndex:0];  // just grab first element
+    if ([metadata_objects count] > 1)
+        NSLog(@"QRDecodePKViewController:captureOutput: TODO(aka) there are %ld metadata objects!", (unsigned long)[metadata_objects count]);
     
+    NSString* scan_result = [[metadata_objects objectAtIndex:0] stringValue];  // just grab the first result
+
     // Parse what was returned, and change our UIView to show it.
     NSString* identity_hash = nil;
     NSString* public_key_b64 = nil;
@@ -218,7 +279,14 @@ static const int kDebugLevel = 1;
     }
     _text_view.text = message;
     
-    NSLog(@"QRDecodePKViewController:captureOutput:didOutputMetadataObjects:fromConnection: XXX TODO(aka) How do we stopRunning?  I tihnk we need to make it a property of this Class!");
+    [_session stopRunning];
+    
+    // And (hopefully), remove the preview layer.
+    [self.view sendSubviewToBack:_scan_view];
+    /*
+    CALayer* top = [self.view.layer.sublayers lastObject];
+    [top removeFromSuperlayer];
+     */
 }
 
 @end

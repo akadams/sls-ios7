@@ -48,6 +48,8 @@
 		5CC57CD718196E4C0070AFE8 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 5CC57CCB18196E4C0070AFE8 /* InfoPlist.strings */; };
 		5CC57CD818196E4C0070AFE8 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5CC57CCD18196E4C0070AFE8 /* Images.xcassets */; };
 		5CC57CD918196E4C0070AFE8 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CC57CCE18196E4C0070AFE8 /* main.m */; };
+		5CC9045218BF9DDD0079F28B /* HCCPotentialPrincipal.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CC9045118BF9DDD0079F28B /* HCCPotentialPrincipal.m */; };
+		5CC9045518BFAC730079F28B /* AddConsumerHCCViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CC9045418BFAC730079F28B /* AddConsumerHCCViewController.m */; };
 		5CE2342518197081003CCECA /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CE2342418197081003CCECA /* MapKit.framework */; };
 		5CE23429181973E1003CCECA /* SLSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CE23428181973E1003CCECA /* SLSAppDelegate.m */; };
 		5CE2342D18197579003CCECA /* PersonalDataController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CE2342B18197579003CCECA /* PersonalDataController.m */; };
@@ -62,7 +64,13 @@
 		5CE2345218198340003CCECA /* rscode.c in Sources */ = {isa = PBXBuildFile; fileRef = 5CE2344C18198340003CCECA /* rscode.c */; };
 		5CE2345318198340003CCECA /* split.c in Sources */ = {isa = PBXBuildFile; fileRef = 5CE2344E18198340003CCECA /* split.c */; };
 		5CE80635184E08F600B58DC6 /* ProviderListViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CE80634184E08F600B58DC6 /* ProviderListViewController.m */; };
+		5CECFC9618D1F764006C2ABA /* libGTLTouchStaticLib.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CECFC9518D1F764006C2ABA /* libGTLTouchStaticLib.a */; };
+		5CECFC9818D1F770006C2ABA /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CECFC9718D1F770006C2ABA /* Security.framework */; };
+		5CECFC9A18D1F7A2006C2ABA /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CECFC9918D1F7A2006C2ABA /* SystemConfiguration.framework */; };
+		5CECFC9E18D1F934006C2ABA /* GTMOAuth2ViewTouch.xib in Resources */ = {isa = PBXBuildFile; fileRef = 5CECFC9D18D1F934006C2ABA /* GTMOAuth2ViewTouch.xib */; };
+		5CECFCA118D1F985006C2ABA /* GTLDrive_Sources.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CECFC9F18D1F985006C2ABA /* GTLDrive_Sources.m */; };
 		5CED42D91822AEE000D78098 /* ConsumerCell.xib in Resources */ = {isa = PBXBuildFile; fileRef = 5CED42D81822AEE000D78098 /* ConsumerCell.xib */; };
+		5CF341F518BCED1200BF5ACC /* AddProviderHCCViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CF341F418BCED1200BF5ACC /* AddProviderHCCViewController.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -201,6 +209,12 @@
 		5CC57CCE18196E4C0070AFE8 /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		5CC57CD118196E4C0070AFE8 /* SLS-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "SLS-Info.plist"; sourceTree = "<group>"; };
 		5CC57CD218196E4C0070AFE8 /* SLS-Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "SLS-Prefix.pch"; sourceTree = "<group>"; };
+		5CC9044A18BF910E0079F28B /* HCCPairingController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HCCPairingController.h; path = ../HCCPairingController.h; sourceTree = "<group>"; };
+		5CC9044B18BF910E0079F28B /* HCCPairingController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = HCCPairingController.m; path = ../HCCPairingController.m; sourceTree = "<group>"; };
+		5CC9045018BF9DDD0079F28B /* HCCPotentialPrincipal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HCCPotentialPrincipal.h; sourceTree = "<group>"; };
+		5CC9045118BF9DDD0079F28B /* HCCPotentialPrincipal.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HCCPotentialPrincipal.m; sourceTree = "<group>"; };
+		5CC9045318BFAC730079F28B /* AddConsumerHCCViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AddConsumerHCCViewController.h; sourceTree = "<group>"; };
+		5CC9045418BFAC730079F28B /* AddConsumerHCCViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AddConsumerHCCViewController.m; sourceTree = "<group>"; };
 		5CE2342418197081003CCECA /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
 		5CE23428181973E1003CCECA /* SLSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SLSAppDelegate.m; sourceTree = "<group>"; };
 		5CE2342A18197509003CCECA /* SLSAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SLSAppDelegate.h; sourceTree = "<group>"; };
@@ -227,7 +241,15 @@
 		5CE2344F18198340003CCECA /* split.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = split.h; sourceTree = "<group>"; };
 		5CE80633184E08F600B58DC6 /* ProviderListViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProviderListViewController.h; sourceTree = "<group>"; };
 		5CE80634184E08F600B58DC6 /* ProviderListViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ProviderListViewController.m; sourceTree = "<group>"; };
+		5CECFC9518D1F764006C2ABA /* libGTLTouchStaticLib.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libGTLTouchStaticLib.a; path = "../../../../../Shared/src/google-api-objectivec-client-read-only/Source/build/Debug-iphoneos/libGTLTouchStaticLib.a"; sourceTree = "<group>"; };
+		5CECFC9718D1F770006C2ABA /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		5CECFC9918D1F7A2006C2ABA /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
+		5CECFC9D18D1F934006C2ABA /* GTMOAuth2ViewTouch.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = GTMOAuth2ViewTouch.xib; path = "../../../../../../Shared/src/google-api-objectivec-client-read-only/Source/OAuth2/Touch/GTMOAuth2ViewTouch.xib"; sourceTree = "<group>"; };
+		5CECFC9F18D1F985006C2ABA /* GTLDrive_Sources.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GTLDrive_Sources.m; path = "../../../../../../Shared/src/google-api-objectivec-client-read-only/Source/Services/Drive/Generated/GTLDrive_Sources.m"; sourceTree = "<group>"; };
+		5CECFCA018D1F985006C2ABA /* GTLDrive.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GTLDrive.h; path = "../../../../../../Shared/src/google-api-objectivec-client-read-only/Source/Services/Drive/Generated/GTLDrive.h"; sourceTree = "<group>"; };
 		5CED42D81822AEE000D78098 /* ConsumerCell.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = ConsumerCell.xib; sourceTree = "<group>"; };
+		5CF341F318BCED1200BF5ACC /* AddProviderHCCViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AddProviderHCCViewController.h; sourceTree = "<group>"; };
+		5CF341F418BCED1200BF5ACC /* AddProviderHCCViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AddProviderHCCViewController.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -235,6 +257,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5CECFC9A18D1F7A2006C2ABA /* SystemConfiguration.framework in Frameworks */,
+				5CECFC9818D1F770006C2ABA /* Security.framework in Frameworks */,
+				5CECFC9618D1F764006C2ABA /* libGTLTouchStaticLib.a in Frameworks */,
 				5CBC3F1E18196D0E00379C2F /* CoreGraphics.framework in Frameworks */,
 				5CBC3F2018196D0E00379C2F /* UIKit.framework in Frameworks */,
 				5CBC3F1C18196D0E00379C2F /* Foundation.framework in Frameworks */,
@@ -263,6 +288,8 @@
 		5CA83F0E18350CD3004B693F /* deprecated */ = {
 			isa = PBXGroup;
 			children = (
+				5CC9044A18BF910E0079F28B /* HCCPairingController.h */,
+				5CC9044B18BF910E0079F28B /* HCCPairingController.m */,
 				5C0D2D7E1850FDF200A313B2 /* Provider.m */,
 				5C0D2D7F1850FDF200A313B2 /* KeyDeposit.h */,
 				5C0D2D801850FDF200A313B2 /* KeyDeposit.m */,
@@ -343,6 +370,9 @@
 		5CBC3F1A18196D0E00379C2F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				5CECFC9918D1F7A2006C2ABA /* SystemConfiguration.framework */,
+				5CECFC9718D1F770006C2ABA /* Security.framework */,
+				5CECFC9518D1F764006C2ABA /* libGTLTouchStaticLib.a */,
 				5C9EF61D181ECE3600F9A9F2 /* AVFoundation.framework */,
 				5C7F50CC18199421001F5515 /* AddressBookUI.framework */,
 				5C7F50CA1819941A001F5515 /* AddressBook.framework */,
@@ -396,6 +426,8 @@
 				5C042EE2183FBDCF007B8344 /* AddConsumerViewController.m */,
 				5C042EE6183FBF62007B8344 /* AddConsumerCTViewController.h */,
 				5C042EE5183FBF62007B8344 /* AddConsumerCTViewController.m */,
+				5CC9045318BFAC730079F28B /* AddConsumerHCCViewController.h */,
+				5CC9045418BFAC730079F28B /* AddConsumerHCCViewController.m */,
 				5C279EED183BCA4900E9EC70 /* ConsumerMasterViewController.h */,
 				5C279EEE183BCA4900E9EC70 /* ConsumerMasterViewController.m */,
 				5C279EF0183BCF4C00E9EC70 /* ConsumerDataViewController.h */,
@@ -406,6 +438,8 @@
 				5C279EF4183BD51A00E9EC70 /* AddProviderViewController.m */,
 				5C3C4299183BBA0900CFACCF /* AddProviderCTViewController.h */,
 				5C3C429A183BBA0900CFACCF /* AddProviderCTViewController.m */,
+				5CF341F318BCED1200BF5ACC /* AddProviderHCCViewController.h */,
+				5CF341F418BCED1200BF5ACC /* AddProviderHCCViewController.m */,
 				5C279F0E183E58D700E9EC70 /* QREncodePKViewController.h */,
 				5C279F0F183E58D700E9EC70 /* QREncodePKViewController.m */,
 				5C279EFF183E567300E9EC70 /* QRDecodePKViewController.h */,
@@ -430,6 +464,8 @@
 				5C3FBDC118903BEA0055475C /* KeyBundleController.m */,
 				5C3FBDC61892D0B00055475C /* LocationBundleController.h */,
 				5C3FBDC71892D0B00055475C /* LocationBundleController.m */,
+				5CC9045018BF9DDD0079F28B /* HCCPotentialPrincipal.h */,
+				5CC9045118BF9DDD0079F28B /* HCCPotentialPrincipal.m */,
 				5CE2342C18197579003CCECA /* PersonalDataController.h */,
 				5CE2342B18197579003CCECA /* PersonalDataController.m */,
 				5C0D2D78184F762B00A313B2 /* Principal.h */,
@@ -454,6 +490,7 @@
 		5CE2343B181982A2003CCECA /* ext-src */ = {
 			isa = PBXGroup;
 			children = (
+				5CE23440181982ED003CCECA /* qrencode.h */,
 				5CE2343F181982ED003CCECA /* qrencode.c */,
 				5CE2344818198340003CCECA /* mask.c */,
 				5CE2344918198340003CCECA /* mask.h */,
@@ -467,7 +504,9 @@
 				5CE2344318198322003CCECA /* bitstream.h */,
 				5CE2344418198322003CCECA /* qrspec.c */,
 				5CE2344518198322003CCECA /* qrspec.h */,
-				5CE23440181982ED003CCECA /* qrencode.h */,
+				5CECFC9F18D1F985006C2ABA /* GTLDrive_Sources.m */,
+				5CECFCA018D1F985006C2ABA /* GTLDrive.h */,
+				5CECFC9D18D1F934006C2ABA /* GTMOAuth2ViewTouch.xib */,
 				5CE2343C181982D3003CCECA /* NSData+Base64.m */,
 				5CE2343D181982D3003CCECA /* NSData+Base64.h */,
 			);
@@ -518,10 +557,11 @@
 		5CBC3F1018196D0E00379C2F /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0500;
+				LastUpgradeCheck = 0510;
 				ORGANIZATIONNAME = "Andrew K. Adams";
 				TargetAttributes = {
 					5CBC3F1718196D0E00379C2F = {
+						DevelopmentTeam = VX4C6MFG4D;
 						SystemCapabilities = {
 							com.apple.iOS = {
 								enabled = 1;
@@ -557,6 +597,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5CECFC9E18D1F934006C2ABA /* GTMOAuth2ViewTouch.xib in Resources */,
 				5C89CA2F182A99BA0080576A /* Main_iPhone.storyboard in Resources */,
 				5CC57CD818196E4C0070AFE8 /* Images.xcassets in Resources */,
 				5CC57CD718196E4C0070AFE8 /* InfoPlist.strings in Resources */,
@@ -584,6 +625,7 @@
 				5CE2342D18197579003CCECA /* PersonalDataController.m in Sources */,
 				5C279F0D183E56F800E9EC70 /* QRDecodeDepositViewController.m in Sources */,
 				5C0D2D85185109C600A313B2 /* ConsumerListDataViewController.m in Sources */,
+				5CECFCA118D1F985006C2ABA /* GTLDrive_Sources.m in Sources */,
 				5C042EE7183FBF62007B8344 /* AddConsumerCTViewController.m in Sources */,
 				5CE2344618198322003CCECA /* bitstream.c in Sources */,
 				5C279EF5183BD51A00E9EC70 /* AddProviderViewController.m in Sources */,
@@ -597,9 +639,11 @@
 				5C279EEC183BBFC900E9EC70 /* ProviderMasterViewController.m in Sources */,
 				5C279F07183E56B200E9EC70 /* QRDecodeChallengeViewController.m in Sources */,
 				5C0D2D7A184F762B00A313B2 /* Principal.m in Sources */,
+				5CF341F518BCED1200BF5ACC /* AddProviderHCCViewController.m in Sources */,
 				5CE23441181982ED003CCECA /* qrencode.c in Sources */,
 				5CE2345118198340003CCECA /* qrinput.c in Sources */,
 				5C7F50AA18198B99001F5515 /* SymmetricKeysController.m in Sources */,
+				5CC9045218BF9DDD0079F28B /* HCCPotentialPrincipal.m in Sources */,
 				5C279EF8183BF10F00E9EC70 /* ConsumerListController.m in Sources */,
 				5C279F0A183E56E300E9EC70 /* QREncodeDepositViewController.m in Sources */,
 				5CE2344718198322003CCECA /* qrspec.c in Sources */,
@@ -610,6 +654,7 @@
 				5CE80635184E08F600B58DC6 /* ProviderListViewController.m in Sources */,
 				5C3FBDC81892D0B00055475C /* LocationBundleController.m in Sources */,
 				5C5F49231844FE4B008D1222 /* FileStoreDataViewController.m in Sources */,
+				5CC9045518BFAC730079F28B /* AddConsumerHCCViewController.m in Sources */,
 				5C3C429B183BBA0900CFACCF /* AddProviderCTViewController.m in Sources */,
 				5C3FBDC218903BEA0055475C /* KeyBundleController.m in Sources */,
 				5C48005318A3D284009D9CBD /* PolicyController.m in Sources */,
@@ -671,7 +716,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_INCLUDING_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "compiler-default";
 				CLANG_CXX_LIBRARY = "compiler-default";
 				CLANG_ENABLE_MODULES = YES;
@@ -700,8 +744,17 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
+					"/Users/Shared/src/google-api-objectivec-client-read-only/Source/**",
+				);
 				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
-				ONLY_ACTIVE_ARCH = NO;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = (
+					"-ObjC",
+					"-all_load",
+				);
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = "armv7 armv7s arm64";
@@ -712,7 +765,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_INCLUDING_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "compiler-default";
 				CLANG_CXX_LIBRARY = "compiler-default";
 				CLANG_ENABLE_MODULES = YES;
@@ -735,7 +787,16 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
+					"/Users/Shared/src/google-api-objectivec-client-read-only/Source/**",
+				);
 				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
+				OTHER_LDFLAGS = (
+					"-ObjC",
+					"-all_load",
+				);
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
@@ -746,9 +807,10 @@
 		5CBC3F5118196D0E00379C2F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_INCLUDING_64_BIT)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					/Users/akadams/projects/sls/ios7/SLS,
@@ -766,10 +828,15 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(USER_LIBRARY_DIR)/Developer/Xcode/DerivedData/Secure_Location_Sharing-byjcolrwbskfxqbjuwfhtbblivwx/Build/Products/Debug-iphoneos",
+					"/Users/Shared/src/google-api-objectivec-client-read-only/Source/build/Debug-iphoneos",
 				);
 				ONLY_ACTIVE_ARCH = NO;
-				OTHER_LDFLAGS = "";
+				OTHER_LDFLAGS = (
+					"-ObjC",
+					"-all_load",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "";
 				VALID_ARCHS = "armv7 armv7s arm64";
 				WRAPPER_EXTENSION = app;
 			};
@@ -778,9 +845,10 @@
 		5CBC3F5218196D0E00379C2F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_INCLUDING_64_BIT)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					/Users/akadams/projects/sls/ios7/SLS,
@@ -798,9 +866,14 @@
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(USER_LIBRARY_DIR)/Developer/Xcode/DerivedData/Secure_Location_Sharing-byjcolrwbskfxqbjuwfhtbblivwx/Build/Products/Debug-iphoneos",
+					"/Users/Shared/src/google-api-objectivec-client-read-only/Source/build/Debug-iphoneos",
 				);
-				OTHER_LDFLAGS = "";
+				OTHER_LDFLAGS = (
+					"-ObjC",
+					"-all_load",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "";
 				VALID_ARCHS = "armv7 armv7s arm64";
 				WRAPPER_EXTENSION = app;
 			};
@@ -809,7 +882,6 @@
 		5CBC3F5418196D0E00379C2F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_INCLUDING_64_BIT)";
 				BUNDLE_LOADER = "$(BUILT_PRODUCTS_DIR)/SLS.app/SLS";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(SDKROOT)/Developer/Library/Frameworks",
@@ -832,7 +904,6 @@
 		5CBC3F5518196D0E00379C2F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_INCLUDING_64_BIT)";
 				BUNDLE_LOADER = "$(BUILT_PRODUCTS_DIR)/SLS.app/SLS";
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(SDKROOT)/Developer/Library/Frameworks",

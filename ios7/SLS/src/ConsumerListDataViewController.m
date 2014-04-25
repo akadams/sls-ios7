@@ -33,6 +33,7 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
 @synthesize track_consumer = _track_consumer;
 @synthesize delete_principal = _delete_principal;
 @synthesize send_file_store_info = _send_file_store_info;
+@synthesize upload_key_bundle = _upload_key_bundle;
 
 #pragma mark - Outlets
 @synthesize identity_label = _identity_label;
@@ -48,7 +49,7 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
 #pragma mark - Initialization
 
 - (id) init {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerListDataViewController:init: called.");
     
     if (self = [super init]) {
@@ -58,13 +59,14 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
         _track_consumer = false;
         _delete_principal = false;
         _send_file_store_info = false;
+        _upload_key_bundle = false;
     }
     
     return self;
 }
 
 - (id) initWithNibName:(NSString*)nib_name_or_nil bundle:(NSBundle*)nib_bundle_or_nil {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerListDataViewController:initWithNibName:bundle: called.");
     
     self = [super initWithNibName:nib_name_or_nil bundle:nib_bundle_or_nil];
@@ -76,13 +78,14 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
         _track_consumer = false;
         _delete_principal = false;
         _send_file_store_info = false;
+        _upload_key_bundle = false;
     }
     
     return self;
 }
 
 - (id) initWithStyle:(UITableViewStyle)style {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerListDataViewController:initWithStyle: called.");
     
     self = [super initWithStyle:style];
@@ -94,6 +97,7 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
         _track_consumer = false;
         _delete_principal = false;
         _send_file_store_info = false;
+        _upload_key_bundle = false;
     }
     return self;
 }
@@ -101,7 +105,7 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
 #pragma mark - View management
 
 - (void) viewDidLoad {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerListDataViewController:viewDidLoad: called.");
     
     [super viewDidLoad];
@@ -112,12 +116,12 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
 }
 
 - (void) configureView {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerListDataViewController:configureView: called.");
     
     _identity_label.text = _consumer.identity;
     _token_label.text = _consumer.identity_hash;
-    _deposit_label.text = [PersonalDataController absoluteStringDeposit:_consumer.deposit];
+    _deposit_label.text = [PersonalDataController serializeDeposit:_consumer.deposit];
     _pub_key_label.text = [PersonalDataController hashAsymmetricKey:[_consumer getPublicKey]];
     
     // Setup the slider value.
@@ -152,12 +156,18 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
     } else {
         [_send_file_store_button setAlpha:1.0];
     }
+
+    if (_upload_key_bundle) {
+        [_upload_key_bundle_button setAlpha:0.5];
+    } else {
+        [_upload_key_bundle_button setAlpha:1.0];
+    }
 }
 
 #pragma mark - Memory management
 
 - (void) didReceiveMemoryWarning {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerListDataViewController:didReceiveMemoryWarning: called.");
     
     [super didReceiveMemoryWarning];
@@ -226,7 +236,7 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
 #pragma mark - Navigation
 
 - (void) prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerListDataViewController:prepareForSeque: called.");
     
     if ([[segue identifier] isEqualToString:@"UnwindToProviderMasterViewID"]) {
@@ -271,7 +281,7 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
 }
 
 - (IBAction) sendFileStore:(id)sender {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerListDataViewController:sendFileStore: called.");
     
     _send_file_store_info = true;  // handle back in Provider MVC!
@@ -279,8 +289,17 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
     [self configureView];
 }
 
+- (IBAction)uploadKeyBundle:(id)sender {
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerListDataViewController:uploadKeyBundle: called.");
+    
+    _upload_key_bundle = true;
+    
+    [self configureView];
+}
+
 - (IBAction) makeConsumerAProvider:(id)sender {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerListDataViewController:makeConsumerAProvider: called.");
     
     /*
@@ -293,7 +312,7 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
 }
 
 - (IBAction) deletePrincipal:(id)sender {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerListDataViewController:deletePrincipal: called.");
     
     UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Consumer Removal" message:@"Are you sure you want to delete this consumer?" delegate:self cancelButtonTitle:[NSString stringWithCString:kAlertButtonCancelMessage encoding:[NSString defaultCStringEncoding]] otherButtonTitles:[NSString stringWithCString:kAlertButtonDeleteConsumerMessage encoding:[NSString defaultCStringEncoding]], nil];
@@ -304,7 +323,7 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
 
 // UIAlertView
 - (void)alertView:(UIAlertView*)alert_view clickedButtonAtIndex:(NSInteger)button_index {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerDataViewController:alertView:clickedButtonAtIndex: called.");
     
  	NSString* title = [alert_view buttonTitleAtIndex:button_index];

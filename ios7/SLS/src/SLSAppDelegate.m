@@ -18,14 +18,14 @@
 #import "NSData+Base64.h"
 
 
-static const int kDebugLevel = 3;
+static const int kDebugLevel = 1;
 
 @implementation SLSAppDelegate
 
 @synthesize window = _window;
 
 - (BOOL) application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: called.");
     
     // Override point for customization after application launch.
@@ -95,45 +95,64 @@ static const int kDebugLevel = 3;
                         {
                             NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Seeing if we need to add entry for iPhone Simulator to AddressBook.");
                             
-                            // Fetch the address book
+                            // Fetch the address book (and authorize if not already).
                             CFErrorRef status = NULL;
-                            ABAddressBookRef address_book = ABAddressBookCreateWithOptions(NULL, &status);
+                            ABAddressBookRef address_book_ref = ABAddressBookCreateWithOptions(NULL, &status);
                             
-                            // Search for the person named "Simulator" in our address book.
-                            CFArrayRef people_ref = ABAddressBookCopyPeopleWithName(address_book, CFSTR("Simulator"));
-                            NSArray* people = CFBridgingRelease(people_ref);  // no need to release people_ref now
+                            __block BOOL access_explicitly_granted = NO;
+                            if (ABAddressBookGetAuthorizationStatus() == kABAuthorizationStatusNotDetermined) {
+                                // XXX if (ABAddressBookRequestAccessWithCompletion != NULL) { // we're on iOS 6
+                                dispatch_semaphore_t status = dispatch_semaphore_create(0);
+                                ABAddressBookRequestAccessWithCompletion(address_book_ref,
+                                                                         ^(bool granted, CFErrorRef error) {
+                                                                             access_explicitly_granted = granted;
+                                                                             dispatch_semaphore_signal(status);
+                                                                         });
+                                dispatch_semaphore_wait(status, DISPATCH_TIME_FOREVER);  // wait until user gives us access
+                            }
                             
-                            /* Neat iterator hack!
-                            if (people != nil && [people count] > 0) {
-                                for (id object in people) {
-                                    ABRecordRef person = (__bridge ABRecordRef)object;
-                                    NSLog(@"Deleting record: %@.", (__bridge NSString*)ABRecordCopyCompositeName(person));
+                            if (!access_explicitly_granted && ((ABAddressBookGetAuthorizationStatus() == kABAuthorizationStatusDenied) ||
+                                                               (ABAddressBookGetAuthorizationStatus() == kABAuthorizationStatusNotDetermined))) {
+                                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Consumer Data" message:@"Unable to set identity without access to Address Book." delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                                [alert show];
+                            } else {
+                                
+                                // Search for the person named "Simulator" in our address book.
+                                CFArrayRef people_ref = ABAddressBookCopyPeopleWithName(address_book_ref, CFSTR("Simulator"));
+                                NSArray* people = CFBridgingRelease(people_ref);  // no need to release people_ref now
+                                
+                                /* Neat iterator hack!
+                                 if (people != nil && [people count] > 0) {
+                                 for (id object in people) {
+                                 ABRecordRef person = (__bridge ABRecordRef)object;
+                                 NSLog(@"Deleting record: %@.", (__bridge NSString*)ABRecordCopyCompositeName(person));
+                                 }
+                                 }
+                                 */
+                                
+                                if (people == nil || ([people count] == 0)) {
+                                    NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Adding entry for iPhone Simulator to AddressBook.");
+                                    
+                                    // Let's add an entry for the iPhone Simulator.
+                                    CFErrorRef error = NULL;
+                                    ABAddressBookRef iPhoneAddressBook = ABAddressBookCreateWithOptions(NULL, &error);
+                                    
+                                    ABRecordRef newPerson = ABPersonCreate();
+                                    ABRecordSetValue(newPerson, kABPersonFirstNameProperty, @"iPhone", &error);
+                                    ABRecordSetValue(newPerson, kABPersonLastNameProperty, @"Simulator", &error);
+                                    
+                                    ABMutableMultiValueRef multiPhone = ABMultiValueCreateMutable(kABMultiStringPropertyType);
+                                    ABMultiValueAddValueAndLabel(multiPhone, @"1-412-555-5555", kABPersonPhoneMobileLabel, NULL);
+                                    ABRecordSetValue(newPerson, kABPersonPhoneProperty, multiPhone, nil);
+                                    ABAddressBookAddRecord(iPhoneAddressBook, newPerson, &error);
+                                    if (!ABAddressBookSave(iPhoneAddressBook, &error)) {
+                                        NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: ABAddressBookSave: error!");
+                                    }
+                                    
+                                    CFRelease(multiPhone);
                                 }
                             }
-                            */
-                            
-                            if (people == nil || ([people count] == 0)) {
-                                NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Adding entry for iPhone Simulator to AddressBook.");
-                            
-                                // Let's add an entry for the iPhone Simulator.
-                                CFErrorRef error = NULL;
-                                ABAddressBookRef iPhoneAddressBook = ABAddressBookCreateWithOptions(NULL, &error);
-                                
-                                ABRecordRef newPerson = ABPersonCreate();
-                                ABRecordSetValue(newPerson, kABPersonFirstNameProperty, @"iPhone", &error);
-                                ABRecordSetValue(newPerson, kABPersonLastNameProperty, @"Simulator", &error);
-                                
-                                ABMutableMultiValueRef multiPhone = ABMultiValueCreateMutable(kABMultiStringPropertyType);
-                                ABMultiValueAddValueAndLabel(multiPhone, @"1-412-555-5555", kABPersonPhoneMobileLabel, NULL);
-                                ABRecordSetValue(newPerson, kABPersonPhoneProperty, multiPhone, nil);
-                                ABAddressBookAddRecord(iPhoneAddressBook, newPerson, &error);
-                                if (!ABAddressBookSave(iPhoneAddressBook, &error)) {
-                                    NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: ABAddressBookSave: error!");
-                                }
-                                
-                                CFRelease(multiPhone);
-                            }
-                            CFRelease(address_book);
+                            CFRelease(address_book_ref);
                         }
 #endif
                         
@@ -211,7 +230,7 @@ static const int kDebugLevel = 3;
                                 if (error_msg != nil)
                                     NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: queryKeyData() failed: %s.", [error_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
                                 NSString* public_key_b64 = [public_key base64EncodedString];
-                                error_msg = [provider_master.our_data amazonS3Upload:public_key_b64 bucketName:@"aka-tmp-sls-mistwraith" filename:@"public-key.b64"];
+                                error_msg = [provider_master.our_data amazonS3Upload:public_key_b64 bucket:@"aka-tmp-sls-mistwraith" filename:@"public-key.b64"];
                                 if (error_msg != nil) {
                                     UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"SLSAppDelegate:didFinishLaunchingWithOptions:" message:error_msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
                                     [alert show];
@@ -250,7 +269,7 @@ static const int kDebugLevel = 3;
                     }
                     
                     if (kDebugLevel > 0)
-                        NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Provider VC using identity of %s, file store service of %s, delegate: %@.", [provider_master.our_data.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [[PersonalDataController absoluteStringFileStore:provider_master.our_data.file_store] cStringUsingEncoding:[NSString defaultCStringEncoding]], provider_master.delegate);
+                        NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Provider VC using identity of %s, file store service of %s, delegate: %@.", [provider_master.our_data.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [[provider_master.our_data.file_store description] cStringUsingEncoding:[NSString defaultCStringEncoding]], provider_master.delegate);
                     
                 } else if ([navItem isMemberOfClass:[ConsumerMasterViewController class]]) {
                     if (kDebugLevel > 3)
@@ -272,6 +291,8 @@ static const int kDebugLevel = 3;
                             NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Found device iPhone Simulator.");
 #if 0  // SIMULATOR HACK:
                         {
+                            // If we've requested the consumer to track ourselves, we need to grab our key-bundle (as the simulator can't receive the meta-data ... or can it?
+                            
                             // XXX I think this is done via the "track self" button ...
                             
                             // Setup a bogus provider (of ourselves) for the simulator.
@@ -284,14 +305,15 @@ static const int kDebugLevel = 3;
                             if (status) {
                                 NSString* err_msg = [[status localizedDescription] stringByAppendingString:([status localizedFailureReason] ? [status localizedFailureReason] :@"")];
                                 UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"SLSAppDelegate:didFinishLaunchingWithOptions: initWithContentsOfURL()" message:err_msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
-                                [alert show];    
+                                [alert show];
                             } else {
                                 NSData* sym_key = [NSData dataFromBase64String:sym_key_b64];
                                 [tmp_provider setKey:sym_key];
                                 
                                 // Setup the file store as us, as a Provider (using high precision).
+                                xxx;  // this is wrong now
                                 NSString* bucket_name = [PersonalDataController hashMD5String:[[NSString alloc] initWithFormat:@"%s%s", [tmp_provider.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], PC_PRECISION_EXACT]];
-                                NSString* file_store_str = [[NSString alloc] initWithFormat:@"https://s3.amazonaws.com/%s/location-data.b64", [bucket_name cStringUsingEncoding:[NSString defaultCStringEncoding]];
+                                NSString* file_store_str = [[NSString alloc] initWithFormat:@"https://s3.amazonaws.com/%s/location-data.b64", [bucket_name cStringUsingEncoding:[NSString defaultCStringEncoding]]];
                                 NSURL* file_store = [[NSURL alloc] initWithString:file_store_str];
                                 [tmp_provider setFile_store:file_store];
                                 
@@ -305,9 +327,10 @@ static const int kDebugLevel = 3;
                                         [alert show];
                                     }
                                 }
-                            } 
+                            }
                         }
 #endif
+                        
 #if 0  // SIMULATOR HACK:
                         {
                             // Setup a bogus provider (of my cell phone) for the simulator.
@@ -320,13 +343,13 @@ static const int kDebugLevel = 3;
                             if (status) {
                                 NSString* err_msg = [[status localizedDescription] stringByAppendingString:([status localizedFailureReason] ? [status localizedFailureReason] :@"")];
                                 UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"SLSAppDelegate:didFinishLaunchingWithOptions: initWithContentsOfURL()" message:err_msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
-                                [alert show];    
+                                [alert show];
                             } else {
                                 NSData* sym_key = [NSData dataFromBase64String:sym_key_b64];
                                 [tmp_provider setKey:sym_key];
                                 
                                 NSString* bucket_name = [PersonalDataController hashMD5String:[[NSString alloc] initWithFormat:@"%s%s", [tmp_provider.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], PC_PRECISION_EXACT]];
-                                NSString* file_store_str = [[NSString alloc] initWithFormat:@"https://s3.amazonaws.com/%s/location-data.b64", [bucket_name cStringUsingEncoding:[NSString defaultCStringEncoding]];
+                                NSString* file_store_str = [[NSString alloc] initWithFormat:@"https://s3.amazonaws.com/%s/location-data.b64", [bucket_name cStringUsingEncoding:[NSString defaultCStringEncoding]]];
                                 xxx;  // wrong
                                 NSString* bucket_name = [[NSString alloc] initWithFormat:@"%s3", [tmp_provider.identity cStringUsingEncoding:[NSString defaultCStringEncoding]]];
                                 NSString* file_store_str = [[NSString alloc] initWithFormat:@"https://s3.amazonaws.com/%s/location-data.b64", [[PersonalDataController hashMD5String:bucket_name] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
@@ -345,7 +368,76 @@ static const int kDebugLevel = 3;
                                         [alert show];
                                     }
                                 }
-                            } 
+                            }
+                        }
+#endif
+                        
+#if 1  // SIMULATOR HACK:
+                        {
+                            NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Seeing if we need to add entry for Andrew Adams to AddressBook.");
+                            
+                            // Fetch the address book
+                            CFErrorRef status = NULL;
+                            ABAddressBookRef address_book_ref = ABAddressBookCreateWithOptions(NULL, &status);
+                            
+                            __block BOOL access_explicitly_granted = NO;
+                            if (ABAddressBookGetAuthorizationStatus() == kABAuthorizationStatusNotDetermined) {
+                                // XXX if (ABAddressBookRequestAccessWithCompletion != NULL) { // we're on iOS 6
+                                dispatch_semaphore_t status = dispatch_semaphore_create(0);
+                                ABAddressBookRequestAccessWithCompletion(address_book_ref,
+                                                                         ^(bool granted, CFErrorRef error) {
+                                                                             access_explicitly_granted = granted;
+                                                                             dispatch_semaphore_signal(status);
+                                                                         });
+                                dispatch_semaphore_wait(status, DISPATCH_TIME_FOREVER);  // wait until user gives us access
+                            }
+                            
+                            if (!access_explicitly_granted && ((ABAddressBookGetAuthorizationStatus() == kABAuthorizationStatusDenied) ||
+                                                               (ABAddressBookGetAuthorizationStatus() == kABAuthorizationStatusNotDetermined))) {
+                                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Consumer Data" message:@"Unable to set identity without access to Address Book." delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                                [alert show];
+                            } else {
+                                // Search for the person named "Adams" in our address book.
+                                CFArrayRef people_ref = ABAddressBookCopyPeopleWithName(address_book_ref, CFSTR("Adams"));
+                                NSArray* people = CFBridgingRelease(people_ref);  // no need to release people_ref now
+                                
+                                /* Neat iterator hack!
+                                 if (people != nil && [people count] > 0) {
+                                 for (id object in people) {
+                                 ABRecordRef person = (__bridge ABRecordRef)object;
+                                 NSLog(@"Deleting record: %@.", (__bridge NSString*)ABRecordCopyCompositeName(person));
+                                 }
+                                 }
+                                 */
+                                
+                                if (people == nil || ([people count] == 0)) {
+                                    NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Adding entry for Andrew Adams to AddressBook.");
+                                    
+                                    // Let's add an entry for the iPhone Simulator.
+                                    CFErrorRef error = NULL;
+                                    ABAddressBookRef iPhoneAddressBook = ABAddressBookCreateWithOptions(NULL, &error);
+                                    
+                                    ABRecordRef newPerson = ABPersonCreate();
+                                    ABRecordSetValue(newPerson, kABPersonFirstNameProperty, @"Andrew", &error);
+                                    ABRecordSetValue(newPerson, kABPersonLastNameProperty, @"Adams", &error);
+                                    
+                                    ABMutableMultiValueRef multiPhone = ABMultiValueCreateMutable(kABMultiStringPropertyType);
+                                    ABMultiValueAddValueAndLabel(multiPhone, @"1-412-555-5555", kABPersonPhoneMobileLabel, NULL);
+                                    ABRecordSetValue(newPerson, kABPersonPhoneProperty, multiPhone, nil);
+                                    
+                                    ABMutableMultiValueRef multiEmail = ABMultiValueCreateMutable(kABMultiStringPropertyType);
+                                    ABMultiValueAddValueAndLabel(multiEmail, @"akadams@psc.edu", kABWorkLabel, NULL);
+                                    ABRecordSetValue(newPerson, kABPersonEmailProperty, multiEmail, nil);
+                                    
+                                    ABAddressBookAddRecord(iPhoneAddressBook, newPerson, &error);
+                                    if (!ABAddressBookSave(iPhoneAddressBook, &error)) {
+                                        NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: ABAddressBookSave: error!");
+                                    }
+                                    
+                                    CFRelease(multiPhone);
+                                }
+                            }
+                            CFRelease(address_book_ref);
                         }
 #endif
                     } else if ([ui_device.name caseInsensitiveCompare:@"mistwraith"] == NSOrderedSame) {
@@ -398,7 +490,7 @@ static const int kDebugLevel = 3;
                     }
                     
                     if (kDebugLevel > 0)
-                        NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Consumer View controller using identity of %s, deposit of %s, public key hash: %s.", [consumer_master.our_data.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [[PersonalDataController absoluteStringDeposit:consumer_master.our_data.deposit] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[PersonalDataController hashAsymmetricKey:[consumer_master.our_data getPublicKey]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+                        NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Consumer VC using identity: %s, deposit: %s, public key hash: %s.", [consumer_master.our_data.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [[consumer_master.our_data.deposit description] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[PersonalDataController hashAsymmetricKey:[consumer_master.our_data getPublicKey]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
                   } else {
                     NSLog(@"Unknown viewController Class at index %d:%d!", i, k);
                 }
@@ -418,7 +510,7 @@ static const int kDebugLevel = 3;
         provider_delegate_set = true;
         
         if (kDebugLevel > 0)
-            NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Provider VC using identity of %s, file store service of %s, delegate: %@.", [provider_master.our_data.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [[PersonalDataController absoluteStringFileStore:provider_master.our_data.file_store] cStringUsingEncoding:[NSString defaultCStringEncoding]], provider_master.delegate);
+            NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Provider VC using identity of %s, file store service of %s, delegate: %@.", [provider_master.our_data.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [[provider_master.our_data.file_store description] cStringUsingEncoding:[NSString defaultCStringEncoding]], provider_master.delegate);
     }
     
     [tabController setSelectedIndex:1];  // set default view to Consumer mode
@@ -427,27 +519,31 @@ static const int kDebugLevel = 3;
 }
 
 - (void) applicationWillResignActive:(UIApplication *)application {
-    NSLog(@"SLSAppDelegate:applicationWillResignActive: called.");
+      if (kDebugLevel > 4)
+          NSLog(@"SLSAppDelegate:applicationWillResignActive: called.");
     
     // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
     // Use this method to pause ongoing tasks, disable timers, and throttle down OpenGL ES frame rates. Games should use this method to pause the game.
 }
 
 - (void) applicationDidEnterBackground:(UIApplication*)application {
-    NSLog(@"SLSAppDelegate:applicationDidEnterBackground: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"SLSAppDelegate:applicationDidEnterBackground: called.");
     
     // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later. 
     // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
 }
 
 - (void) applicationWillEnterForeground:(UIApplication*)application {
-    NSLog(@"SLSAppDelegate:applicationWillEnterForeground: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"SLSAppDelegate:applicationWillEnterForeground: called.");
     
     // Called as part of the transition from the background to the inactive state; here you can undo many of the changes made on entering the background.
 }
 
 - (void) applicationDidBecomeActive:(UIApplication*)application {
-    NSLog(@"SLSAppDelegate:applicationDidBecomeActive: called.");
+     if (kDebugLevel > 4)
+         NSLog(@"SLSAppDelegate:applicationDidBecomeActive: called.");
     
     // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
     
@@ -455,7 +551,8 @@ static const int kDebugLevel = 3;
 }
 
 - (void) applicationWillTerminate:(UIApplication*)application {
-    NSLog(@"SLSAppDelegate:applicationWillTerminate: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"SLSAppDelegate:applicationWillTerminate: called.");
     
     // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
     
@@ -501,7 +598,8 @@ static const int kDebugLevel = 3;
 }
 
 - (BOOL) application:(UIApplication *)application handleOpenURL:(NSURL*)url {
-    NSLog(@"SLSAppDelegate:handleOpenURL: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"SLSAppDelegate:handleOpenURL: called.");
     
     if (!url)
         return NO;

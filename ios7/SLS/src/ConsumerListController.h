@@ -7,10 +7,12 @@
 //
 //  Note, this controller class is for the provider's viewController, which displays Consumer objects, *not* the consumer's viewController (which displays the different Provider objects!).
 
+// TODO(aka) Why even have this class?  Why not just use a NSMutableArray in the Provider MVC?  Is it to make sure we stay mutable?
+
 #import <Foundation/Foundation.h>
 
-
 @class Principal;
+
 
 @interface ConsumerListController : NSObject
 
@@ -34,6 +36,7 @@
 #pragma mark - Data management
 - (NSString*) addConsumer:(Principal*)consumer;
 - (NSString*) deleteConsumer:(Principal*)consumer saveState:(BOOL)save_state;
+- (NSUInteger) countOfPolicy:(NSString*)policy;
 
 /*  XXX We need to override the following from NSMutableArray and NSArray
 insertObject:atIndex:

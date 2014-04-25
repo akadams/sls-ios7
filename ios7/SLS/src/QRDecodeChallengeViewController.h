@@ -7,7 +7,11 @@
 //
 
 #import <UIKit/UIKit.h>
-#import <AVFoundation/AVCaptureOutput.h>  // needed for delegation
+#import <AVFoundation/AVCaptureDevice.h>
+#import <AVFoundation/AVCaptureInput.h>
+#import <AVFoundation/AVCaptureOutput.h>
+#import <AVFoundation/AVCaptureSession.h>
+#import <AVFoundation/AVCaptureVideoPreviewLayer.h>
 
 // Data members.
 #import "PersonalDataController.h"
@@ -23,7 +27,14 @@
 @property (weak, nonatomic) id <QRDecodeChallengeViewControllerDelegate> delegate;
 
 #pragma mark - Local variables
-@property (copy, nonatomic) NSString* scan_results;  // what ZXing fill in
+@property (copy, nonatomic) AVCaptureDevice* device;
+@property (copy, nonatomic) AVCaptureDeviceInput* input;
+@property (copy, nonatomic) AVCaptureMetadataOutput* output;
+@property (copy, nonatomic) AVCaptureSession* session;
+@property (copy, nonatomic) AVCaptureVideoPreviewLayer* preview_layer;
+@property (copy, nonatomic) UIView* scan_view;
+
+@property (copy, nonatomic) NSString* scan_results;  // QR reader populates
 
 #pragma mark - Outlets
 @property (weak, nonatomic) IBOutlet UILabel* label;

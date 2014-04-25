@@ -15,7 +15,7 @@
 
 static const int kDebugLevel = 1;
 
-static const CGFloat kPadding = 10;  // used in QREncode
+// XXX static const CGFloat kPadding = 10;  // used in QREncode
 
 
 @interface QREncodeDepositViewController ()
@@ -86,7 +86,7 @@ static const CGFloat kPadding = 10;  // used in QREncode
         NSLog(@"QREncodeDepositViewController:configureView: called.");
     
     // Get ASCII version of key deposit.
-    NSString* deposit_str = [PersonalDataController absoluteStringDeposit:_our_data.deposit];
+    NSString* deposit_str = [PersonalDataController serializeDeposit:_our_data.deposit];
     
     if (kDebugLevel > 2)
         NSLog(@"QREncodeDepositViewController:configureView: QR-encoding Key-Deposit: %s.", [deposit_str cStringUsingEncoding: [NSString defaultCStringEncoding]]);

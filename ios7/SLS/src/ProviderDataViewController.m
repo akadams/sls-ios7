@@ -191,20 +191,9 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
         NSLog(@"ProviderDataViewController:configureView: called.");
     
     // Show our identity.
-    if (_our_data != nil && [_our_data.identity length]) {
-        NSLog(@"ProviderDataViewController:configureView: setting identity: %@.", _our_data.identity);
+    if (_our_data != nil && _our_data.identity != nil && [_our_data.identity length] > 0) {
         [_identity_label setText:_our_data.identity];
         [_identity_hash_label setText:_our_data.identity_hash];
-        
-        // And our deposit.
-        if (_our_data != nil && _our_data.deposit != nil && [PersonalDataController isDepositComplete:_our_data.deposit]) {
-            // Note, if we ever go back to e-mail file-store deposits, then we'd need to change this!
-            NSLog(@"ConsumerDataViewController:configureView: setting deposit: %@.", [PersonalDataController getDepositPhoneNumber:_our_data.deposit]);
-            _deposit_label.text = [PersonalDataController getDepositPhoneNumber:_our_data.deposit];
-        } else {
-            // If we have an identity, but not a deposit, that's a problem.
-            _deposit_label.text = @"ERROR: \"mobile\" entry does not exist!";
-        }
     } else {
         [_identity_label setText:@""];
         [_identity_hash_label setText:@""];
@@ -214,10 +203,14 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
     // And our deposit.
     if (_our_data != nil && _our_data.deposit != nil && [PersonalDataController isDepositComplete:_our_data.deposit]) {
         // Note, if we ever go back to e-mail file-store deposits, then we'd need to change this!
-        NSLog(@"ConsumerDataViewController:configureView: setting deposit: %@.", [PersonalDataController getDepositPhoneNumber:_our_data.deposit]);
         _deposit_label.text = [PersonalDataController getDepositPhoneNumber:_our_data.deposit];
     } else {
-        _deposit_label.text = @"";
+        // Okay, we don't have a deposit.  However, if we *have* an identity, but not a deposit, that's a problem.
+        if (_our_data != nil && _our_data.identity != nil && [_our_data.identity length]) {
+            _deposit_label.text = @"ERROR: \"mobile\" entry does not exist!";
+        } else {
+            _deposit_label.text = @"";
+        }
     }
     
     // See if we should grey out the gen-pub-keys button.
@@ -259,7 +252,7 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
     // And our file-store.
     if (_our_data != nil && _our_data.file_store != nil) {
         if (kDebugLevel > 0)
-            NSLog(@"ProviderDataViewController:configureView: setting file-store: %@.", [PersonalDataController absoluteStringFileStore:_our_data.file_store]);
+            NSLog(@"ProviderDataViewController:configureView: setting file-store: %@.", [_our_data.file_store description]);
         
         _file_store_label.text = [PersonalDataController getFileStoreService:_our_data.file_store];
     } else {
@@ -387,7 +380,7 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
         if (!access_explicitly_granted &&
             ((ABAddressBookGetAuthorizationStatus() == kABAuthorizationStatusDenied) ||
              (ABAddressBookGetAuthorizationStatus() == kABAuthorizationStatusNotDetermined))) {
-                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Consumer Data" message:@"Unable to set identity without access to Address Book." delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Consumer Data" message:@"Unable to set identity without access to Address Book." delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
                 [alert show];
                 return;
             }
@@ -469,6 +462,8 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
             
             // Note, we don't save state here, as we can still cancel this back in the MasterViewController.
             _our_data.file_store = source.our_data.file_store;  // get the changes
+            _our_data.drive = source.our_data.drive;
+            _our_data.drive_ids = source.our_data.drive_ids;
             _file_store_changed = true;
         }
     } else {

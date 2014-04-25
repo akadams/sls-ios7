@@ -10,7 +10,7 @@
 
 #import "Principal.h"
 #import "LocationBundleController.h"
-#import "PersonalDataController.h"
+#import "PersonalDataController.h"           // only needed for Class crypto functions & NSDictionary functions
 #import "security-defines.h"
 
 
@@ -37,7 +37,7 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
 
 #pragma mark - Data used by ConsumerMaster VC
 @synthesize key_bundle_url = _key_bundle_url;
-@synthesize history_log_url = _history_log_url;
+@synthesize file_store_url = _file_store_url;
 @synthesize key = _key;
 @synthesize history_log = _history_log;
 @synthesize last_fetch = _last_fetch;
@@ -61,8 +61,8 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
         _mobile_number = nil;
         _email_address = nil;
         _deposit = nil;
+        _file_store_url = nil;
         _key_bundle_url = nil;
-        _history_log_url = nil;
         _key = nil;
         _history_log = [[NSMutableArray alloc] initWithCapacity:kInitialLocationListSize];
         _last_fetch = nil;
@@ -82,13 +82,13 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
     self = [super init];
     if (self) {
         publicKeyRef = NULL;
-        _identity = identity;
-        _identity_hash = [PersonalDataController hashMD5String:_identity];  // TODO(aka) arguable if we should call this in an Init()
+        _identity = identity;  // note, identity could be nil
+        _identity_hash = [PersonalDataController hashMD5String:_identity];  // TODO(aka) arguable if we should call this in an init:
         _mobile_number = nil;
         _email_address = nil;
         _deposit = nil;
+        _file_store_url = nil;
         _key_bundle_url = nil;
-        _history_log_url = nil;
         _key = nil;
         _history_log = [[NSMutableArray alloc] initWithCapacity:kInitialLocationListSize];
         _last_fetch = nil;
@@ -123,11 +123,11 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
     if (_deposit)
         tmp_controller.deposit = _deposit;
     
+    if (_file_store_url)
+        tmp_controller.file_store_url = _file_store_url;
+    
     if (_key_bundle_url)
         tmp_controller.key_bundle_url = _key_bundle_url;
-    
-    if (_history_log_url)
-        tmp_controller.history_log_url = _history_log_url;
     
     if (_key)
         tmp_controller.key = _key;
@@ -164,8 +164,8 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
         _mobile_number = [decoder decodeObjectForKey:@"mobile-number"];
         _email_address = [decoder decodeObjectForKey:@"email-address"];
         _deposit = [decoder decodeObjectForKey:@"deposit"];
+        _file_store_url = [decoder decodeObjectForKey:@"file-store-url"];
         _key_bundle_url = [decoder decodeObjectForKey:@"key-bundle-url"];
-        _history_log_url = [decoder decodeObjectForKey:@"history-log-url"];
         _key = [decoder decodeObjectForKey:@"symmetric-key"];
         _history_log = [decoder decodeObjectForKey:@"history-log"];
         _last_fetch = [decoder decodeObjectForKey:@"last-fetch"];
@@ -187,8 +187,8 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
     [encoder encodeObject:_mobile_number forKey:@"mobile-number"];
     [encoder encodeObject:_email_address forKey:@"email-address"];
     [encoder encodeObject:_deposit forKey:@"deposit"];
+    [encoder encodeObject:_file_store_url forKey:@"file-store-url"];
     [encoder encodeObject:_key_bundle_url forKey:@"key-bundle-url"];
-    [encoder encodeObject:_history_log_url forKey:@"history-log-url"];
     [encoder encodeObject:_key forKey:@"symmetric-key"];
     [encoder encodeObject:_history_log forKey:@"history-log"];
     [encoder encodeObject:_last_fetch forKey:@"last-fetch"];
@@ -209,18 +209,19 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
 }
 
 #if (FILE_STORE_USE_NSURL == 1)
+
+- (void) setFile_store_url:(NSURL*)file_store_url {
+    if (kDebugLevel > 2)
+        NSLog(@"Principal:setFile_store_url: called.");
+    
+    _file_store_url = file_store_url;
+}
+
 - (void) setKey_bundle_url:(NSURL*)key_bundle_url {
     if (kDebugLevel > 2)
         NSLog(@"Principal:setKey_bundle_url: called.");
     
     _key_bundle_url = key_bundle_url;
-}
-
-- (void) setHistory_log_url:(NSURL*)history_log_url {
-    if (kDebugLevel > 2)
-        NSLog(@"Principal:setHistory_log_url: called.");
-    
-    _history_log_url = history_log_url;
 }
 #else
 - (void) setFile_store:(NSMutableDictionary*)file_store {
@@ -283,7 +284,7 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
     return public_key;
 }
 
-- (void) setPublicKey:(NSData*)public_key {
+- (void) setPublicKey:(NSData*)public_key accessGroup:(NSString*)access_group {
     if (kDebugLevel > 2)
         NSLog(@"Principal:setPublicKey: called.");
     
@@ -298,7 +299,7 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
     }
     
     // Add the new key to our key-chain.
-    NSString* err_msg = [PersonalDataController saveKeyData:public_key withTag:application_tag];
+    NSString* err_msg = [PersonalDataController saveKeyData:public_key withTag:application_tag accessGroup:access_group];
     if (err_msg != nil)
         NSLog(@"Principal:setPublicKey: TODO(aka) saveKeyData() failed: %s.", [err_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
@@ -353,7 +354,7 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
     // Get our *banked* wait time.
     NSTimeInterval wait_time = abs([_last_fetch timeIntervalSinceNow]);
     
-    if (kDebugLevel > 0)
+    if (kDebugLevel > 1)
         NSLog(@"Principal:getTimeIntervalToNextFetch: comparing wait time: %f, to our frequency: %f.", wait_time, [_frequency doubleValue]);
     
     // Return how long we've waited (subtracted from our frequency).
@@ -363,6 +364,21 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
         return ([_frequency doubleValue] - wait_time);
 }
 
+- (BOOL) isFileStoreURLValid {
+    if (kDebugLevel > 2)
+        NSLog(@"Principal:isFileStoreURLValid: called.");
+    
+#if (FILE_STORE_USE_NSURL == 1)
+    // TODO(aka) We probably should issue checkResourceIsReachableAndReturnError:!
+    if (_file_store_url != nil && [[_file_store_url absoluteString] length] > 0  && [[_file_store_url path] length] > 0)
+            return true;
+    
+    return false;
+#else
+    return [PersonalDataController isFileStoreValid:_file_store];
+#endif
+}
+
 - (BOOL) isKeyBundleURLValid {
     if (kDebugLevel > 2)
         NSLog(@"Principal:isKeyBundleURLValid: called.");
@@ -370,21 +386,6 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
 #if (FILE_STORE_USE_NSURL == 1)
     // TODO(aka) We probably should issue checkResourceIsReachableAndReturnError:!
     if (_key_bundle_url != nil && [[_key_bundle_url absoluteString] length] > 0)
-        return true;
-    else
-        return false;
-#else
-    return [PersonalDataController isFileStoreValid:_file_store];
-#endif
-}
-
-- (BOOL) isHistoryLogURLValid {
-    if (kDebugLevel > 2)
-        NSLog(@"Principal:isHistoryLogURLValid: called.");
-    
-#if (FILE_STORE_USE_NSURL == 1)
-    // TODO(aka) We probably should issue checkResourceIsReachableAndReturnError:!
-    if (_history_log_url != nil && [[_history_log_url absoluteString] length] > 0)
         return true;
     else
         return false;
@@ -590,9 +591,9 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
 #pragma mark - Debugging routines
 
 // I believe this routine is *only* used for debugging.
-- (NSString*) absoluteString {
+- (NSString*) serialize {
     if (kDebugLevel > 2)
-        NSLog(@"Principal:absoluteString: called.");
+        NSLog(@"Principal:serialize: called.");
     
     NSString* absolute_string = [[NSString alloc] init];
     
@@ -602,7 +603,7 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
         absolute_string = [absolute_string stringByAppendingFormat:@"nil"];
     absolute_string = [absolute_string stringByAppendingFormat:@"%s", kStringDelimiter];
     
-    absolute_string = [absolute_string stringByAppendingString:[PersonalDataController absoluteStringDeposit:_deposit]];
+    absolute_string = [absolute_string stringByAppendingString:[PersonalDataController serializeDeposit:_deposit]];
     absolute_string = [absolute_string stringByAppendingFormat:@"%s", kStringDelimiter];
     
 #if (FILE_STORE_USE_NSURL == 1)

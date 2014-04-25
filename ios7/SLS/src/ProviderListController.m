@@ -13,11 +13,11 @@
 static const int kDebugLevel = 1;
 
 static const int kInitialProviderListSize = 10;
-static const int kInitialLocationListSize = 5;
+// XXX static const int kInitialLocationListSize = 5;
 static const float kMaxFrequency = (24.0 * 3600.0);    // 1 day between fetches
 
 static const char* kProviderListFilename = "providers.list";
-static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
+// XXX static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
 
 
 @interface ProviderListController ()
@@ -31,7 +31,7 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
 #pragma mark - Initialization
 
 - (id) init {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ProviderListContoller:init: called.");
     
     if (self = [super init]) {
@@ -42,7 +42,7 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
 }
 
 - (void) setProvider_list:(NSMutableArray*)new_list {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ProviderListContoller:setProvider_list: called.");
     
     // We need to override the default setter, because we declared our dictionary to be a copy (on assignment) and we need to ensure we stay mutable!
@@ -53,7 +53,7 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
 }
 
 - (id) copyWithZone:(NSZone*)zone {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ProviderListController:copyWithZone: called.");
     
     ProviderListController* tmp_controller = [[ProviderListController alloc] init];
@@ -67,7 +67,7 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
 #pragma mark - State backup & restore
 
 - (NSString*) saveState {
-    if (kDebugLevel > 2) 
+    if (kDebugLevel > 4) 
         NSLog(@"ProviderListController:saveState: called.");
     
     // Save the NSArray to disk.
@@ -77,17 +77,19 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
     NSString* doc_dir = [dir_list objectAtIndex:0];
     NSString* provider_list_path = [[NSString alloc] initWithFormat:@"%s/%s", [doc_dir cStringUsingEncoding:[NSString defaultCStringEncoding]], kProviderListFilename];
     
-    if (kDebugLevel > 0)
+    if (kDebugLevel > 1)
         NSLog(@"ProviderListController:saveState: writing updated list of %lu providers to %s.", (unsigned long)[_provider_list count], [provider_list_path cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     // Note, we must convert our Consumer objects to serialized NSData objects, and rebuild our NSArray.
+    
+    // XXX TODO(aka) Why do we do this, as opposed to simply making the ProviderListController NSCoding commplient?  It only has the one data member, the NSArray!
     
     NSMutableArray* serialized_list = [[NSMutableArray alloc] initWithCapacity:kInitialProviderListSize];
     for (int i = 0; i < [_provider_list count]; ++i) {
         Principal* provider = [_provider_list objectAtIndex:i];
         
-        if (kDebugLevel > 1)
-            NSLog(@"ProviderListController:saveState: converting provider: %s.", [[provider absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        if (kDebugLevel > 2)
+            NSLog(@"ProviderListController:saveState: converting provider: %s.", [[provider serialize] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
 
         NSData* tmp_data = [NSKeyedArchiver archivedDataWithRootObject:provider];
         [serialized_list addObject:tmp_data];
@@ -102,7 +104,7 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
 }
 
 - (void) loadState {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ProviderListController:loadState: called.");
     
     // Load in our list of providers from disk.
@@ -115,7 +117,7 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
     
     // If it exists, load it in, else initialize an empty list.
     if ([[NSFileManager defaultManager] fileExistsAtPath:provider_list_path]) {
-        if (kDebugLevel > 1)
+        if (kDebugLevel > 2)
             NSLog(@"ProviderListController:loadState: %s exists, initializing provider list with contents.", [provider_list_path cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         
         // Note, we must convert the serialized NSData object into our Provider object and re-build our NSArray.
@@ -126,7 +128,7 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
             [_provider_list addObject:provider];
         }
     } else {
-        if (kDebugLevel > 0)
+        if (kDebugLevel > 2)
             NSLog(@"ProviderListController:loadState: %s does not exist, initializing empty provider list.", [provider_list_path cStringUsingEncoding:[NSString defaultCStringEncoding]]);        
         
         _provider_list = [[NSMutableArray alloc] initWithCapacity:kInitialProviderListSize];
@@ -143,7 +145,7 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
 }
 
 - (Principal*) objectInListAtIndex:(NSUInteger)index {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ProviderListContoller:objectInListAtIndex: called: %lu.", (unsigned long)index);
     
     if ([_provider_list count] == 0 || index >= [_provider_list count])
@@ -153,7 +155,7 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
 }
 
 - (BOOL) containsObject:(Principal*)provider {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ProviderListContoller:containsObject: called.");
     
     if (provider == nil)
@@ -168,7 +170,7 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
 #pragma mark - Data management
 
 - (Principal*) getProvider:(NSString*)identity_hash {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ProviderListContoller:getProvider: called: %@.", identity_hash);
     
     if ([_provider_list count] == 0 || identity_hash == nil || [identity_hash length] == 0)
@@ -185,7 +187,7 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
 }
 
 - (NSString*) addProvider:(Principal*)provider {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ProviderListContoller:addProvider: called.");
     
     if (provider == nil)
@@ -202,7 +204,7 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
 }
 
 - (NSString*) deleteProvider:(Principal*)provider saveState:(BOOL)save_state {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ProviderListContoller:deleteProvider: called.");
     
     [self.provider_list removeObject:provider];
@@ -216,7 +218,7 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
 }
 
 - (NSTimeInterval) getNextTimeInterval {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ProviderListContoller:getNextTimeInterval: called.");
     
     NSTimeInterval interval = kMaxFrequency;
@@ -224,9 +226,9 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
         Principal* provider = [_provider_list objectAtIndex:i];
         
         // If we don't have a valid file store, might as well skip this provider.
-        if (![provider isHistoryLogURLValid]) {
+        if (![provider isFileStoreURLValid]) {
             if (kDebugLevel > 0)
-                NSLog(@"ProviderListContoller:getNextTimeInterval: skipping provider[%d]: %s, due to nil file store.", i, [[provider absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+                NSLog(@"ProviderListContoller:getNextTimeInterval: skipping provider[%d]: %s, due to nil file store.", i, [[provider serialize] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
             continue;
         }
         

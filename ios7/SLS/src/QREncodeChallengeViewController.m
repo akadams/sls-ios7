@@ -15,7 +15,7 @@
 
 static const int kDebugLevel = 4;
 
-static const CGFloat kPadding = 10;  // used in QREncode
+//static const CGFloat kPadding = 10;  // used in QREncode
 
 
 @interface QREncodeChallengeViewController ()

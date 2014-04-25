@@ -7,6 +7,8 @@
 //
 //  Note, this controller class is for the consumer's viewController, which displays Provider objects, *not* the provider's viewController (which displays the different Consumer objects!).
 
+// TODO(aka) Why even have this class?  Why not just use a NSMutableArray in the Provider MVC?  Is it to make sure we stay mutable?
+
 #import <Foundation/Foundation.h>
 
 

@@ -27,7 +27,7 @@ static const char* kConsumerListFilename = "consumers.list";
 #pragma mark - Initialization
 
 - (id) init {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerListController:init: called.");
     
     if (self = [super init]) {
@@ -43,7 +43,7 @@ static const char* kConsumerListFilename = "consumers.list";
 }
 
 - (void) setConsumer_list:(NSMutableArray*)new_list {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerListController:setConsumer_list: called.");
     
     // We need to override the default setter, because consumer_list property is a copy, and we must ensure that the new copy is also mutable.
@@ -56,7 +56,7 @@ static const char* kConsumerListFilename = "consumers.list";
 #pragma mark - State backup & restore
 
 - (NSString*) saveState {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerListController:saveState: called.");
     
     // Save our list of consumers to disk.
@@ -69,16 +69,17 @@ static const char* kConsumerListFilename = "consumers.list";
     
     // Note, we must convert our Consumer objects to serialized NSData objects, and rebuild our NSArray.
     
-    // XXX TODO(aka) Actually, I don't think we need to do this is, i.e., I think we can just archive the NSArray!
+    // XXX TODO(aka) Why do we do this, as opposed to simply making the ProviderListController NSCoding commplient?  It only has the one data member, the NSArray!
     
-    NSLog(@"ConsumerListController:saveState: operating on consumer list of count: %lu.", (unsigned long)[_consumer_list count]);
+    if (kDebugLevel > 1)
+        NSLog(@"ConsumerListController:saveState: operating on consumer list of count: %lu.", (unsigned long)[_consumer_list count]);
     
     NSMutableArray* serialized_list = [[NSMutableArray alloc] initWithCapacity:kInitialConsumerListSize];
     for (int i = 0; i < [_consumer_list count]; ++i) {
         Principal* consumer = [_consumer_list objectAtIndex:i];
         
-        if (kDebugLevel > 1)
-            NSLog(@"ConsumerListController:saveState: converting consumer: %s.", [[consumer absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        if (kDebugLevel > 2)
+            NSLog(@"ConsumerListController:saveState: converting consumer: %s.", [[consumer serialize] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         
         NSData* tmp_data = [NSKeyedArchiver archivedDataWithRootObject:consumer];
         [serialized_list addObject:tmp_data];
@@ -94,7 +95,7 @@ static const char* kConsumerListFilename = "consumers.list";
 }
 
 - (NSString*) loadState {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerListController:loadState: called.");
     
     // Load in our list of consumers from disk.
@@ -107,7 +108,7 @@ static const char* kConsumerListFilename = "consumers.list";
     
     // If it exists, load it in, else initialize an empty list.
     if ([[NSFileManager defaultManager] fileExistsAtPath:consumer_list_path]) {
-        if (kDebugLevel > 1)
+        if (kDebugLevel > 2)
             NSLog(@"ConsumerListController:loadState: %s exists, initializing consumer list with contents.", [consumer_list_path cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         
         // Note, we must convert the serialized NSData object into our consumer object and re-build our NSArray.
@@ -120,7 +121,7 @@ static const char* kConsumerListFilename = "consumers.list";
             [_consumer_list addObject:consumer];
         }
     } else {
-        if (kDebugLevel > 1)
+        if (kDebugLevel > 2)
             NSLog(@"ConsumerListController:loadState: %s does not exist, initializing empty consumer list.", [consumer_list_path cStringUsingEncoding:[NSString defaultCStringEncoding]]);        
         
         _consumer_list = [[NSMutableArray alloc] initWithCapacity:kInitialConsumerListSize];
@@ -135,21 +136,21 @@ static const char* kConsumerListFilename = "consumers.list";
 #pragma mark - Data source routines
 
 - (NSUInteger) countOfList {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerListController:countOfList: called.");
     
     return [_consumer_list count];
 }
 
 - (Principal*) objectInListAtIndex:(NSUInteger)index {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerListController:objectInListAtIndex: called: %lu.", (unsigned long)index);
     
    return [_consumer_list objectAtIndex:index];    
 }
 
 - (BOOL) containsObject:(Principal*)consumer {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerListController:addConsumer: called.");
     
     if (consumer == nil)
@@ -162,7 +163,7 @@ static const char* kConsumerListFilename = "consumers.list";
 }
 
 - (void) removeObjectAtIndex:(NSUInteger)index {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerListController:removeObjectAtIndex: called.");
     
     if ([_consumer_list count] == 0)
@@ -176,7 +177,7 @@ static const char* kConsumerListFilename = "consumers.list";
 #pragma mark - Data management
 
 - (NSString*) addConsumer:(Principal*)consumer {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerListController:addConsumer: called.");
     
     if (consumer == nil)
@@ -192,8 +193,8 @@ static const char* kConsumerListFilename = "consumers.list";
             return err_msg;
     }
     
-    if (kDebugLevel > 2)
-        NSLog(@"ConsumerListController:addConsumer: adding: %s.", [[consumer absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerListController:addConsumer: adding: %s.", [[consumer serialize] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     [_consumer_list addObject:consumer];
 
@@ -202,7 +203,7 @@ static const char* kConsumerListFilename = "consumers.list";
 }
 
 - (NSString*) deleteConsumer:(Principal*)consumer saveState:(BOOL)save_state {
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 4)
         NSLog(@"ConsumerListContoller:deleteConsumer:saveState: called: %d.", save_state);
     
     [self.consumer_list removeObject:consumer];
@@ -213,6 +214,24 @@ static const char* kConsumerListFilename = "consumers.list";
     } else {
         return nil;
     }
+}
+
+- (NSUInteger) countOfPolicy:(NSString*)policy {
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerListContoller:countPolicy: called.");
+    
+    NSUInteger cnt = 0;
+    
+    if (_consumer_list == nil || policy == nil)
+        return cnt;
+    
+    for (id object in _consumer_list) {
+        Principal* consumer = (Principal*)object;
+        if ([consumer.policy isEqual:policy])
+            cnt++;
+    }
+
+    return cnt;
 }
 
 @end

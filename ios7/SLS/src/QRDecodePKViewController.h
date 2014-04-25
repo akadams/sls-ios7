@@ -7,7 +7,11 @@
 //
 
 #import <UIKit/UIKit.h>
-#import <AVFoundation/AVCaptureOutput.h>  // needed for delegation
+#import <AVFoundation/AVCaptureDevice.h>
+#import <AVFoundation/AVCaptureInput.h>
+#import <AVFoundation/AVCaptureOutput.h>
+#import <AVFoundation/AVCaptureSession.h>
+#import <AVFoundation/AVCaptureVideoPreviewLayer.h>
 
 // Data members.
 #import "PersonalDataController.h"
@@ -23,13 +27,21 @@
 @property (weak, nonatomic) id <QRDecodePKViewControllerDelegate> delegate;
 
 #pragma mark - Local variables
-@property (copy, nonatomic) NSString* identity_hash;  // what ZXing populates after scan
-@property (copy, nonatomic) NSData* public_key;  // what ZXing populates after scan
+@property (copy, nonatomic) AVCaptureDevice* device;
+@property (copy, nonatomic) AVCaptureDeviceInput* input;
+@property (copy, nonatomic) AVCaptureMetadataOutput* output;
+@property (copy, nonatomic) AVCaptureSession* session;
+@property (copy, nonatomic) AVCaptureVideoPreviewLayer* preview_layer;
+@property (copy, nonatomic) UIView* scan_view;
+
+@property (copy, nonatomic) NSString* identity_hash;  // QR reader populates after scan
+@property (copy, nonatomic) NSData* public_key;       // QR reader populates after scan
 
 #pragma mark - Outlets
 @property (weak, nonatomic) IBOutlet UILabel* label;
 @property (weak, nonatomic) IBOutlet UIButton* scan_button;
 @property (weak, nonatomic) IBOutlet UITextView* text_view;
+//@property (weak, nonatomic) IBOutlet UIView* scan_view;
 // XXX @property (weak, nonatomic) IBOutlet UIButton* done_button;
 
 #pragma mark - Initialization
