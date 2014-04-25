@@ -8,8 +8,10 @@
 
 #import <sys/time.h>
 
-#import "GTMOAuth2ViewControllerTouch.h"
-#import "GTLDriveFile.h"
+// XXX #import "GTMOAuth2ViewControllerTouch.h"
+// XXX #import "GTLDriveFile.h"
+#import <S3/AWSS3.h>
+
 #import "NSData+Base64.h"
 
 #import "PersonalDataController.h"
