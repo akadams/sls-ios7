@@ -85,11 +85,11 @@ static const int kDebugLevel = 1;
     if (kDebugLevel > 2)
         NSLog(@"QREncodeDepositViewController:configureView: called.");
     
-    // Get ASCII version of key deposit.
-    NSString* deposit_str = [PersonalDataController serializeDeposit:_our_data.deposit];
-    
-    if (kDebugLevel > 2)
+    if (kDebugLevel > 2) {
+        // Get ASCII version of key deposit.
+        NSString* deposit_str = [PersonalDataController serializeDeposit:_our_data.deposit];
         NSLog(@"QREncodeDepositViewController:configureView: QR-encoding Key-Deposit: %s.", [deposit_str cStringUsingEncoding: [NSString defaultCStringEncoding]]);
+    }
     
     // Set the *image* to our QR-encoded key deposit.
     UIImage* image = [_our_data printQRDeposit:_image_view.bounds.size.width];

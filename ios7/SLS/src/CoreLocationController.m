@@ -98,6 +98,16 @@ static const CLLocationDistance kDefaultDistanceFilter = 50.0;  // 50 meters
     if (kDebugLevel > 2)
         NSLog(@"CoreLocationController:enableLocationGathering: called.");
 
+    // Get permission to collect location updates.
+    /*
+    if ([_locationMgr respondsToSelector:@selector(requestWhenInUseAuthorization)]) {
+        [_locationMgr requestWhenInUseAuthorization];
+    }
+    */
+    if ([_locationMgr respondsToSelector:@selector(requestAlwaysAuthorization)]) {
+        [_locationMgr requestAlwaysAuthorization];
+    }
+    
     if (_power_saving_toggle) {
         if (kDebugLevel > 0)
             NSLog(@"CoreLocationController:enableLocationGathering: starting low power gathering.");
@@ -152,7 +162,15 @@ static const CLLocationDistance kDefaultDistanceFilter = 50.0;  // 50 meters
 // Delegate functions.
 
 // CLLocationManager delegate functions.
-- (void) locationManager:(CLLocationManager*)manager didUpdateToLocation:(CLLocation*)new_location 
+- (void) locationManager:(CLLocationManager*)manager didUpdateLocations:(NSArray*)locations {
+    if (kDebugLevel > 2)
+        NSLog(@"CoreLocationController:locationManager:didUpdateToLocations: called.");
+    
+    // Pass our new location on to our delegate.
+    [self.delegate locationsUpdate:locations];
+}
+
+- (void) locationManager:(CLLocationManager*)manager didUpdateToLocation:(CLLocation*)new_location
             fromLocation:(CLLocation*)old_location {
     if (kDebugLevel > 2)
         NSLog(@"CoreLocationController:locationManager:didUpdateToLocation:fromLocation: called.");

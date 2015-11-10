@@ -9,7 +9,7 @@
 #import "ProviderDataViewController.h"
 #import "FileStoreDataViewController.h"
 
-static const int kDebugLevel = 4;
+static const int kDebugLevel = 5;
 
 static const char* kAlertButtonCancelMessage = "No, cancel operation!";
 static const char* kAlertButtonGenKeysMessage = "Yes, generate new keys.";
@@ -53,12 +53,13 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
 @synthesize toggle_power_saving_button = _toggle_power_saving_button;
 @synthesize distance_filter_slider = _distance_filter_slider;
 @synthesize distance_filter_label = _distance_filter_label;
+@synthesize build_version_label = _build_version_label;
 
 #pragma mark - Initialization
 
 - (id) init {
-    if (kDebugLevel > 2)
-        NSLog(@"ProviderDataViewController:init: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:init: called.");
     
     if (self = [super init]) {
         _our_data = nil;
@@ -94,8 +95,8 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
 }
 
 - (id) initWithNibName:(NSString*)nib_name_or_nil bundle:(NSBundle*)nib_bundle_or_nil {
-    if (kDebugLevel > 2)
-        NSLog(@"ProviderDataViewController:initWithNibName: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:initWithNibName: called.");
     
     self = [super initWithNibName:nib_name_or_nil bundle:nib_bundle_or_nil];
     if (self) {
@@ -132,8 +133,8 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
 }
 
 - (id) initWithStyle:(UITableViewStyle)style {
-    if (kDebugLevel > 2)
-        NSLog(@"ProviderDataViewController:initWithStyle: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:initWithStyle: called.");
     
     self = [super initWithStyle:style];
     if (self) {
@@ -172,8 +173,8 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
 #pragma mark - View management
 
 - (void) viewDidLoad {
-    if (kDebugLevel > 2)
-        NSLog(@"ProviderDataViewController:viewDidLoad: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:viewDidLoad: called.");
     
     [super viewDidLoad];
     
@@ -182,22 +183,29 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
     
     // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
     // self.navigationItem.rightBarButtonItem = self.editButtonItem;
+}
+
+- (void) viewDidAppear:(BOOL)animated {
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:viewDidAppear: called (%d).", [NSThread isMainThread]);
     
-    [self configureView];
+    [super viewDidAppear:animated];
+    
+    [self configureView];  // call configureView: to get the work done
 }
 
 - (void) configureView {
-    if (kDebugLevel > 2)
-        NSLog(@"ProviderDataViewController:configureView: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:configureView: called.");
     
     // Show our identity.
     if (_our_data != nil && _our_data.identity != nil && [_our_data.identity length] > 0) {
         [_identity_label setText:_our_data.identity];
         [_identity_hash_label setText:_our_data.identity_hash];
     } else {
-        [_identity_label setText:@""];
-        [_identity_hash_label setText:@""];
-        [_deposit_label setText:@""];
+        [_identity_label setText:@"TOUCH TO SELECT"];
+        [_identity_hash_label setText:@"UNKNOWN"];
+        [_deposit_label setText:@"UNKNOWN"];
     }
     
     // And our deposit.
@@ -209,7 +217,7 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
         if (_our_data != nil && _our_data.identity != nil && [_our_data.identity length]) {
             _deposit_label.text = @"ERROR: \"mobile\" entry does not exist!";
         } else {
-            _deposit_label.text = @"";
+            _deposit_label.text = @"UNKNOWN";
         }
     }
     
@@ -219,15 +227,15 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
     
     if (kDebugLevel > 0) {
         if (public_key_ref == NULL)
-            NSLog(@"ProviderDataViewController:configureView: public_key_ref is NULL!.");
+            NSLog(@"ProviderDataVC:configureView: public_key_ref is NULL!.");
         else if (private_key_ref == NULL)
-            NSLog(@"ProviderDataViewController:configureView: private_key_ref is NULL.");
+            NSLog(@"ProviderDataVC:configureView: private_key_ref is NULL.");
     }
     
     if (public_key_ref == NULL || private_key_ref == NULL) {
         [_gen_pub_keys_button setTitle:@"Generate Private/Public Keys" forState:UIControlStateNormal];
         _gen_pub_keys_button.alpha = 1.0;
-        _pub_hash_label.text = @"";
+        _pub_hash_label.text = @"NONE";
     } else {
         [_gen_pub_keys_button setTitle:@"Re-generate Private/Public Keys" forState:UIControlStateNormal];
         _gen_pub_keys_button.alpha = 0.5;
@@ -252,12 +260,12 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
     // And our file-store.
     if (_our_data != nil && _our_data.file_store != nil) {
         if (kDebugLevel > 0)
-            NSLog(@"ProviderDataViewController:configureView: setting file-store: %@.", [_our_data.file_store description]);
+            NSLog(@"ProviderDataVC:configureView: setting file-store: %@.", [_our_data.file_store description]);
         
         _file_store_label.text = [PersonalDataController getFileStoreService:_our_data.file_store];
     } else {
         if (kDebugLevel > 0)
-            NSLog(@"ProviderDataViewController:configureView: file-store is nil!");
+            NSLog(@"ProviderDataVC:configureView: file-store is nil!");
         
         _file_store_label.text = @"";
     }
@@ -278,15 +286,17 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
     _distance_filter_slider.value = _location_controller.distance_filter;
     [_distance_filter_label setText:[NSString stringWithFormat:@"%dm", (int)_distance_filter_slider.value]];
     
+    _build_version_label.text = [NSString stringWithFormat:@"Build Version: %@",[[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleVersion"]];
+    
     if (kDebugLevel > 3)
-        NSLog(@"ProviderDataViewController:configureView: exiting.");
+        NSLog(@"ProviderDataVC:configureView: exiting.");
 }
 
 #pragma mark - Memory management
 
 - (void) didReceiveMemoryWarning {
-    if (kDebugLevel > 2)
-        NSLog(@"ProviderDataViewController:didReceiveMemoryWarning: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:didReceiveMemoryWarning: called.");
     
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
@@ -353,13 +363,13 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
  */
 
 - (void) tableView:(UITableView*)tableView didSelectRowAtIndexPath:(NSIndexPath*)indexPath {
-    if (kDebugLevel > 2)
-        NSLog(@"ProviderDataViewController:didSelectRowAtIndexPath: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:didSelectRowAtIndexPath: called.");
     
     NSUInteger section = [indexPath section];
     NSUInteger row = [indexPath row];
     
-    NSLog(@"ProviderDataViewController:didSelectRowAtIndexPath: Configuring row %ld in section %ld.", (long)row, (long)section);
+    NSLog(@"ProviderDataVC:didSelectRowAtIndexPath: Configuring row %ld in section %ld.", (long)row, (long)section);
     
     if (section == 0 && row == 0) {
         // First cell; request authorization to Address Book
@@ -398,17 +408,17 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
 #pragma mark - Navigation
 
 - (void) prepareForSegue:(UIStoryboardSegue*)segue sender:(id)sender {
-    if (kDebugLevel > 2)
-        NSLog(@"ProviderDataViewController:prepareForSeque: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:prepareForSeque: called.");
     
     if ([[segue identifier] isEqualToString:@"UnwindToProviderMasterViewID"]) {
         if (kDebugLevel > 2)
-            NSLog(@"ProviderDataViewController:prepareForSeque: unwinding to ProviderMasterViewController.");
+            NSLog(@"ProviderDataVC:prepareForSeque: unwinding to ProviderMasterViewController.");
         
         if (sender != self.done_button) {
             // User hit CANCEL ...
             if (kDebugLevel > 0)
-                NSLog(@"ProviderDataViewController:prepareForSeque: User hit CANCEL (pub_keys_chanaged: %d).", _pub_keys_changed);
+                NSLog(@"ProviderDataVC:prepareForSeque: User hit CANCEL (pub_keys_chanaged: %d).", _pub_keys_changed);
             
             if (_pub_keys_changed) {
                 // Note, asymmetric keys, if generated, would already have been saved in genPubKeys(), so if the user is requesting to cancel, point out to them that that was non-reverting action.
@@ -426,37 +436,37 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
                 _track_self_status = false;  // an idempotent operation, so we really don't care
         } else {
             if (kDebugLevel > 0)
-                NSLog(@"ProviderDataViewController:prepareForSeque: User hit DONE.");
+                NSLog(@"ProviderDataVC:prepareForSeque: User hit DONE.");
             
             // User hit DONE; state flags should have been set during actions, so go ahead and unwind!
         }
     } else if ([[segue identifier] isEqualToString:@"ShowFileStoreDataViewID"]) {
         if (kDebugLevel > 0)
-            NSLog(@"ProviderDataViewController:prepareForSeque: Segue'ng to FileStoreDataViewController.");
+            NSLog(@"ProviderDataVC:prepareForSeque: Segue'ng to FileStoreDataViewController.");
         
         // Send *our data* and set ourselves up as the delegate.
         UINavigationController* nav_controller = (UINavigationController*)segue.destinationViewController;
         FileStoreDataViewController* view_controller = (FileStoreDataViewController*)[[nav_controller viewControllers] objectAtIndex:0];
         view_controller.our_data = _our_data;
     } else {
-        NSLog(@"ProviderDataViewController:prepareForSeque: TODO(aka) unknown segue: %s.", [[segue identifier] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        NSLog(@"ProviderDataVC:prepareForSeque: TODO(aka) unknown segue: %s.", [[segue identifier] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     }
 }
 
 - (IBAction) unwindToProviderData:(UIStoryboardSegue*)segue {
-    if (kDebugLevel > 2)
-        NSLog(@"ProviderDataViewController:unwindToProviderData: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:unwindToProviderData: called.");
     
     UIViewController* sourceViewController = segue.sourceViewController;
     
     if ([sourceViewController isKindOfClass:[FileStoreDataViewController class]]) {
         if (kDebugLevel > 2)
-            NSLog(@"ProviderDataViewController:unwindToProviderData: FileStoreDataViewController callback.");
+            NSLog(@"ProviderDataVC:unwindToProviderData: FileStoreDataViewController callback.");
         
         FileStoreDataViewController* source = [segue sourceViewController];
         if (source.file_store_changed) {
             if (source.our_data == nil || source.our_data.file_store == nil) {
-                NSLog(@"ProviderDataViewController:unwindToProviderData: TODO(aka) ERROR: PersonalDataController or File-store is nil!");
+                NSLog(@"ProviderDataVC:unwindToProviderData: TODO(aka) ERROR: PersonalDataController or File-store is nil!");
                 return;
             }
             
@@ -464,10 +474,11 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
             _our_data.file_store = source.our_data.file_store;  // get the changes
             _our_data.drive = source.our_data.drive;
             _our_data.drive_ids = source.our_data.drive_ids;
+            _our_data.drive_wvls = source.our_data.drive_wvls;
             _file_store_changed = true;
         }
     } else {
-        NSLog(@"ProviderDataViewController:unwindToProviderData: TODO(aka) Called from unknown ViewController!");
+        NSLog(@"ProviderDataVC:unwindToProviderData: TODO(aka) Called from unknown ViewController!");
     }
     
     // No need to dismiss the view controller in an unwind segue.
@@ -478,22 +489,28 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
 #pragma mark - Actions
 
 - (IBAction) genPubKeys:(id)sender {
-    if (kDebugLevel > 2)
-        NSLog(@"ProviderDataViewController:genPubKeys: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:genPubKeys: called.");
     
-    NSLog(@"ProviderDataViewController:genPubKeys: Not doing anything yet!");
+    NSLog(@"ProviderDataVC:genPubKeys: XXX Not doing anything yet!");
     
     SecKeyRef public_key_ref = [_our_data publicKeyRef];
     if (public_key_ref != NULL)
-        NSLog(@"ProviderDataViewController:genPubKeys: XXX public_key_ref was *not* NULL!");
+        NSLog(@"ProviderDataVC:genPubKeys: XXX public_key_ref was *not* NULL!");
     
     SecKeyRef private_key_ref = [_our_data privateKeyRef];
     if (private_key_ref != NULL)
-        NSLog(@"ProviderDataViewController:genPubKeys: XXX private_key_ref was *not* NULL!");
+        NSLog(@"ProviderDataVC:genPubKeys: XXX private_key_ref was *not* NULL!");
     
     if (public_key_ref == NULL || private_key_ref == NULL) {
-        [_our_data genAsymmetricKeys];
-        _pub_keys_changed = true;
+        NSString* err_msg = [_our_data genAsymmetricKeys];
+        if (err_msg != nil) {
+            NSString* alert_msg = [NSString stringWithFormat:@"Key generation failed: %@", err_msg];
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Asymmetric Key Generation" message:alert_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+            [alert show];
+            
+        } else
+            _pub_keys_changed = true;
     
         [self configureView];
     } else {
@@ -503,18 +520,22 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
 }
 
 - (IBAction) genSymKeys:(id)sender {
-    if (kDebugLevel > 2)
-        NSLog(@"ProviderDataViewController:genSymmetricKeys: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:genSymmetricKeys: called.");
     
     if (![_symmetric_keys haveAnyKeys]) {
         if ([_symmetric_keys.policies count]) {
             // Generate keys for all the policies we currently have in play ...
             for (id object in _symmetric_keys.policies) {
                 NSString* policy = (NSString*)object;
-                [_symmetric_keys generateSymmetricKey:policy];
+                NSString* err_msg = [_symmetric_keys generateSymmetricKey:policy];
+                if (err_msg != nil) {
+                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Symmetric Key Generation" message:err_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                    [alert show];
+                } else {
+                    _sym_keys_changed = true;
+                }
             }
-            
-            _sym_keys_changed = true;
         } else {
             // TODO(aka) We don't have any policies in play, so should we generate all keys?
 #if 0
@@ -536,8 +557,8 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
 }
 
 - (IBAction)toggleLocationSharing:(id)sender {
-    if (kDebugLevel > 2)
-        NSLog(@"ProviderDataViewController:toggleLocationSharing: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:toggleLocationSharing: called.");
     
     // Set flag to tell our parent to *enable* or *disable* location data fetching.
     if (_location_controller.location_sharing_toggle && !_location_sharing_switch.on) {
@@ -552,16 +573,16 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
 }
 
 - (IBAction) addSelfToConsumers:(id)sender {
-    if (kDebugLevel > 2)
-        NSLog(@"ProviderDataViewController:addSelfToConsumers: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:addSelfToConsumers: called.");
     
     _track_self_status = true;
     [self configureView];
 }
 
 - (IBAction)togglePowerSaving:(id)sender {
-    if (kDebugLevel > 2)
-        NSLog(@"ProviderDataViewController:togglePowerSaving: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:togglePowerSaving: called.");
     
     if (_location_controller.power_saving_toggle)
         _location_controller.power_saving_toggle = false;
@@ -573,8 +594,8 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
 }
 
 - (IBAction) distanceFilterSliderChanged:(id)sender {
-    if (kDebugLevel > 2)
-        NSLog(@"ProviderDataViewController:distanceFilterSliderChanged: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:distanceFilterSliderChanged: called.");
     
     UISlider* slider = (UISlider*)sender;
     _location_controller.distance_filter = slider.value;
@@ -587,8 +608,8 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
 
 // ABPeoplePicker delegate functions.
 - (BOOL) peoplePickerNavigationController:(ABPeoplePickerNavigationController*)people_picker shouldContinueAfterSelectingPerson:(ABRecordRef)person {
-    if (kDebugLevel > 2)
-        NSLog(@"ProviderDataViewController:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: called.");
     
     NSString* first_name = (__bridge_transfer NSString*)ABRecordCopyValue(person, kABPersonFirstNameProperty);
     NSString* last_name = (__bridge_transfer NSString*)ABRecordCopyValue(person, kABPersonLastNameProperty);
@@ -622,32 +643,33 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
     NSString* phone_label = nil;
     for (CFIndex i = 0; i < ABMultiValueGetCount(phone_numbers); ++i) {
         phone_label = (__bridge NSString*)ABMultiValueCopyLabelAtIndex(phone_numbers, i);
-        if([phone_label isEqualToString:(NSString*)kABPersonPhoneMobileLabel]) {
+        if([phone_label isEqualToString:(NSString*)kABPersonPhoneMobileLabel] || [phone_label isEqualToString:(NSString*)kABPersonPhoneIPhoneLabel]) {
             mobile_number = (__bridge NSString*)ABMultiValueCopyValueAtIndex(phone_numbers, i);
             break;
         }
     }
     
     if (kDebugLevel > 0)
-        NSLog(@"ProviderDataViewController:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: phone label: %@.", phone_label);
+        NSLog(@"ProviderDataVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: phone label: %@.", phone_label);
     
     if (mobile_number != nil) {
-        NSLog(@"ProviderDataViewController:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: mobile: %@.", mobile_number);
+        NSLog(@"ProviderDataVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: mobile: %@.", mobile_number);
         
         [PersonalDataController setDeposit:_our_data.deposit type:@"sms"];
         [PersonalDataController setDeposit:_our_data.deposit phoneNumber:mobile_number];
         _deposit_changed = true;
     }
     
-    [self dismissViewControllerAnimated:YES completion:nil];  // TODO(aka) Do we need this anymore?
-    [self configureView];
+    if ([[[UIDevice currentDevice] systemVersion] compare:@"8.0" options:NSNumericSearch] == NSOrderedAscending) {
+        [self dismissViewControllerAnimated:YES completion:nil];  // in 8.0+ people picker dismisses by itself
+    }
     
     return NO;
 }
 
 - (BOOL) peoplePickerNavigationController:(ABPeoplePickerNavigationController*)people_picker shouldContinueAfterSelectingPerson:(ABRecordRef)person property:(ABPropertyID)property identifier:(ABMultiValueIdentifier)identifier {
-    if (kDebugLevel > 2)
-        NSLog(@"ProviderDataViewController:peoplePickerNavigationController:shouldContinueAfterSelectingPerson:property:identifier: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson:property:identifier: called.");
     
     // Note, since we dismiss the ABPeoplePicker in :peoplePickerNavigationController:shouldContinueAfterSelectingPerson:, this routine will never get called (i.e., the user can't select more specific properties in a record).
     
@@ -655,40 +677,58 @@ static const char* kAlertButtonGenSymKeysMessage = "Yes, generate new symmetric 
 }
 
 - (void) peoplePickerNavigationControllerDidCancel:(ABPeoplePickerNavigationController*)people_picker {
-    if (kDebugLevel > 2)
-        NSLog(@"ProviderDataViewController:peoplePickerNavigationControllerDidCancel: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:peoplePickerNavigationControllerDidCancel: called.");
     
     [self dismissViewControllerAnimated:YES completion:nil];
 }
 
+- (void) peoplePickerNavigationController:(ABPeoplePickerNavigationController*)people_picker didSelectPerson:(ABRecordRef)person {
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:peoplePickerNavigationController:didSelectingPerson: called.");
+    
+    [self peoplePickerNavigationController:people_picker shouldContinueAfterSelectingPerson:person];
+}
+
+- (void) peoplePickerNavigationController:(ABPeoplePickerNavigationController*)people_picker didSelectPerson:(ABRecordRef)person     property:(ABPropertyID)property identifier:(ABMultiValueIdentifier)identifier {
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:peoplePickerNavigationController:didSelectingPerson:property:identifier: called.");
+    
+    [self peoplePickerNavigationController:people_picker shouldContinueAfterSelectingPerson:person property:property identifier:identifier];
+}
+
 // UIAlertView delegate functions.
 - (void) alertView:(UIAlertView*)alert_view clickedButtonAtIndex:(NSInteger)button_index {
-    if (kDebugLevel > 2)
-        NSLog(@"ProviderDataViewController:alertView:clickedButtonAtIndex: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderDataVC:alertView:clickedButtonAtIndex: called.");
     
  	NSString* title = [alert_view buttonTitleAtIndex:button_index];
 	if([title isEqualToString:[NSString stringWithCString:kAlertButtonGenKeysMessage encoding:[NSString defaultCStringEncoding]]]) {
         if (kDebugLevel > 0)
-            NSLog(@"ProviderDataViewController:alertView:clickedButtonAtIndex: matched GenKeysMessage.");
+            NSLog(@"ProviderDataVC:alertView:clickedButtonAtIndex: matched GenKeysMessage.");
         
         [_our_data genAsymmetricKeys];
         _pub_keys_changed = true;
     } else if([title isEqualToString:[NSString stringWithCString:kAlertButtonGenSymKeysMessage encoding:[NSString defaultCStringEncoding]]]) {
         if (kDebugLevel > 0)
-            NSLog(@"ProviderDataViewController:alertView:clickedButtonAtIndex: matched GenSymKeysMessage.");
+            NSLog(@"ProviderDataVC:alertView:clickedButtonAtIndex: matched GenSymKeysMessage.");
         
         // Re-generate keys for all the policies we currently have in play ...
         for (id object in _symmetric_keys.policies) {
             NSString* policy = (NSString*)object;
-            [_symmetric_keys generateSymmetricKey:policy];
+            NSString* err_msg = [_symmetric_keys generateSymmetricKey:policy];
+            if (err_msg != nil) {
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Symmetric Key Generation" message:err_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+            } else {
+                _sym_keys_changed = true;
+            }
         }
-        
-        _sym_keys_changed = true;
 	} else if([title isEqualToString:[NSString stringWithCString:kAlertButtonCancelMessage encoding:[NSString defaultCStringEncoding]]]) {
         if (kDebugLevel > 0)
-            NSLog(@"ProviderDataViewController:alertView:clickedButtonAtIndex: matched CancelMessage.");
+            NSLog(@"ProviderDataVC:alertView:clickedButtonAtIndex: matched CancelMessage.");
 	} else {
-        NSLog(@"ProviderDataViewController:alertView:clickedButtonAtIndex: TODO(aka) unknown title: %s", [title cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        NSLog(@"ProviderDataVC:alertView:clickedButtonAtIndex: TODO(aka) unknown title: %s", [title cStringUsingEncoding:[NSString defaultCStringEncoding]]);
 	}
     
     [self configureView];

@@ -8,9 +8,9 @@
 
 #import <sys/time.h>
 
-// XXX #import "GTMOAuth2ViewControllerTouch.h"
+#import "GTMOAuth2ViewControllerTouch.h"
 // XXX #import "GTLDriveFile.h"
-#import <S3/AWSS3.h>
+// XXX #import <S3/AWSS3.h>
 
 #import "NSData+Base64.h"
 
@@ -25,9 +25,9 @@ static const int kDebugLevel = 1;
 // Crypto constants.
 static const size_t kChosenCipherKeySize = CIPHER_KEY_SIZE;
 static const size_t kChosenCipherBlockSize = CIPHER_BLOCK_SIZE;
-//static const int kChosenKeyBitSize = 1024;
-static const int kChosenKeyBitSize = 2048;
+static const int kChosenKeyBitSize = KC_CHOSEN_RSA_KEY_SIZE;
 
+// ACCESS_GROUPS:
 static const char* kAccessGroupCT = KC_ACCESS_GROUP_CT;
 
 static const char* kPublicKeyExt = KC_QUERY_KEY_PUBLIC_KEY_EXT;
@@ -79,6 +79,8 @@ static const char* kGDriveWVLsFilename = "drive-wvls.dict";       // filename to
 
 static const char* kFSHistoryLogFile = PDC_HISTORY_LOG_FILENAME;  // filename for history-log in file-store
 static const char* kFSKeyBundleExt = PDC_KEY_BUNDLE_EXTENSION;    // extension of key-bundle in file-store
+
+static const char* kFSAsyncOpDone = PDC_ASYNC_OP_DONE;    // NSNotification flag
 
 // QR Encoding constants.
 static const int qr_margin = 3;
@@ -245,9 +247,11 @@ static const int kInitialDictionarySize = 5;
         privateKeyRef = NULL;
         NSString* error_msg = [PersonalDataController queryKeyRef:application_tag keyRef:&privateKeyRef];
         if (error_msg != nil)
-            NSLog(@"PersonalDataController:loadState: TODO(aka) queryKeyRef() failed: %s", [error_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);            
-        else if (privateKeyRef == NULL)
-            NSLog(@"PersonalDataController:loadState: XXX TODO(aka) Failed to retrieve private key using tag: %s!", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            NSLog(@"PersonalDataController:loadState: ERROR: TODO(aka) queryKeyRef() failed: %s", [error_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        else if (privateKeyRef == NULL) {
+            if (kDebugLevel > 0)
+                NSLog(@"PersonalDataController:loadState: Unable to retrieve private key using tag: %s!", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        }
         
         NSString* public_key_identity = [_identity stringByAppendingFormat:@"%s", kPublicKeyExt];
         application_tag = [public_key_identity dataUsingEncoding:[NSString defaultCStringEncoding]];
@@ -255,7 +259,7 @@ static const int kInitialDictionarySize = 5;
         publicKeyRef = NULL;
         NSString* pubkey_error_msg = [PersonalDataController queryKeyRef:application_tag keyRef:&publicKeyRef];
         if (pubkey_error_msg != nil)
-            NSLog(@"PersonalDataController:loadState: TODO(aka) queryKeyRef() failed: %s", [pubkey_error_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);            
+            NSLog(@"PersonalDataController:loadState: ERROR: TODO(aka) queryKeyRef() failed: %s", [pubkey_error_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     } else {
         if (kDebugLevel > 0)
             NSLog(@"PersonalDataController:loadState: %s does not exist, initializing empty identity.", [identity_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);        
@@ -312,7 +316,7 @@ static const int kInitialDictionarySize = 5;
 #endif
         _drive_ids = [[PersonalDataController loadStateDictionary:[NSString stringWithFormat:@"%s", kGDriveIDsFilename]] mutableCopy];
         _drive_wvls = [[PersonalDataController loadStateDictionary:[NSString stringWithFormat:@"%s", kGDriveWVLsFilename]] mutableCopy];
-
+        
         if (kDebugLevel > 1)
             NSLog(@"PersonalDataController:loadState: Loaded %lu Google Drive IDs, and %lu WVLs.", (unsigned long)[_drive_ids count], (unsigned long)[_drive_wvls count]);
     }
@@ -566,6 +570,9 @@ static const int kInitialDictionarySize = 5;
         
         if (kDebugLevel > 2)
             NSLog(@"PersonalDataController:loadStateArray: Initialized array with the %lu items in: %s.", (unsigned long)[array count], [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    } else {
+        if (kDebugLevel > 3)
+            NSLog(@"PersonalDataController:loadStateArray: %s does NOT exist.", [state_file cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     }
     
     return array;
@@ -618,7 +625,7 @@ static const int kInitialDictionarySize = 5;
     
     NSString* error_msg = [PersonalDataController queryKeyRef:application_tag keyRef:&publicKeyRef];
     if (error_msg != nil)
-        NSLog(@"PersonalDataController:publicKeyRef: TODO(aka) queryKeyRef() failed: %s.", [error_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        NSLog(@"PersonalDataController:publicKeyRef: ERROR: TODO(aka) queryKeyRef() failed: %s.", [error_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     return publicKeyRef;    
 }
@@ -638,7 +645,7 @@ static const int kInitialDictionarySize = 5;
     
     NSString* error_msg = [PersonalDataController queryKeyRef:application_tag keyRef:&privateKeyRef];
     if (error_msg != nil)
-        NSLog(@"PersonalDataController:publicKeyRef: TODO(aka) queryKeyRef() failed: %s.", [error_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        NSLog(@"PersonalDataController:privateKeyRef: ERROR: TODO(aka) queryKeyRef() failed: %s.", [error_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     return privateKeyRef;    
 }
@@ -784,11 +791,9 @@ static const int kInitialDictionarySize = 5;
      */
 }
 
-- (void) genAsymmetricKeys {
+- (NSString*) genAsymmetricKeys {
     if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:genAsymmetricKeys: called.");
-    
-    NSLog(@"PersonalDataController:genAsymmetricKeys: TODO(aka) This routine must return any error messages!");
     
     // Setup application tags for querying the key-chain.
     NSString* public_key_identity = [_identity stringByAppendingFormat:@"%s", kPublicKeyExt];
@@ -800,18 +805,14 @@ static const int kInitialDictionarySize = 5;
         NSLog(@"PersonalDataController:genAsymmetricKeys: using public identity: %s, private identity: %s.", [public_key_identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [private_key_identity cStringUsingEncoding: [NSString defaultCStringEncoding]]);
     
     // If either already exists in key-chain, remove them.
-    NSString* error_msg = [PersonalDataController queryKeyRef:pub_application_tag keyRef:&publicKeyRef];
-    if (error_msg != nil) {
-        NSLog(@"PersonalDataController:genAsymmetricKeys: queryKeyRef() failed: %s.", [error_msg cStringUsingEncoding: [NSString defaultCStringEncoding]]);
-    } else {
+    [PersonalDataController queryKeyRef:pub_application_tag keyRef:&publicKeyRef];
+    if (publicKeyRef != NULL) {
         // We successfully queried *an entry* for the key, so delete it.
         [PersonalDataController deleteKeyRef:pub_application_tag];
     }
     
-    error_msg = [PersonalDataController queryKeyRef:pri_application_tag keyRef:&privateKeyRef];
-    if (error_msg != nil) {
-        NSLog(@"PersonalDataController:genAsymmetricKeys: queryKeyRef() failed: %s.", [error_msg cStringUsingEncoding: [NSString defaultCStringEncoding]]);
-    } else {
+    [PersonalDataController queryKeyRef:pri_application_tag keyRef:&privateKeyRef];
+    if (privateKeyRef != NULL) {
         // We successfully queried *an entry* for the key, so delete it.
         [PersonalDataController deleteKeyRef:pri_application_tag];
     }
@@ -843,7 +844,17 @@ static const int kInitialDictionarySize = 5;
     // Sets the key-type and key-size attributes in the top-level dictionary.
     [dict setObject:(__bridge id)kSecAttrKeyTypeRSA forKey:(__bridge id)kSecAttrKeyType];
     [dict setObject:[NSNumber numberWithInt:kChosenKeyBitSize] forKey:(__bridge id)kSecAttrKeySizeInBits];
-    [dict setObject:[NSString stringWithFormat:@"%s", kAccessGroupCT] forKey:(__bridge id)kSecAttrAccessGroup];  // note, private key is now accessible to other applications!
+    [dict setObject:(__bridge id)(kSecAttrAccessibleAfterFirstUnlock) forKey:(__bridge id)(kSecAttrAccessible)];
+    
+#if 0  // ACCESS_GROUPS: TODO(aka) Hmm, this doesn't seem to work ...
+    UIDevice* ui_device = [UIDevice currentDevice];
+    if ([ui_device.name caseInsensitiveCompare:@"iPhone Simulator"] == NSOrderedSame) {
+        NSLog(@"PersonalDataController:genAsymmetricKeys: HACK: Ingorning access-group in iPhone Simulator.");
+    } else {
+        [private_key_dict setObject:[NSString stringWithFormat:@"%s", kAccessGroupCT] forKey:(__bridge id)kSecAttrAccessGroup];  // note, private key is now accessible to other applications!
+        [public_key_dict setObject:[NSString stringWithFormat:@"%s", kAccessGroupCT] forKey:(__bridge id)kSecAttrAccessGroup];  // note, private key is now accessible to other applications!
+    }
+#endif
     
     // Sets an attribute specifying that the private & public key is to be stored permanently (that is, put them into the keychain).
     [private_key_dict setObject:[NSNumber numberWithBool:YES] forKey:(__bridge id)kSecAttrIsPermanent];
@@ -864,12 +875,14 @@ static const int kInitialDictionarySize = 5;
     status = SecKeyGeneratePair((__bridge CFDictionaryRef)dict, &publicKeyRef, &privateKeyRef);
     if (status != noErr) {
         // Error handling ...
-        NSLog(@"PersonalDataController:genAsymmetricKeys: ERROR: TODO(aka) SecKeyGeneratePair() failed: %d", (int)status);
-        return;
+        NSString* err_msg = [NSString stringWithFormat:@"PersonalDataController:genAsymmetricKeys: SecKeyGeneratePair() failed: %d", (int)status];
+        return err_msg;
     }
     
     if (kDebugLevel > 0)
         NSLog(@"PersonalDataController:genAsymmetricKeys: generated asymmetric keys using indexes: %s, and %s, privateKeyRef: %d, publicKeyRef: %d.", [public_key_identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [private_key_identity cStringUsingEncoding: [NSString defaultCStringEncoding]], ((privateKeyRef == NULL) ? false : true), ((publicKeyRef == NULL) ? false : true));
+    
+    return nil;
 }
 
 - (NSData*) decryptSymmetricKey:(NSData*)encrypted_symmetric_key {
@@ -1003,7 +1016,7 @@ static const int kInitialDictionarySize = 5;
         NSLog(@"PersonalDataController:queryKeyRef: called.");
     
     if (application_tag == nil || [application_tag length] == 0) {
-        NSString* error_msg = [[NSString alloc] initWithFormat:@"PersonalDataController:queryKeyRef: ERROR: application tag nil or empty."];
+        NSString* error_msg = [[NSString alloc] initWithFormat:@"PersonalDataController:queryKeyRef: application tag nil or empty."];
         return error_msg;
     }
     
@@ -1022,8 +1035,13 @@ static const int kInitialDictionarySize = 5;
         OSStatus status = noErr;
         status = SecItemCopyMatching((__bridge CFDictionaryRef)key_dict, (CFTypeRef*)&return_dict_ref);
         if (status != noErr) {
-            NSString* error_msg = [[NSString alloc] initWithFormat:@"PersonalDataController:queryKeyRef: ERROR: SecItemCopyMatching() failed using tag: %s, error: %d.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]], (int)status];
-            return error_msg;
+            if (status == errSecItemNotFound) {
+                if (kDebugLevel > 0)
+                    NSLog(@"PersonalDataController:queryKeyRef: SecItemCopyMatching() did not find key with tag: %s", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            } else {
+                NSString* error_msg = [[NSString alloc] initWithFormat:@"PersonalDataController:queryKeyRef: SecItemCopyMatching() failed using tag: %s, error: %d.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]], (int)status];
+                return error_msg;
+            }
         } else {
             if (kDebugLevel > 1)
                 NSLog(@"PersonalDataController:queryKeyRef: %s, SecItemCopyMatching(%@) -> %@", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]], [key_dict description], return_dict_ref);
@@ -1047,8 +1065,13 @@ static const int kInitialDictionarySize = 5;
     status = SecItemCopyMatching((__bridge CFDictionaryRef)key_dict, (CFTypeRef*)&sec_key_ref);
     //status = SecItemCopyMatching((__bridge CFDictionaryRef)key_dict, (CFTypeRef*)key_ref);
     if (status != noErr) {
-        NSString* error_msg = [[NSString alloc] initWithFormat:@"PersonalDataController:queryKeyRef: ERROR: SecItemCopyMatching() failed using tag: %s, error: %d.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]], (int)status];
-        return error_msg;
+        if (status == errSecItemNotFound) {
+            if (kDebugLevel > 0)
+                NSLog(@"PersonalDataController:queryKeyRef: SecItemCopyMatching() did not find key with tag: %s", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        } else {
+            NSString* error_msg = [[NSString alloc] initWithFormat:@"PersonalDataController:queryKeyRef: ERROR: SecItemCopyMatching() failed using tag: %s, error: %d.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]], (int)status];
+            return error_msg;
+        }
     } else {
         if (sec_key_ref == NULL) {
             if (kDebugLevel > 0)
@@ -1144,7 +1167,11 @@ static const int kInitialDictionarySize = 5;
     OSStatus status = noErr;
     status = SecItemCopyMatching((__bridge CFDictionaryRef)key_dict, (CFTypeRef*)&key_data_ref);
     if (status != noErr) {
-        NSLog(@"PersonalDataController:queryKeyData: ERROR: SecItemCopyMatching() failed using tag: %s, error: %ld.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]], status);
+        if (status == errSecItemNotFound) {
+            if (kDebugLevel > 0)
+                NSLog(@"PersonalDataController:queryKeyData: SecItemCopyMatching() unable to retrieve key using tag: %s.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]]]);
+        } else
+            NSLog(@"PersonalDataController:queryKeyData: ERROR: SecItemCopyMatching() failed using tag: %s, error: %ld.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]], status);
         return nil;
     } else {
         if (key_data_ref == NULL) {
@@ -1181,7 +1208,7 @@ static const int kInitialDictionarySize = 5;
         [PersonalDataController deleteKeyRef:application_tag];
         
         // Make sure the delete did what we think it did.
-        if (kDebugLevel > 1) {
+        if (kDebugLevel > 0) {
             // For Debugging: Get all the attributes associated with our match.
             
             // Setup the asymmetric key query dictionary.
@@ -1190,8 +1217,19 @@ static const int kInitialDictionarySize = 5;
             [key_dict setObject:application_tag forKey:(__bridge id)kSecAttrApplicationTag];
             [key_dict setObject:(__bridge id)kSecAttrKeyTypeRSA forKey:(__bridge id)kSecAttrKeyType];
             [key_dict setObject:[NSNumber numberWithBool:YES] forKey:(__bridge id)kSecReturnAttributes];
-            if (access_group != nil && [access_group length] > 0)
-                [key_dict setObject:access_group forKey:(__bridge id)kSecAttrAccessGroup];
+            [key_dict setObject:(__bridge id)kSecAttrAccessibleAfterFirstUnlock forKey:(__bridge id)kSecAttrAccessible];
+    
+#if 0  // XXX Pretty sure SecItemCopyMatching will search all access groups ...
+            // ACCESS_GROUP:
+            if (access_group != nil && [access_group length] > 0) {
+                UIDevice* ui_device = [UIDevice currentDevice];
+                if ([ui_device.name caseInsensitiveCompare:@"iPhone Simulator"] == NSOrderedSame) {
+                    NSLog(@"PersonalDataController:saveKeyData: HACK: Ingorning access-group in iPhone Simulator.");
+                } else {
+                    [key_dict setObject:access_group forKey:(__bridge id)kSecAttrAccessGroup];
+                }
+            }
+#endif
             
             // Attempt to get the key's attributes from the key chain.
             CFDictionaryRef return_dict_ref = NULL;
@@ -1215,9 +1253,18 @@ static const int kInitialDictionarySize = 5;
     [key_dict setObject:[NSNumber numberWithBool:YES] forKey:(__bridge id)kSecAttrIsPermanent];
     [key_dict setObject:key_data forKey:(__bridge id)kSecValueData];
     [key_dict setObject:[NSNumber numberWithBool:YES] forKey:(__bridge id)kSecReturnAttributes];
+    [key_dict setObject:(__bridge id)kSecAttrAccessibleAfterFirstUnlock forKey:(__bridge id)kSecAttrAccessible];
     //[key_dict setObject:[NSNumber numberWithBool:YES] forKey:(__bridge id)kSecReturnPersistentRef];
-    if (access_group != nil && [access_group length] > 0)
-        [key_dict setObject:access_group forKey:(__bridge id)kSecAttrAccessGroup];
+
+    // ACCESS_GROUP:
+    if (access_group != nil && [access_group length] > 0) {
+        UIDevice* ui_device = [UIDevice currentDevice];
+        if ([ui_device.name caseInsensitiveCompare:@"iPhone Simulator"] == NSOrderedSame) {
+            NSLog(@"PersonalDataController:saveKeyData: HACK: Ingorning access-group in iPhone Simulator.");
+        } else {
+            [key_dict setObject:access_group forKey:(__bridge id)kSecAttrAccessGroup];
+        }
+    }
     
     // Attempt to store the key data into the key chain.
     CFDictionaryRef return_dict_ref = NULL;
@@ -1496,8 +1543,7 @@ static const int kInitialDictionarySize = 5;
     // Note, when using pkcs1 padding (which we are), the maximum amount of data we can encrypt is 11 bytes less than the block length associated with the public key.
     
     if (plain_text_buf_size > (cipher_block_size - 11)) {
-        NSLog(@"PersonalDataController:asymmetricEncryptData: TODO(aka) symmetric key (%ld) is too large for the public key's block size %ld (- 11).", plain_text_buf_size, cipher_block_size);
-        return nil;
+        return [[NSString alloc] initWithFormat:@"PersonalDataController:asymmetricEncryptData: TODO(aka) symmetric key (%ld) is too large for the public key's block size %ld (- 11).", plain_text_buf_size, cipher_block_size];
     }
     
     size_t cipher_text_buf_size = cipher_block_size;  // to avoid confusion later on
@@ -1506,8 +1552,7 @@ static const int kInitialDictionarySize = 5;
     uint8_t* cipher_text_buf = NULL;
     cipher_text_buf = (uint8_t*)malloc(cipher_text_buf_size * sizeof(uint8_t));
     if (cipher_text_buf == NULL) {
-        NSLog(@"PersonalDataController:asymmetricEncryptData: unable to malloc cipher text buffer.");
-        return nil;
+        return [[NSString alloc] initWithFormat:@"PersonalDataController:asymmetricEncryptData: unable to malloc cipher text buffer."];
     }
     memset((void*)cipher_text_buf, 0x0, cipher_text_buf_size);
     
@@ -1596,6 +1641,14 @@ static const int kInitialDictionarySize = 5;
     // Convert the NSString to a NSData.
     NSData* plain_text_data = [plain_text dataUsingEncoding:NSUTF8StringEncoding];
     
+    NSData* encrypted_data = nil;
+
+#if 1
+    // Call asymmetricEncryptData: to get the work done.
+    NSString* err_msg = [PersonalDataController asymmetricEncryptData:plain_text_data publicKeyRef:public_key_ref encryptedData:&encrypted_data];
+    if (err_msg != nil)
+        return err_msg;
+#else
     // Calculate the buffer sizes.
     size_t plain_text_buf_size = [plain_text_data length];
     size_t cipher_block_size = SecKeyGetBlockSize(public_key_ref);
@@ -1635,22 +1688,23 @@ static const int kInitialDictionarySize = 5;
         return error_msg;
     }
     
-    // Encode cipher text buffer as a NSData object, then convert it to the passed in NSString.
-    NSData* cipher_text_data = [NSData dataWithBytes:(const void*)cipher_text_buf length:(NSUInteger)cipher_text_buf_size];
+    // Encode cipher text buffer as a NSData object.
+    encrypted_data = [NSData dataWithBytes:(const void*)cipher_text_buf length:(NSUInteger)cipher_text_buf_size];
+
+    if (cipher_text_buf)
+        free(cipher_text_buf);
+#endif
     
 #if 0
     // For Debugging: I don't understand the difference in encodings here ...
-    NSLog(@"PersonalDataController:asymmetricEncryptString: cipher text(%d) with default encoding: %s.", [cipher_text_data length], [[[NSString alloc] initWithData:cipher_text encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
-    NSLog(@"PersonalDataController:asymmetricEncryptString: cipher text(%d) with UTF8 encoding: %s.", [cipher_text_data length], [[[NSString alloc] initWithData:cipher_text encoding:NSUTF8StringEncoding] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    NSLog(@"PersonalDataController:asymmetricEncryptString: cipher text(%d) with default encoding: %s.", [encrypted_data length], [[[NSString alloc] initWithData:cipher_text encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    NSLog(@"PersonalDataController:asymmetricEncryptString: cipher text(%d) with UTF8 encoding: %s.", [encrypted_data length], [[[NSString alloc] initWithData:cipher_text encoding:NSUTF8StringEncoding] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
 #endif
     
-    *cipher_text_b64 = [cipher_text_data base64EncodedString];
+    *cipher_text_b64 = [encrypted_data base64EncodedString];
     
     if (kDebugLevel > 1)
         NSLog(@"PersonalDataController:asymmetricEncryptString: encrypted string %s.", [*cipher_text_b64 cStringUsingEncoding:[NSString defaultCStringEncoding]]);
-    
-    if (cipher_text_buf)
-        free(cipher_text_buf);
     
     return nil;
 }
@@ -1668,15 +1722,13 @@ static const int kInitialDictionarySize = 5;
     // Convert our base64 NSString to a NSData.
     NSData* encrypted_data = [NSData dataFromBase64String:cipher_text_b64];
     
+    NSData* data = nil;
+
 #if 1
     // Call asymmetricDecryptData() to get the work done.
-    NSData* data = nil;
     NSString* err_msg = [PersonalDataController asymmetricDecryptData:encrypted_data privateKeyRef:private_key_ref data:&data];
     if (err_msg != nil)
         return err_msg;
-    
-    *plain_text = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-    
 #else
     // TODO(aka) If decryptSymmetricKey() was actually decryptData(), then we could simply call that routine at this point!
     
@@ -1717,13 +1769,16 @@ static const int kInitialDictionarySize = 5;
     }
     
     // Encode the decrypted buf as a NSData object, then convert it to the passed in NSString.
-    NSData* data = [NSData dataWithBytes:(const void*)decryption_buf length:(NSUInteger)decryption_buf_size];
-    *plain_text = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    data = [NSData dataWithBytes:(const void*)decryption_buf length:(NSUInteger)decryption_buf_size];
     
     if (decryption_buf)
         free(decryption_buf);
-    
 #endif
+    
+    *plain_text = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:asymmetricDecryptString: decrypted string %s.", [*plain_text cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     return nil;
 }
@@ -2186,7 +2241,7 @@ static const int kInitialDictionarySize = 5;
     
     // Call QRcode to generate a binary buffer of the encoded deposit.
     QRcode* qr_code = NULL;
-    if ((qr_code = QRcode_encodeString([[PersonalDataController serializeDeposit:_deposit] UTF8String], 0, QR_ECLEVEL_H, QR_MODE_8, 0)) == NULL) {
+    if ((qr_code = QRcode_encodeString([[PersonalDataController serializeDeposit:_deposit] UTF8String], 0, QR_ECLEVEL_H, QR_MODE_8, 1)) == NULL) {
         NSLog(@"PersonalDataController:printQRDeposit: ERROR: QRcode_encodeString() failed!");
         return nil;
     }
@@ -2211,7 +2266,7 @@ static const int kInitialDictionarySize = 5;
     
     // Call QRcode to generate a binary buffer of the NSString.
     QRcode* qr_code = NULL;
-    if ((qr_code = QRcode_encodeString([string UTF8String], 0, QR_ECLEVEL_H, QR_MODE_8, 0)) == NULL) {
+    if ((qr_code = QRcode_encodeString([string UTF8String], 0, QR_ECLEVEL_H, QR_MODE_8, 1)) == NULL) {
         return @"PersonalDataController:printQRString: ERROR: QRcode_encodeString() failed!";
     }
     
@@ -2568,6 +2623,66 @@ static const int kInitialDictionarySize = 5;
     return false;
 }
 
+- (NSString*) genFileStoreBucket:(NSString*)bucket rootFolder:(NSString*)root_folder_name asynchronous:(BOOL*)status {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:genFileStoreBucket: called.");
+    
+    if (_file_store == nil)
+        return @"PersonalDataController:genFileStoreBucket: file-store is nil";
+    
+    if (![PersonalDataController isFileStoreValid:_file_store])
+        return @"PersonalDataController:genFileStoreBucket: file-store is not valid";
+    
+    NSString* err_msg = nil;
+    
+    // Based on the service, do ...
+    if ([PersonalDataController isFileStoreServiceAmazonS3:_file_store]) {
+        // amazonS3Upload: creates the bucket if it doesn't already exist, so nothing to do here!
+        *status = false;
+        return nil;
+    } else if ([PersonalDataController isFileStoreServiceGoogleDrive:_file_store]) {
+        // Next, make sure the bucket folder exists.
+        NSString* sls_folder_id = [_drive_ids objectForKey:root_folder_name];
+        if (sls_folder_id == nil || [sls_folder_id length] == 0) {
+            err_msg = [[NSString alloc] initWithFormat:@"%s's root folder: %@, does not exist, check file-store in Config", [[PersonalDataController getFileStoreService:_file_store] cStringUsingEncoding:[NSString defaultCStringEncoding]], root_folder_name];
+            return err_msg;  // user will have to address the problem in FileStoreDataView
+        }
+        
+        NSString* bucket_id = [_drive_ids objectForKey:bucket];
+        if (bucket_id == nil || [bucket_id length] == 0) {
+            // Try to fetch the bucket folder ID (and create it, if necessary).
+            [PersonalDataController googleDriveQueryFolder:self folder:bucket rootID:sls_folder_id];
+            
+            // Record that we're attempting to fetch/create the bucket.
+            if (kDebugLevel > 0)
+                NSLog(@"PersonalDataController:genFileStoreBucket: %s/%s does not exist, creating ...", [root_folder_name cStringUsingEncoding:[NSString defaultCStringEncoding]], [bucket cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            
+            *status = true;
+            return nil;  // nothing more we can do
+        }
+        
+        // Sanity check that we have the web-view link.
+        if ([_drive_wvls objectForKey:bucket] == nil) {
+            [PersonalDataController googleDriveQueryFileId:self fileID:bucket_id];
+            
+            // Record that we're attempting to fetch the bucket's public URL.
+            if (kDebugLevel > 0)
+                NSLog(@"PersonalDataController:genFileStoreBucket: no web view link for %s, requesting ...", [bucket cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            *status = true;
+            return nil;  // nothing more we can do
+        }
+        
+        // If we made it here, we already have the web-view link.
+        *status = false;
+        return nil;
+    } else {
+        err_msg = [NSString stringWithFormat:@"PersonalDataController:genFileStoreBucket: WARN: unknown service: %s", [[PersonalDataController getFileStoreService:_file_store] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+        return err_msg;
+    }
+    
+    return nil;  // not reached
+}
+
 - (NSString*) genFileStoreKeyBundle:(Principal*)consumer URL:(NSURL**)url {
     if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:genFileStoreKeyBundle:URL: called.");
@@ -2607,7 +2722,7 @@ static const int kInitialDictionarySize = 5;
         // Google Drive's API builds (and keeps) the public URL in the bucket's WevViewLink ...
         NSString* bucket_wvl = [_drive_wvls objectForKey:bucket];
         if (bucket_wvl == nil || [bucket_wvl length] == 0) {
-            err_msg = [NSString stringWithFormat:@"bucket (%s) does not have a WebViewLink", [bucket cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+            err_msg = [NSString stringWithFormat:@"PersonalDataController:genFileStoreKeyBundle:URL: bucket (%s) does not have a web-view link.", [bucket cStringUsingEncoding:[NSString defaultCStringEncoding]]];
             return err_msg;
         }
         
@@ -2628,7 +2743,7 @@ static const int kInitialDictionarySize = 5;
 
 - (NSString*) genFileStoreHistoryLog:(NSString*)policy path:(NSString**)path {
     if (kDebugLevel > 4)
-        NSLog(@"PersonalDataController:genFileStoreHistoryLogPath: called.");
+        NSLog(@"PersonalDataController:genFileStoreHistoryLog:path: called.");
     
     if (_file_store == nil || policy == nil)
         return @"file store or policy are nil";
@@ -2658,7 +2773,7 @@ static const int kInitialDictionarySize = 5;
         // Google Drive's API builds (and keeps) the public URL in the bucket's WevViewLink ...
         NSString* bucket_wvl = [_drive_wvls objectForKey:bucket];
         if (bucket_wvl == nil || [bucket_wvl length] == 0) {
-            err_msg = [NSString stringWithFormat:@"bucket (%s) does not have a WebViewLink", [bucket cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+            err_msg = [NSString stringWithFormat:@"PersonalDataController:genFielStoreHistoryLog: WARN: bucket (%s) does not have a WebViewLink", [bucket cStringUsingEncoding:[NSString defaultCStringEncoding]]];
             return err_msg;
         }
         
@@ -3187,6 +3302,326 @@ static const int kInitialDictionarySize = 5;
     return nil;
 }
 
+- (NSString*) googleDriveUpload:(NSString*)data rootFolder:(NSString*)root_folder_name bucket:(NSString*)bucket filename:(NSString*)filename idKey:(NSString*)id_key {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:googleDriveUpload:: called.");
+    
+    NSString* err_msg = nil;
+    
+    // Make sure drive is set.
+    if (_drive == nil)
+        return @"PersonalDataController:googleDriveUpload: drive is nil!";
+    
+    // See if the root "SLS" folder exists in Drive.
+    NSString* sls_folder_id = [_drive_ids objectForKey:root_folder_name];
+    if (sls_folder_id == nil || [sls_folder_id length] == 0) {
+        err_msg = [[NSString alloc] initWithFormat:@"%s's root folder: %@, does not exist, check file-store in Config", [[PersonalDataController getFileStoreService:_file_store] cStringUsingEncoding:[NSString defaultCStringEncoding]], root_folder_name];
+        return err_msg;  // user will have to address the problem in FileStoreDataView
+    }
+    
+    // Next, make sure the bucket folder exists.
+    NSString* bucket_id = [_drive_ids objectForKey:bucket];
+    if (bucket_id == nil || [bucket_id length] == 0) {
+        // Try to fetch the bucket folder ID (and create it, if necessary).
+        [self googleDriveQueryFolder:bucket rootID:sls_folder_id];
+        
+        // Record that we're attempting to fetch/create the bucket.
+        err_msg = [[NSString alloc] initWithFormat:@"Google Drive upload skipped: %s/%s does not exist, creating ...", [root_folder_name cStringUsingEncoding:[NSString defaultCStringEncoding]], [bucket cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+        return err_msg;  // nothing more we can do
+    } else {
+        // Make sure we have the *public* webviewlink.
+        if ([_drive_wvls objectForKey:bucket] == nil) {
+            [self googleDriveQueryFileId:bucket_id];
+            
+            // Record that we're attempting to fetch the bucket's public URL.
+            err_msg = [[NSString alloc] initWithFormat:@"Google Drive upload skipped: no web view link for %s, requesting ...", [bucket cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+            return err_msg;  // nothing more we can do
+        }
+    }
+    
+    if (kDebugLevel > 3)
+        NSLog(@"PersonalDataController:googleDriveUpload: Using bucket id: %@.", bucket_id);
+    
+    // And finally, see if the file already exists.
+    NSString* file_id = [_drive_ids objectForKey:id_key];
+    if (file_id == nil) {
+        // Upload the file, as it doesn't exist (yet).
+        GTLDriveParentReference* parent = [GTLDriveParentReference object];
+        parent.identifier = bucket_id;
+        
+        GTLDriveFile* tmp_file = [GTLDriveFile object];
+        tmp_file.title = filename;
+        tmp_file.parents = @[parent];
+        NSData* data_as_data = [data dataUsingEncoding:NSUTF8StringEncoding];
+        
+        GTLUploadParameters* parameters = [GTLUploadParameters uploadParametersWithData:data_as_data MIMEType:@"application/octet-stream"];
+        GTLQueryDrive* upload_query = [GTLQueryDrive queryForFilesInsertWithObject:tmp_file uploadParameters:parameters];
+        
+        UIAlertView* progress_alert = [[UIAlertView alloc] initWithTitle:@"Uploading Data to Drive" message:@"Please wait ..." delegate:nil cancelButtonTitle:nil otherButtonTitles:nil];
+        [progress_alert show];
+        UIActivityIndicatorView* activity_view = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
+        activity_view.center = CGPointMake(progress_alert.bounds.size.width / 2, progress_alert.bounds.size.height - 45);
+        [progress_alert addSubview:activity_view];
+        [activity_view startAnimating];
+        
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:googleDriveUpload: Attempting upload query of %@ (id: %@, key: %@), in %@.", filename, file_id, id_key, bucket);
+        
+        [_drive executeQuery:upload_query completionHandler:^(GTLServiceTicket* ticket, GTLDriveFile* updated_file, NSError* gtl_err) {
+            [progress_alert dismissWithClickedButtonIndex:0 animated:YES];
+            if (gtl_err != nil) {
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"PersonalDataController:googleDriveUpload:" message:gtl_err.localizedDescription delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+            } else {
+                [_drive_ids setObject:updated_file.identifier forKey:id_key];
+                [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveIDsFilename] dictionary:_drive_ids];
+            }
+        }];
+    } else {
+        // File already exists, so we need to update it.
+        GTLDriveParentReference* parent = [GTLDriveParentReference object];
+        parent.identifier = bucket_id;
+        
+        GTLDriveFile* tmp_file = [GTLDriveFile object];
+        tmp_file.title = filename;
+        tmp_file.parents = @[parent];
+        NSData* data_as_data = [data dataUsingEncoding:NSUTF8StringEncoding];
+        
+        GTLUploadParameters* parameters = [GTLUploadParameters uploadParametersWithData:data_as_data MIMEType:@"application/octet-stream"];
+        GTLQueryDrive* update_query = [GTLQueryDrive queryForFilesUpdateWithObject:tmp_file fileId:file_id uploadParameters:parameters];
+        
+        UIAlertView* progress_alert = [[UIAlertView alloc] initWithTitle:@"Uploading Data to Drive" message:@"Please wait ..." delegate:nil cancelButtonTitle:nil otherButtonTitles:nil];
+        [progress_alert show];
+        UIActivityIndicatorView* activity_view = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
+        activity_view.center = CGPointMake(progress_alert.bounds.size.width / 2, progress_alert.bounds.size.height - 45);
+        [progress_alert addSubview:activity_view];
+        [activity_view startAnimating];
+        
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:googleDriveUpload: Attempting update query of %@ (id:%@, key:%@), in %@.", filename, file_id, id_key, bucket);
+        
+        [_drive executeQuery:update_query completionHandler:^(GTLServiceTicket* ticket, GTLDriveFile* updated_file, NSError* gtl_err) {
+            [progress_alert dismissWithClickedButtonIndex:0 animated:YES];
+            if (gtl_err != nil) {
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"PersonalDataController:googleDriveUpload:" message:gtl_err.localizedDescription delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+            } else {
+                if (![updated_file.identifier isEqual:[_drive_ids objectForKey:id_key]]) {
+                    [_drive_ids setObject:updated_file.identifier forKey:id_key];
+                    [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveIDsFilename] dictionary:_drive_ids];
+                }
+            }
+        }];
+    }
+    
+    return nil;
+}
+
+- (void) googleDriveQueryFolder:(NSString*)folder rootID:(NSString*)root_id {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:googleDriveQueryFolder: called.");
+    
+    // Query Drive for the specified folder (within the root "SLS" folder).
+    GTLQueryDrive* search_query = [GTLQueryDrive queryForFilesList];
+    search_query.q = [NSString stringWithFormat:@"'%@' in parents", root_id];
+    
+    UIAlertView* progress_alert = [[UIAlertView alloc] initWithTitle:@"Querying Google Drive" message:@"Please wait ..." delegate:nil cancelButtonTitle:nil otherButtonTitles:nil];
+    [progress_alert show];
+    UIActivityIndicatorView* activity_view = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
+    activity_view.center = CGPointMake(progress_alert.bounds.size.width / 2, progress_alert.bounds.size.height - 45);
+    [progress_alert addSubview:activity_view];
+    [activity_view startAnimating];
+    
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:googleDriveQueryFolder: Attempting folder (%@) search query in parent id: %@.", folder, root_id);
+    
+    [_drive executeQuery:search_query completionHandler:^(GTLServiceTicket* ticket, GTLDriveFileList* files, NSError* gtl_err) {
+        [progress_alert dismissWithClickedButtonIndex:0 animated:YES];
+        if (gtl_err != nil) {
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"PersonalDataController:googleDriveQueryFolder:" message:gtl_err.localizedDescription delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+            [alert show];
+        } else {
+            BOOL found = false;
+            for (id object in files.items) {
+                GTLDriveFile* file = (GTLDriveFile*)object;
+                if ([file.title isEqual:folder]) {
+                    if (kDebugLevel > 2) {
+                        NSString* msg = [NSString stringWithFormat:@"DEBUG: Found file: %@, id: %@.", file.title, file.identifier];
+                        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"PersonalDataController:googleDriveQueryFolder:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                        [alert show];
+                    }
+                    
+                    [_drive_ids setObject:file.identifier forKey:folder];
+                    [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveIDsFilename] dictionary:_drive_ids];
+                    found = true;
+                    
+                    // See if it's public.
+                    if (file.webViewLink != nil) {
+                        [_drive_wvls setObject:file.webViewLink forKey:folder];
+                        [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveWVLsFilename] dictionary:_drive_wvls];
+                        
+                        if (kDebugLevel > 2) {
+                            NSString* msg = [NSString stringWithFormat:@"DEBUG: Added %@ into driveWVLs using key: %@", file.webViewLink, folder];
+                            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"PersonalDataController:googleDriveQueryFolder:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                            [alert show];
+                        }
+                    } else {
+                        [self googleDriveUpdateFolderPermission:file];  // make it public (can this cause infinite recusion?)
+                    }
+                }
+            }
+            if (!found) {
+                // Didn't find the file.
+                [_drive_ids removeObjectForKey:folder];  // just in-case
+                
+                if (kDebugLevel > 2) {
+                    NSString* msg = [NSString stringWithFormat:@"DEBUG: Issuing create for %@", folder];
+                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"PersonalDataController:googleDriveQueryFolder:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                    [alert show];
+                }
+                
+                // Create it.
+                [self googleDriveInsertFolder:folder rootID:root_id];
+            }
+        }
+    }];
+    
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:googleDriveQueryFolder: After folder query attempt (%@) using parent id: %@.", folder, root_id);
+    
+}
+
+- (void) googleDriveInsertFolder:(NSString*)folder rootID:(NSString*)root_id {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:googleDriveInsertFolder: called.");
+    
+    // Create a folder within a folder (the root "SLS" folder) in Drive.
+    GTLDriveParentReference* parent = [GTLDriveParentReference object];
+    parent.identifier = root_id;
+    
+    GTLDriveFile* tmp_folder = [GTLDriveFile object];
+    tmp_folder.title = folder;
+    tmp_folder.mimeType = @"application/vnd.google-apps.folder";
+    tmp_folder.parents = @[parent];
+    
+#if 0  // XXX Doesn't seem to work
+    // Make sure the folder is a public folder.
+    GTLDrivePermission* permissions = [GTLDrivePermission object];
+    permissions.role = @"reader";
+    permissions.type = @"anyone";
+    permissions.value = @"";
+    sls_folder.userPermission = permissions;
+#endif
+    
+    GTLQueryDrive* insert_query = [GTLQueryDrive queryForFilesInsertWithObject:tmp_folder uploadParameters:nil];
+    
+    UIAlertView* progress_alert = [[UIAlertView alloc] initWithTitle:@"Creating Folder in Google Drive" message:@"Please wait ..." delegate:nil cancelButtonTitle:nil otherButtonTitles:nil];
+    [progress_alert show];
+    UIActivityIndicatorView* activity_view = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
+    activity_view.center = CGPointMake(progress_alert.bounds.size.width / 2, progress_alert.bounds.size.height - 45);
+    [progress_alert addSubview:activity_view];
+    [activity_view startAnimating];
+    
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:googleDriveInsertFolder: Attempting insert query of %@ into %@.", folder, root_id);
+    
+    [_drive executeQuery:insert_query completionHandler:^(GTLServiceTicket* ticket, GTLDriveFile* updated_file, NSError* gtl_err) {
+        [progress_alert dismissWithClickedButtonIndex:0 animated:YES];
+        if (gtl_err != nil) {
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterVC:googleDriveInsertFolder:" message:gtl_err.localizedDescription delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+            [alert show];
+        } else {
+            [_drive_ids setObject:updated_file.identifier forKey:folder];
+            [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveIDsFilename] dictionary:_drive_ids];
+            
+            // See if it's public.
+            if (updated_file.webViewLink != nil) {
+                [_drive_wvls setObject:updated_file.webViewLink forKey:folder];
+                [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveWVLsFilename] dictionary:_drive_wvls];
+                
+                if (kDebugLevel > 2) {
+                    NSString* msg = [NSString stringWithFormat:@"DEBUG: Added %@ into driveWVLs using key: %@", updated_file.webViewLink, folder];
+                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"PersonalDataController:googleDriveInsertFolder:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                    [alert show];
+                }
+            } else {
+                [self googleDriveUpdateFolderPermission:updated_file];  // make it public (note, can this cause infinite recusion with Query?)
+            }
+        }
+    }];
+}
+
+- (void) googleDriveQueryFileId:(NSString*)file_id {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:googleDriveQueryFileId: called.");
+    
+    GTLQueryDrive* search_query = [GTLQueryDrive queryForFilesGetWithFileId:file_id];
+    
+    UIAlertView* progress_alert = [[UIAlertView alloc] initWithTitle:@"Querying Google Drive" message:@"Please wait ..." delegate:nil cancelButtonTitle:nil otherButtonTitles:nil];
+    [progress_alert show];
+    UIActivityIndicatorView* activity_view = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
+    activity_view.center = CGPointMake(progress_alert.bounds.size.width / 2, progress_alert.bounds.size.height - 45);
+    [progress_alert addSubview:activity_view];
+    [activity_view startAnimating];
+    
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:googleDriveQueryFileId: Attempting folder query using ID: %@.", file_id);
+    
+    // GTLServiceTicket can be used to track the status of the request.
+    [_drive executeQuery:search_query completionHandler:^(GTLServiceTicket* ticket, GTLDriveFile* updated_file, NSError* gtl_err) {
+        [progress_alert dismissWithClickedButtonIndex:0 animated:YES];
+        if (gtl_err != nil) {
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterVC:googleDriveQueryFileId:" message:gtl_err.localizedDescription delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+            [alert show];
+        } else {
+            // Folder found.
+            if (updated_file.webViewLink != nil) {
+                [_drive_wvls setObject:updated_file.webViewLink forKey:updated_file.title];
+                [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveWVLsFilename] dictionary:_drive_wvls];
+                
+                if (kDebugLevel > 2) {
+                    NSString* msg = [NSString stringWithFormat:@"DEBUG: Added %@ into driveWVLs using key: %@",  updated_file.webViewLink, updated_file.title];
+                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"PersonalDataController:googleDriveQueryFileId:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                    [alert show];
+                }
+            }
+        }
+    }];
+}
+
+- (void) googleDriveUpdateFolderPermission:(GTLDriveFile*)folder {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:googleDriveUpdateFolderPermission: called.");
+    
+    GTLDrivePermission* new_permission = [GTLDrivePermission object];
+    new_permission.role = @"reader";
+    new_permission.type = @"anyone";
+    new_permission.value = nil;
+    
+    GTLQueryDrive* update_query = [GTLQueryDrive queryForPermissionsInsertWithObject:new_permission fileId:folder.identifier];
+    
+    UIAlertView* progress_alert = [[UIAlertView alloc] initWithTitle:@"Updating Folder in Google Drive" message:@"Please wait ..." delegate:nil cancelButtonTitle:nil otherButtonTitles:nil];
+    [progress_alert show];
+    UIActivityIndicatorView* activity_view = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
+    activity_view.center = CGPointMake(progress_alert.bounds.size.width / 2, progress_alert.bounds.size.height - 45);
+    [progress_alert addSubview:activity_view];
+    [activity_view startAnimating];
+    
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:googleDriveUpdateFolderPermission: Attempting folder permission update query on %@.", folder.title);
+    
+    [_drive executeQuery:update_query completionHandler:^(GTLServiceTicket* ticket, GTLDrivePermission* permission, NSError* gtl_err) {
+        [progress_alert dismissWithClickedButtonIndex:0 animated:YES];
+        if (gtl_err != nil) {
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterVC:googleDriveUpdateFolderPermission:" message:gtl_err.localizedDescription delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+            [alert show];
+        } else {
+            // Update worked, get new meta-data.
+            [self googleDriveQueryFileId:folder.identifier];
+        }
+    }];
+}
+
 - (BOOL) googleDriveIsAuthorized {
     if (kDebugLevel > 4)
         NSLog(@"PersonalDataController:googleDriveIsAuthorized: called.");
@@ -3447,5 +3882,358 @@ static const int kInitialDictionarySize = 5;
     return nil;
 }
 #endif
+
+#pragma mark - Google Drive Class functions
+
++ (NSString*) googleDriveUpload:(PersonalDataController*)our_data data:(NSString*)data rootFolder:(NSString*)root_folder_name bucket:(NSString*)bucket filename:(NSString*)filename idKey:(NSString*)id_key {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:googleDriveUpload:: called.");
+    
+    NSString* err_msg = nil;
+    
+    // Make sure drive is set.
+    if (our_data.drive == nil)
+        return @"PersonalDataController:googleDriveUpload: drive is nil!";
+    
+    // See if the root "SLS" folder exists in Drive.
+    NSString* sls_folder_id = [our_data.drive_ids objectForKey:root_folder_name];
+    if (sls_folder_id == nil || [sls_folder_id length] == 0) {
+        err_msg = [[NSString alloc] initWithFormat:@"%s's root folder: %@, does not exist, check file-store in Config", [[PersonalDataController getFileStoreService:our_data.file_store] cStringUsingEncoding:[NSString defaultCStringEncoding]], root_folder_name];
+        return err_msg;  // user will have to address the problem in FileStoreDataView
+    }
+    
+    // Next, make sure the bucket folder exists.
+    NSString* bucket_id = [our_data.drive_ids objectForKey:bucket];
+    if (bucket_id == nil || [bucket_id length] == 0) {
+        // Try to fetch the bucket folder ID (and create it, if necessary).
+        [PersonalDataController googleDriveQueryFolder:our_data folder:bucket rootID:sls_folder_id];
+        
+        // Record that we're attempting to fetch/create the bucket.
+        err_msg = [[NSString alloc] initWithFormat:@"Google Drive upload skipped: %s/%s does not exist, creating ...", [root_folder_name cStringUsingEncoding:[NSString defaultCStringEncoding]], [bucket cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+        return err_msg;  // nothing more we can do
+    } else {
+        // Make sure we have the *public* webviewlink.
+        if ([our_data.drive_wvls objectForKey:bucket] == nil) {
+            [PersonalDataController googleDriveQueryFileId:our_data fileID:bucket_id];
+            
+            // Record that we're attempting to fetch the bucket's public URL.
+            err_msg = [[NSString alloc] initWithFormat:@"Google Drive upload skipped: no web view link for %s, requesting ...", [bucket cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+            return err_msg;  // nothing more we can do
+        }
+    }
+    
+    if (kDebugLevel > 3)
+        NSLog(@"PersonalDataController:googleDriveUpload: Using bucket id: %@.", bucket_id);
+    
+    // And finally, see if the file already exists.
+    NSString* file_id = [our_data.drive_ids objectForKey:id_key];
+    if (file_id == nil) {
+        // Upload the file, as it doesn't exist (yet).
+        GTLDriveParentReference* parent = [GTLDriveParentReference object];
+        parent.identifier = bucket_id;
+        
+        GTLDriveFile* tmp_file = [GTLDriveFile object];
+        tmp_file.title = filename;
+        tmp_file.parents = @[parent];
+        NSData* data_as_data = [data dataUsingEncoding:NSUTF8StringEncoding];
+        
+        GTLUploadParameters* parameters = [GTLUploadParameters uploadParametersWithData:data_as_data MIMEType:@"application/octet-stream"];
+        GTLQueryDrive* upload_query = [GTLQueryDrive queryForFilesInsertWithObject:tmp_file uploadParameters:parameters];
+        
+        UIAlertView* progress_alert = [[UIAlertView alloc] initWithTitle:@"Uploading Data to Drive" message:@"Please wait ..." delegate:nil cancelButtonTitle:nil otherButtonTitles:nil];
+        [progress_alert show];
+        UIActivityIndicatorView* activity_view = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
+        activity_view.center = CGPointMake(progress_alert.bounds.size.width / 2, progress_alert.bounds.size.height - 45);
+        [progress_alert addSubview:activity_view];
+        [activity_view startAnimating];
+        
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:googleDriveUpload: Attempting upload query of %@ (id: %@, key: %@), in %@.", filename, file_id, id_key, bucket);
+        
+        [our_data.drive executeQuery:upload_query completionHandler:^(GTLServiceTicket* ticket, GTLDriveFile* updated_file, NSError* gtl_err) {
+            [progress_alert dismissWithClickedButtonIndex:0 animated:YES];
+            if (gtl_err != nil) {
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"PersonalDataController:googleDriveUpload:" message:gtl_err.localizedDescription delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+            } else {
+                [our_data.drive_ids setObject:updated_file.identifier forKey:id_key];
+                [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveIDsFilename] dictionary:our_data.drive_ids];
+                
+#if 0 // XXX Not needed for files, right?
+                // See if it's public.
+                if ([updated_file.userPermission.role isEqual:[NSString stringWithFormat:@"reader"]] && [updated_file.userPermission.type isEqual:[NSString stringWithFormat:@"anyone"]]) {
+                    
+                    [[self class] configureView];  // XXX TODO(aka) do we even need this, or can we just return?
+                } else {
+                    [ProviderMasterViewController googleDriveUpdateFolderPermission:our_data folder:updated_file];  // make it public
+                }
+#endif
+            }
+        }];
+    } else {
+        // File already exists, so we need to update it.
+        GTLDriveParentReference* parent = [GTLDriveParentReference object];
+        parent.identifier = bucket_id;
+        
+        GTLDriveFile* tmp_file = [GTLDriveFile object];
+        tmp_file.title = filename;
+        tmp_file.parents = @[parent];
+        NSData* data_as_data = [data dataUsingEncoding:NSUTF8StringEncoding];
+        
+        GTLUploadParameters* parameters = [GTLUploadParameters uploadParametersWithData:data_as_data MIMEType:@"application/octet-stream"];
+        GTLQueryDrive* update_query = [GTLQueryDrive queryForFilesUpdateWithObject:tmp_file fileId:file_id uploadParameters:parameters];
+        
+        UIAlertView* progress_alert = [[UIAlertView alloc] initWithTitle:@"Uploading Data to Drive" message:@"Please wait ..." delegate:nil cancelButtonTitle:nil otherButtonTitles:nil];
+        [progress_alert show];
+        UIActivityIndicatorView* activity_view = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
+        activity_view.center = CGPointMake(progress_alert.bounds.size.width / 2, progress_alert.bounds.size.height - 45);
+        [progress_alert addSubview:activity_view];
+        [activity_view startAnimating];
+        
+        if (kDebugLevel > 1)
+            NSLog(@"PersonalDataController:googleDriveUpload: Attempting update query of %@ (id:%@, key:%@), in %@.", filename, file_id, id_key, bucket);
+        
+        [our_data.drive executeQuery:update_query completionHandler:^(GTLServiceTicket* ticket, GTLDriveFile* updated_file, NSError* gtl_err) {
+            [progress_alert dismissWithClickedButtonIndex:0 animated:YES];
+            if (gtl_err != nil) {
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"PersonalDataController:googleDriveUpload:" message:gtl_err.localizedDescription delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+            } else {
+                if (![updated_file.identifier isEqual:[our_data.drive_ids objectForKey:id_key]]) {
+                    [our_data.drive_ids setObject:updated_file.identifier forKey:id_key];
+                    [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveIDsFilename] dictionary:our_data.drive_ids];
+                }
+                
+#if 0 // XXX Not needed, right?
+                // See if it's public.
+                if ([updated_file.userPermission.role isEqual:[NSString stringWithFormat:@"reader"]] && [updated_file.userPermission.type isEqual:[NSString stringWithFormat:@"anyone"]]) {
+                    
+                    [[self class] configureView];  // XXX TODO(aka) do we even need this, or can we just return?
+                } else {
+                    [ProviderMasterViewController googleDriveUpdateFolderPermission:updated_file];  // make it public
+                }
+#endif
+            }
+        }];
+    }
+    
+    return nil;
+}
+
++ (void) googleDriveQueryFolder:(PersonalDataController*)our_data folder:(NSString*)folder rootID:(NSString*)root_id {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:googleDriveQueryFolder: called.");
+    
+    // Query Drive for the specified folder (within the root "SLS" folder).
+    GTLQueryDrive* search_query = [GTLQueryDrive queryForFilesList];
+    search_query.q = [NSString stringWithFormat:@"'%@' in parents", root_id];
+    
+    UIAlertView* progress_alert = [[UIAlertView alloc] initWithTitle:@"Querying Google Drive" message:@"Please wait ..." delegate:nil cancelButtonTitle:nil otherButtonTitles:nil];
+    [progress_alert show];
+    UIActivityIndicatorView* activity_view = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
+    activity_view.center = CGPointMake(progress_alert.bounds.size.width / 2, progress_alert.bounds.size.height - 45);
+    [progress_alert addSubview:activity_view];
+    [activity_view startAnimating];
+    
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:googleDriveQueryFolder: Attempting folder (%@) search query in parent id: %@.", folder, root_id);
+    
+    [our_data.drive executeQuery:search_query completionHandler:^(GTLServiceTicket* ticket, GTLDriveFileList* files, NSError* gtl_err) {
+        [progress_alert dismissWithClickedButtonIndex:0 animated:YES];
+        if (gtl_err != nil) {
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"PersonalDataController:googleDriveQueryFolder:" message:gtl_err.localizedDescription delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+            [alert show];
+        } else {
+            BOOL found = false;
+            for (id object in files.items) {
+                GTLDriveFile* file = (GTLDriveFile*)object;
+                if ([file.title isEqual:folder]) {
+                    
+                    NSString* msg = [NSString stringWithFormat:@"XXX Found file: %@, id: %@.", file.title, file.identifier];
+                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"googleDriveQueryFolder:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                    [alert show];
+                    
+                    [our_data.drive_ids setObject:file.identifier forKey:folder];
+                    [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveIDsFilename] dictionary:our_data.drive_ids];
+                    found = true;
+                    
+                    // See if it's public.
+                    if (file.webViewLink != nil) {
+                        [our_data.drive_wvls setObject:file.webViewLink forKey:folder];
+                        [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveWVLsFilename] dictionary:our_data.drive_wvls];
+                        
+                        if (kDebugLevel > 2) {
+                            NSString* msg = [NSString stringWithFormat:@"DEBUG: Added %@ into driveWVLs using key: %@", file.webViewLink, folder];
+                            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"PersonalDataController:googleDriveQueryFolder:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                            [alert show];
+                        }
+                        
+                        // Let anyone know, that cares, that we're done.
+                        NSString* name = [NSString stringWithFormat:@"%s", kFSAsyncOpDone];
+                        [[NSNotificationCenter defaultCenter] postNotificationName:name object:nil];
+                    } else {
+                        [PersonalDataController googleDriveUpdateFolderPermission:our_data folder:file];  // make it public (note, can this cause infinite recusion?)
+                    }
+                }
+            }
+            if (!found) {
+                // Didn't find the file.
+                [our_data.drive_ids removeObjectForKey:folder];  // just in-case
+                
+                if (kDebugLevel > 2) {
+                    NSString* msg = [NSString stringWithFormat:@"DEBUG: Issuing create for %@", folder];
+                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"PersonalDataController:googleDriveQueryFolder:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                    [alert show];
+                }
+                
+                // Create it.
+                [PersonalDataController googleDriveInsertFolder:our_data folder:folder rootID:root_id];
+            }
+        }
+    }];
+    
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:googleDriveQueryFolder: XXXX After folder query attempt (%@) using parent id: %@.", folder, root_id);
+    
+}
+
++ (void) googleDriveInsertFolder:(PersonalDataController*)our_data folder:(NSString*)folder rootID:(NSString*)root_id {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:googleDriveInsertFolder: called.");
+    
+    // Create a folder within a folder (the root "SLS" folder) in Drive.
+    GTLDriveParentReference* parent = [GTLDriveParentReference object];
+    parent.identifier = root_id;
+    
+    GTLDriveFile* tmp_folder = [GTLDriveFile object];
+    tmp_folder.title = folder;
+    tmp_folder.mimeType = @"application/vnd.google-apps.folder";
+    tmp_folder.parents = @[parent];
+    
+#if 0  // XXX Doesn't seem to work
+    // Make sure the folder is a public folder.
+    GTLDrivePermission* permissions = [GTLDrivePermission object];
+    permissions.role = @"reader";
+    permissions.type = @"anyone";
+    permissions.value = @"";
+    sls_folder.userPermission = permissions;
+#endif
+    
+    GTLQueryDrive* insert_query = [GTLQueryDrive queryForFilesInsertWithObject:tmp_folder uploadParameters:nil];
+    
+    UIAlertView* progress_alert = [[UIAlertView alloc] initWithTitle:@"Creating Folder in Google Drive" message:@"Please wait ..." delegate:nil cancelButtonTitle:nil otherButtonTitles:nil];
+    [progress_alert show];
+    UIActivityIndicatorView* activity_view = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
+    activity_view.center = CGPointMake(progress_alert.bounds.size.width / 2, progress_alert.bounds.size.height - 45);
+    [progress_alert addSubview:activity_view];
+    [activity_view startAnimating];
+    
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:googleDriveInsertFolder: Attempting insert query of %@ into %@.", folder, root_id);
+    
+    [our_data.drive executeQuery:insert_query completionHandler:^(GTLServiceTicket* ticket, GTLDriveFile* updated_file, NSError* gtl_err) {
+        [progress_alert dismissWithClickedButtonIndex:0 animated:YES];
+        if (gtl_err != nil) {
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterVC:googleDriveInsertFolder:" message:gtl_err.localizedDescription delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+            [alert show];
+        } else {
+            [our_data.drive_ids setObject:updated_file.identifier forKey:folder];
+            [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveIDsFilename] dictionary:our_data.drive_ids];
+            
+            // See if it's public.
+            if (updated_file.webViewLink != nil) {
+                [our_data.drive_wvls setObject:updated_file.webViewLink forKey:folder];
+                [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveWVLsFilename] dictionary:our_data.drive_wvls];
+                
+                if (kDebugLevel> 2) {
+                    NSString* msg = [NSString stringWithFormat:@"DEBUG: Added %@ into driveWVLs using key: %@", updated_file.webViewLink, folder];
+                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"PersonalDataController:googleDriveInsertFolder:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                    [alert show];
+                }
+                
+                // Let anyone know, that cares, that we're done.
+                NSString* name = [NSString stringWithFormat:@"%s", kFSAsyncOpDone];
+                [[NSNotificationCenter defaultCenter] postNotificationName:name object:nil];
+            } else {
+                [PersonalDataController googleDriveUpdateFolderPermission:our_data folder:updated_file];  // make it public (note, can this cause infinite recusion with Query?)
+            }
+        }
+    }];
+}
+
++ (void) googleDriveQueryFileId:(PersonalDataController*)our_data fileID:(NSString*)file_id {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:googleDriveQueryFileId: called.");
+    
+    GTLQueryDrive* search_query = [GTLQueryDrive queryForFilesGetWithFileId:file_id];
+    
+    UIAlertView* progress_alert = [[UIAlertView alloc] initWithTitle:@"Querying Google Drive" message:@"Please wait ..." delegate:nil cancelButtonTitle:nil otherButtonTitles:nil];
+    [progress_alert show];
+    UIActivityIndicatorView* activity_view = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
+    activity_view.center = CGPointMake(progress_alert.bounds.size.width / 2, progress_alert.bounds.size.height - 45);
+    [progress_alert addSubview:activity_view];
+    [activity_view startAnimating];
+    
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:googleDriveQueryFileId: Attempting folder query using ID: %@.", file_id);
+    
+    // GTLServiceTicket can be used to track the status of the request.
+    [our_data.drive executeQuery:search_query completionHandler:^(GTLServiceTicket* ticket, GTLDriveFile* updated_file, NSError* gtl_err) {
+        [progress_alert dismissWithClickedButtonIndex:0 animated:YES];
+        if (gtl_err != nil) {
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterVC:googleDriveQueryFileId:" message:gtl_err.localizedDescription delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+            [alert show];
+        } else {
+            // Folder found.
+            if (updated_file.webViewLink != nil) {
+                [our_data.drive_wvls setObject:updated_file.webViewLink forKey:updated_file.title];
+                [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveWVLsFilename] dictionary:our_data.drive_wvls];
+                
+                if (kDebugLevel > 2) {
+                    NSString* msg = [NSString stringWithFormat:@"DEBUG: Added %@ into driveWVLs using key: %@",  updated_file.webViewLink, updated_file.title];
+                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"PersonalDataController:googleDriveQueryFileId:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                    [alert show];
+                }
+                
+                // Let anyone know, that cares, that we're done.
+                NSString* name = [NSString stringWithFormat:@"%s", kFSAsyncOpDone];
+                [[NSNotificationCenter defaultCenter] postNotificationName:name object:nil];
+            }
+        }
+    }];
+}
+
++ (void) googleDriveUpdateFolderPermission:(PersonalDataController*)our_data folder:(GTLDriveFile*)folder {
+    if (kDebugLevel > 4)
+        NSLog(@"PersonalDataController:googleDriveUpdateFolderPermission: called.");
+    
+    GTLDrivePermission* new_permission = [GTLDrivePermission object];
+    new_permission.role = @"reader";
+    new_permission.type = @"anyone";
+    new_permission.value = nil;
+    
+    GTLQueryDrive* update_query = [GTLQueryDrive queryForPermissionsInsertWithObject:new_permission fileId:folder.identifier];
+    
+    UIAlertView* progress_alert = [[UIAlertView alloc] initWithTitle:@"Updating Folder in Google Drive" message:@"Please wait ..." delegate:nil cancelButtonTitle:nil otherButtonTitles:nil];
+    [progress_alert show];
+    UIActivityIndicatorView* activity_view = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
+    activity_view.center = CGPointMake(progress_alert.bounds.size.width / 2, progress_alert.bounds.size.height - 45);
+    [progress_alert addSubview:activity_view];
+    [activity_view startAnimating];
+    
+    if (kDebugLevel > 1)
+        NSLog(@"PersonalDataController:googleDriveUpdateFolderPermission: Attempting folder permission update query on %@.", folder.title);
+    
+    [our_data.drive executeQuery:update_query completionHandler:^(GTLServiceTicket* ticket, GTLDrivePermission* permission, NSError* gtl_err) {
+        [progress_alert dismissWithClickedButtonIndex:0 animated:YES];
+        if (gtl_err != nil) {
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterVC:googleDriveUpdateFolderPermission:" message:gtl_err.localizedDescription delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+            [alert show];
+        } else {
+            // Update worked, get new meta-data.
+            [PersonalDataController googleDriveQueryFileId:our_data fileID:folder.identifier];
+        }
+    }];
+}
 
 @end

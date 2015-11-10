@@ -267,8 +267,11 @@ static const int kDebugLevel = 1;
         message = [[NSString alloc] initWithFormat:@"Scan failed, rescan with SCAN button above:\n\nDebugging:\n"];
         message = [message stringByAppendingString:scan_result];
     } else {
-        message = [[NSString alloc] initWithFormat:@"Scanned successful, hit DONE to move to the next phase.\n\nDebugging:\n"];
-        message = [message stringByAppendingString:scan_result];
+        message = [[NSString alloc] initWithFormat:@"Scan successful, hit DONE to move to the next phase."];
+        if (kDebugLevel > 1) {
+            message = [message stringByAppendingString:@"\n\nDebugging:\n"];
+            message = [message stringByAppendingString:scan_result];
+        }
         // XXX [_done_button setTitle:@"OKAY" forState:UIControlStateNormal];
         
         _identity_hash = identity_hash;

@@ -9,12 +9,16 @@
 #import "NSData+Base64.h"
 
 #import "AddConsumerCTViewController.h"
+#import "ProviderMasterViewController.h"  // for SIMULATOR HACK
 #import "security-defines.h"
 
 
 static const int kDebugLevel = 1;
 
+// ACCESS_GROUPS:
 static const char* kAccessGroupCT = KC_ACCESS_GROUP_CT;
+
+static const char* kFSRootFolderName = PDC_ROOT_FOLDER_NAME;      // root folder to store SLS data in file-store
 
 
 @interface AddConsumerCTViewController ()
@@ -284,13 +288,42 @@ enum {
         if (kDebugLevel > 0)
             NSLog(@"AddConsumerCTViewController:prepareForSeque: Segue'ng to QREncodePKView.");
         
-                // Send *our data* and set ourselves up as the delegate.
+        // Send *our data* and set ourselves up as the delegate.
         UINavigationController* nav_controller = (UINavigationController*)segue.destinationViewController;
         QREncodePKViewController* view_controller = (QREncodePKViewController*)[[nav_controller viewControllers] objectAtIndex:0];
         view_controller.our_data = _our_data;
         view_controller.identity = _consumer.identity;
         view_controller.delegate = self;
         
+#if 1  // SIMULATOR HACK:  Send our public key to our file-store so simulator can download it.
+        if ([_consumer.identity caseInsensitiveCompare:@"iPhone Simulator"] == NSOrderedSame) {
+            NSLog(@"AddConsumerCTViewController:prepareForSeque: Found consumer iPhone Simulator.");
+            
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"prepareForSeque:" message:[NSString stringWithFormat:@"Sending public key to file-store."] delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+            [alert show];
+            
+            // Setup application tag for key-chain query and attempt to get a key.
+            NSString* public_key_identity = [NSString stringWithFormat:@"Andrew K. Adams.publickey"];
+            NSData* application_tag = [public_key_identity dataUsingEncoding:[NSString defaultCStringEncoding]];
+            NSData* public_key = nil;
+            NSString* err_msg = [PersonalDataController queryKeyData:application_tag keyData:&public_key];
+            if (err_msg != nil)
+                NSLog(@"AddConsumerCTViewController:prepareForSeque: queryKeyData() failed: %s.", [err_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            
+            NSString* public_key_b64 = [public_key base64EncodedString];
+            NSString* filename = [[NSString alloc] initWithFormat:@"public-key.b64"];
+            NSString* dict_key = filename;  // key-bundle filenames are unique
+            NSString* bucket = _our_data.identity_hash;
+            NSString* root_folder_name = [NSString stringWithFormat:@"%s", kFSRootFolderName];
+            
+            err_msg = [_our_data googleDriveUpload:public_key_b64 rootFolder:root_folder_name bucket:bucket filename:filename idKey:dict_key];
+            if (err_msg != nil) {
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"AddConsumerCTViewController:prepareForSeque:" message:err_msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
+                [alert show];
+            }
+        }
+#endif
+       
         if (kDebugLevel > 1)
             NSLog(@"AddConsumerCTViewController:prepareForSegue: ShowQREncodePKView controller's identity: %s, hash: %s, deposit: %s, public-key: %s, and consumer's identity: %s.", [view_controller.our_data.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [view_controller.our_data.identity_hash cStringUsingEncoding: [NSString defaultCStringEncoding]],[[view_controller.our_data.deposit description] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[view_controller.our_data.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [view_controller.identity cStringUsingEncoding: [NSString defaultCStringEncoding]]);
     } else if ([[segue identifier] isEqualToString:@"ShowQRDecodePKViewID"]) {
@@ -315,9 +348,9 @@ enum {
         view_controller.delegate = self;
         _challenge = arc4random() % 9999;  // get a four digit challenge (response will have + 1, so <= 9998)
         NSString* encrypted_challenge = nil;
-        NSString* error_msg = [PersonalDataController asymmetricEncryptString:[NSString stringWithFormat:@"%d", _challenge] publicKeyRef:[_consumer publicKeyRef] encryptedString:&encrypted_challenge];
-        if (error_msg) {
-            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"AddConsumerCTViewController:prepareForSeque:" message:error_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+        NSString* err_msg = [PersonalDataController asymmetricEncryptString:[NSString stringWithFormat:@"%d", _challenge] publicKeyRef:[_consumer publicKeyRef] encryptedString:&encrypted_challenge];
+        if (err_msg) {
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"AddConsumerCTViewController:prepareForSeque:" message:err_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
             [alert show];
         }
         
@@ -325,6 +358,26 @@ enum {
             NSLog(@"AddConsumerCTViewController:prepareForSeque: using encrypted challenge: %s.", [encrypted_challenge cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         
         view_controller.encrypted_challenge = encrypted_challenge;
+        
+#if 1  // SIMULATOR HACK:  Send our challenge for the simulator to our file-store.
+        if ([_consumer.identity caseInsensitiveCompare:@"iPhone Simulator"] == NSOrderedSame) {
+            NSLog(@"AddConsumerCTViewController:prepareForSeque: Found consumer iPhone Simulator.");
+            
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"prepareForSeque:" message:[NSString stringWithFormat:@"Sending challenge to file-store."] delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+            [alert show];
+            
+            NSString* filename = [[NSString alloc] initWithFormat:@"challenge.b64"];
+            NSString* dict_key = filename;  // key-bundle filenames are unique
+            NSString* bucket = _our_data.identity_hash;
+            NSString* root_folder_name = [NSString stringWithFormat:@"%s", kFSRootFolderName];
+            
+            err_msg = [_our_data googleDriveUpload:encrypted_challenge rootFolder:root_folder_name bucket:bucket filename:filename idKey:dict_key];
+            if (err_msg != nil) {
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"AddConsumerCTViewController:prepareForSeque:" message:err_msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
+                [alert show];
+            }
+        }
+#endif
         
         if (kDebugLevel > 0)
             NSLog(@"AddConsumerCTViewController:prepareForSegue: ShowQREncodeChallengeView controller's identity: %s, hash: %s, deposit: %s, public-key: %s, consumer's identity: %s and challenge: %s.", [view_controller.our_data.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [view_controller.our_data.identity_hash cStringUsingEncoding: [NSString defaultCStringEncoding]],[[view_controller.our_data.deposit description] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[view_controller.our_data.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [view_controller.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [view_controller.encrypted_challenge cStringUsingEncoding:[NSString defaultCStringEncoding]]);
@@ -446,8 +499,17 @@ enum {
     // Add our identity hash and new public key to our Consumer object.
     if (identity_hash != nil)
         _consumer.identity_hash = identity_hash;
-    if (public_key != nil)
-        [_consumer setPublicKey:public_key accessGroup:[NSString stringWithFormat:@"%s", kAccessGroupCT]];
+    if (public_key != nil) {
+#if 1  // ACCESS_GROUP
+        NSString* err_msg = [_consumer setPublicKey:public_key accessGroup:[NSString stringWithFormat:@"%s", kAccessGroupCT]];
+#else
+        NSString* err_msg = [_consumer setPublicKey:public_key accessGroup:nil];
+#endif
+        if (err_msg != nil) {
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"AddProviderCTViewController:qrDecodePKViewControllerDidFinish:" message:err_msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
+            [alert show];
+        }
+    }
     
     if (kDebugLevel > 0)
         NSLog(@"AddConsumerCTViewController:qrDecodePKViewControllerDidFinish: identity: %s, hash: %s, public key: %s, publicKeyRef: %d.", [_consumer.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [_consumer.identity_hash cStringUsingEncoding: [NSString defaultCStringEncoding]], [[_consumer.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], ([_consumer publicKeyRef] == NULL ? false : true));
@@ -509,13 +571,13 @@ enum {
     }
     
     if (kDebugLevel > 0)
-        NSLog(@"AddConsumerCTViewController:qrDecodeChallengeViewControllerDidFinish: decrypting: %s.", [scan_results cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        NSLog(@"AddConsumerCTViewController:qrDecodeChallengeViewControllerDidFinish: decrypting (%ldB): %s.", (unsigned long)[scan_results length], [scan_results cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     // Decrypt the challenge.
     NSString* challenge_str = nil;
-    NSString* error_msg = [_our_data decryptString:scan_results decryptedString:&challenge_str];
-    if (error_msg) {
-        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"AddConsumerCTViewController:qrDecodeChallengeViewControllerDidFinish: TODO(aka)" message:error_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+    NSString* err_msg = [PersonalDataController asymmetricDecryptString:scan_results privateKeyRef:_our_data.privateKeyRef string:&challenge_str];
+    if (err_msg) {
+        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"AddConsumerCTViewController:qrDecodeChallengeViewControllerDidFinish: TODO(aka)" message:err_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
         [alert show];
         [self configureView];
         [self dismissViewControllerAnimated:YES completion:nil];

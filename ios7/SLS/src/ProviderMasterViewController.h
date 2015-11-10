@@ -40,6 +40,7 @@
 - (id) init;
 - (id) initWithNibName:(NSString*)nib_name_or_nil bundle:(NSBundle*)nib_bundle_or_nil;
 - (id) initWithStyle:(UITableViewStyle)style;
+- (void) updateOurDataState:(NSNotification*)notification;
 - (void) loadState;
 
 #pragma mark - NSUserDefaults management
@@ -63,6 +64,8 @@
 @end
 
 @protocol ProviderMasterViewControllerDelegate <NSObject>
+- (void) updateIdentity:(NSString*)identity;  // XXX Deprecated!
+- (void) updatePersonalDataController;
 - (void) addSelfToProviders:(NSString*)identity fileStoreURL:(NSURL*)file_store keyBundleURL:(NSURL*)key_bundle;
 - (void) addConsumerToProviders:(Principal*)consumer;
 @end

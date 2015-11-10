@@ -10,7 +10,7 @@
 #import "ProviderListViewController.h"
 #import "Principal.h"
 
-static const int kDebugLevel = 1;
+static const int kDebugLevel = 5;
 
 static const char* kAlertButtonCancelMessage = "No, cancel operation!";
 static const char* kAlertButtonGenKeysMessage = "Yes, generate new keys.";
@@ -48,8 +48,8 @@ static const char* kAlertButtonGenKeysMessage = "Yes, generate new keys.";
 #pragma mark - Initialization
 
 - (id) init {
-    if (kDebugLevel > 2)
-        NSLog(@"ConsumerDataViewController:init: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerDataVC:init: called.");
     
     if (self = [super init]) {
         _our_data = nil;
@@ -75,8 +75,8 @@ static const char* kAlertButtonGenKeysMessage = "Yes, generate new keys.";
 }
 
 - (id) initWithNibName:(NSString*)nib_name_or_nil bundle:(NSBundle*)nib_bundle_or_nil {
-    if (kDebugLevel > 2)
-        NSLog(@"ConsumerDataViewController:initWithNibName: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerDataVC:initWithNibName: called.");
     
     self = [super initWithNibName:nib_name_or_nil bundle:nib_bundle_or_nil];
     if (self) {
@@ -103,8 +103,8 @@ static const char* kAlertButtonGenKeysMessage = "Yes, generate new keys.";
 }
 
 - (id) initWithStyle:(UITableViewStyle)style {
-    if (kDebugLevel > 2)
-        NSLog(@"ConsumerDataViewController:initWithStyle: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerDataVC:initWithStyle: called.");
     
     self = [super initWithStyle:style];
     if (self) {
@@ -133,8 +133,8 @@ static const char* kAlertButtonGenKeysMessage = "Yes, generate new keys.";
 #pragma mark - View management
 
 - (void) viewDidLoad {
-    if (kDebugLevel > 2)
-        NSLog(@"ConsumerDataViewController:viewDidLoad: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerDataVC:viewDidLoad: called (%d).", [NSThread isMainThread]);
     
     [super viewDidLoad];
     
@@ -143,22 +143,36 @@ static const char* kAlertButtonGenKeysMessage = "Yes, generate new keys.";
     
     // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
     // self.navigationItem.rightBarButtonItem = self.editButtonItem;
+}
+
+- (void) viewDidUnload {
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerDataVC:viewDidUnload: called (%d).", [NSThread isMainThread]);
     
-    [self configureView];
+    [super viewDidUnload];
+}
+
+- (void) viewDidAppear:(BOOL)animated {
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerDataVC:viewDidAppear: called (%d).", [NSThread isMainThread]);
+    
+    [super viewDidAppear:animated];
+    
+    [self configureView];  // call configureView: to get the work done
 }
 
 - (void) configureView {
-    if (kDebugLevel > 2)
-        NSLog(@"ConsumerDataViewController:configureView: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerDataVC:configureView: called (%d).", [NSThread isMainThread]);
     
     // Show our identity.
     if (_our_data != nil && _our_data.identity != nil && [_our_data.identity length] > 0) {
         [_identity_label setText:_our_data.identity];
         [_identity_hash_label setText:_our_data.identity_hash];
     } else {
-        [_identity_label setText:@""];
-        [_identity_hash_label setText:@""];
-        [_deposit_label setText:@""];
+        [_identity_label setText:@"TOUCH TO SELECT"];
+        [_identity_hash_label setText:@"UNKNOWN"];
+        [_deposit_label setText:@"UNKNOWN"];
     }
     
     // And our deposit.
@@ -170,7 +184,7 @@ static const char* kAlertButtonGenKeysMessage = "Yes, generate new keys.";
         if (_our_data != nil && _our_data.identity != nil && [_our_data.identity length]) {
             _deposit_label.text = @"ERROR: \"mobile\" entry does not exist!";
         } else {
-            _deposit_label.text = @"";
+            _deposit_label.text = @"UNKNOWN";
         }
     }
 
@@ -180,9 +194,9 @@ static const char* kAlertButtonGenKeysMessage = "Yes, generate new keys.";
     
     if (kDebugLevel > 0) {
         if (public_key_ref == NULL)
-            NSLog(@"ConsumerDataViewController:configureView: public_key_ref is NULL!.");
+            NSLog(@"ConsumerDataVC:configureView: public_key_ref is NULL!.");
         else if (private_key_ref == NULL)
-            NSLog(@"ConsumerDataViewController:configureView: private_key_ref is NULL.");
+            NSLog(@"ConsumerDataVC:configureView: private_key_ref is NULL.");
     }
     
     if (public_key_ref == NULL || private_key_ref == NULL) {
@@ -222,15 +236,15 @@ static const char* kAlertButtonGenKeysMessage = "Yes, generate new keys.";
             _map_focus_label.text = @"None Selected";
     }
     
-    if (kDebugLevel > 3)
-        NSLog(@"ConsumerDataViewController:configureView: exiting.");
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerDataVC:configureView: exiting (%d).", [NSThread isMainThread]);
 }
 
 #pragma mark - Memory management
 
 - (void) didReceiveMemoryWarning {
-    if (kDebugLevel > 2)
-        NSLog(@"ConsumerDataViewController:didReceiveMemoryWarning: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerDataVC:didReceiveMemoryWarning: called.");
     
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
@@ -297,13 +311,13 @@ static const char* kAlertButtonGenKeysMessage = "Yes, generate new keys.";
 */
 
 - (void) tableView:(UITableView*)tableView didSelectRowAtIndexPath:(NSIndexPath*)indexPath {
-    if (kDebugLevel > 2)
-        NSLog(@"ConsumerDataViewController:didSelectRowAtIndexPath: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerDataVC:didSelectRowAtIndexPath: called.");
     
     NSUInteger section = [indexPath section];
     NSUInteger row = [indexPath row];
     
-    NSLog(@"ConsumerDataViewController:didSelectRowAtIndexPath: Configuring row %ld in section %ld.", (long)row, (long)section);
+    NSLog(@"ConsumerDataVC:didSelectRowAtIndexPath: Configuring row %ld in section %ld.", (long)row, (long)section);
     
     if (section == 0 && row == 0) {
         // First cell; request authorization to Address Book
@@ -339,17 +353,17 @@ static const char* kAlertButtonGenKeysMessage = "Yes, generate new keys.";
 #pragma mark - Navigation
 
 - (void) prepareForSegue:(UIStoryboardSegue*)segue sender:(id)sender {
-    if (kDebugLevel > 2)
-        NSLog(@"ConsumerDataViewController:prepareForSeque: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerDataVC:prepareForSeque: called.");
     
     if ([[segue identifier] isEqualToString:@"UnwindToConsumerMasterViewID"]) {
         if (kDebugLevel > 2)
-            NSLog(@"ConsumerDataViewController:prepareForSeque: unwinding to ConsumerMasterViewController.");
+            NSLog(@"ConsumerDataVC:prepareForSeque: unwinding to ConsumerMasterViewController.");
         
         if (sender != self.done_button) {
             // User hit CANCEL ...
             if (kDebugLevel > 0)
-                NSLog(@"ConsumerDataViewController:prepareForSeque: User hit CANCEL (pub_keys_chanaged: %d).", _pub_keys_changed);
+                NSLog(@"ConsumerDataVC:prepareForSeque: User hit CANCEL (pub_keys_chanaged: %d).", _pub_keys_changed);
             
             if (_pub_keys_changed) {
                 // Note, asymmetric keys, if generated, would already have been saved in genPubKeys(), so if the user is requesting to cancel, point out to them that that was non-reverting action.
@@ -367,13 +381,13 @@ static const char* kAlertButtonGenKeysMessage = "Yes, generate new keys.";
                 _fetch_toggle_changed = false;
         } else {
             if (kDebugLevel > 0)
-                NSLog(@"ConsumerDataViewController:prepareForSeque: User hit DONE.");
+                NSLog(@"ConsumerDataVC:prepareForSeque: User hit DONE.");
             
             // User hit DONE; state flags should have been set during actions, so go ahead and unwind!
         }
     } else if ([[segue identifier] isEqualToString:@"ShowProviderListViewID"]) {
         if (kDebugLevel > 0)
-            NSLog(@"ConsumerDataViewController:prepareForSeque: Segue'ng to ShowProviderListView.");
+            NSLog(@"ConsumerDataVC:prepareForSeque: Segue'ng to ShowProviderListView.");
         
         // Send *our data*.
         UINavigationController* nav_controller = (UINavigationController*)segue.destinationViewController;
@@ -381,24 +395,24 @@ static const char* kAlertButtonGenKeysMessage = "Yes, generate new keys.";
         view_controller.provider_list = _provider_list;
         view_controller.current_provider = 0;
     } else {
-        NSLog(@"ConsumerDataViewController:prepareForSeque: TODO(aka) unknown segue: %s.", [[segue identifier] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        NSLog(@"ConsumerDataVC:prepareForSeque: TODO(aka) unknown segue: %s.", [[segue identifier] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     }
 }
 
 - (IBAction) unwindToConsumerData:(UIStoryboardSegue*)segue {
-    if (kDebugLevel > 2)
-        NSLog(@"ConsumerDataViewController:unwindToConsumerData: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerDataVC:unwindToConsumerData: called.");
     
     UIViewController* sourceViewController = segue.sourceViewController;
     
     if ([sourceViewController isKindOfClass:[ProviderListViewController class]]) {
         if (kDebugLevel > 2)
-            NSLog(@"ConsumerDataViewController:unwindToConsumerData: ProviderListViewController callback.");
+            NSLog(@"ConsumerDataVC:unwindToConsumerData: ProviderListViewController callback.");
         
         ProviderListViewController* source = [segue sourceViewController];
         if (source.provider_list_changed) {
             if (source.provider_list == nil) {
-                NSLog(@"ConsumerDataViewController:unwindToConsumerData: TODO(aka) ERROR: ProviderListController is nil!");
+                NSLog(@"ConsumerDataVC:unwindToConsumerData: TODO(aka) ERROR: ProviderListController is nil!");
                 return;
             }
             
@@ -407,7 +421,7 @@ static const char* kAlertButtonGenKeysMessage = "Yes, generate new keys.";
             [_provider_list saveState];
         }
     } else {
-        NSLog(@"ConsumerDataViewController:unwindToConsumerData: TODO(aka) Called from unknown ViewController!");
+        NSLog(@"ConsumerDataVC:unwindToConsumerData: TODO(aka) Called from unknown ViewController!");
     }
     
     // No need to dismiss the view controller in an unwind segue.
@@ -418,22 +432,28 @@ static const char* kAlertButtonGenKeysMessage = "Yes, generate new keys.";
 #pragma mark - Actions
 
 - (IBAction) genPubKeys:(id)sender {
-    if (kDebugLevel > 2)
-        NSLog(@"ConsumerDataViewController:genPubKeys: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerDataVC:genPubKeys: called.");
     
-    NSLog(@"ConsumerDataViewController:genPubKeys: Not doing anything yet!");
+    NSLog(@"ConsumerDataVC:genPubKeys: Not doing anything yet!");
     
     SecKeyRef public_key_ref = [_our_data publicKeyRef];
     if (public_key_ref != NULL)
-        NSLog(@"ConsumerDataViewController:genPubKeys: XXX public_key_ref was *not* NULL!");
+        NSLog(@"ConsumerDataVC:genPubKeys: XXX public_key_ref was *not* NULL!");
     
     SecKeyRef private_key_ref = [_our_data privateKeyRef];
     if (private_key_ref != NULL)
-        NSLog(@"ConsumerDataViewController:genPubKeys: XXX private_key_ref was *not* NULL!");
+        NSLog(@"ConsumerDataVC:genPubKeys: XXX private_key_ref was *not* NULL!");
     
     if (public_key_ref == NULL || private_key_ref == NULL) {
-        [_our_data genAsymmetricKeys];
-        _pub_keys_changed = true;
+        NSString* err_msg = [_our_data genAsymmetricKeys];
+        if (err_msg != nil) {
+            NSString* alert_msg = [NSString stringWithFormat:@"Key generation failed: %@", err_msg];
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Asymmetric Key Generation" message:alert_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+            [alert show];
+            
+        } else
+            _pub_keys_changed = true;
     } else {
         UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Asymmetric Key Generation" message:@"Keys already exist.  Are you sure you want to overwrite old keys?" delegate:self cancelButtonTitle:[NSString stringWithCString:kAlertButtonCancelMessage encoding:[NSString defaultCStringEncoding]] otherButtonTitles:[NSString stringWithCString:kAlertButtonGenKeysMessage encoding:[NSString defaultCStringEncoding]], nil];
         [alert show];
@@ -443,8 +463,8 @@ static const char* kAlertButtonGenKeysMessage = "Yes, generate new keys.";
 }
 
 - (IBAction) toggleFetchData:(id)sender {
-    if (kDebugLevel > 2)
-        NSLog(@"ConsumerDataViewController:toggleFetchData: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerDataVC:toggleFetchData: called.");
     
     // Set flag to tell our parent to *enable* or *disable* location data fetching.
     if (_fetch_data_toggle && !_fetch_data_switch.on) {
@@ -462,8 +482,8 @@ static const char* kAlertButtonGenKeysMessage = "Yes, generate new keys.";
 
 // ABPeoplePicker delegate functions.
 - (BOOL) peoplePickerNavigationController:(ABPeoplePickerNavigationController*)people_picker shouldContinueAfterSelectingPerson:(ABRecordRef)person {
-    if (kDebugLevel > 2)
-        NSLog(@"ConsumerDataViewController:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerDataVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: called (%d).", [NSThread isMainThread]);
     
     NSString* first_name = (__bridge_transfer NSString*)ABRecordCopyValue(person, kABPersonFirstNameProperty);
     NSString* last_name = (__bridge_transfer NSString*)ABRecordCopyValue(person, kABPersonLastNameProperty);
@@ -497,63 +517,78 @@ static const char* kAlertButtonGenKeysMessage = "Yes, generate new keys.";
     NSString* phone_label = nil;
     for (CFIndex i = 0; i < ABMultiValueGetCount(phone_numbers); ++i) {
         phone_label = (__bridge NSString*)ABMultiValueCopyLabelAtIndex(phone_numbers, i);
-        if([phone_label isEqualToString:(NSString*)kABPersonPhoneMobileLabel]) {
+        if([phone_label isEqualToString:(NSString*)kABPersonPhoneMobileLabel] || [phone_label isEqualToString:(NSString*)kABPersonPhoneIPhoneLabel]) {
             mobile_number = (__bridge NSString*)ABMultiValueCopyValueAtIndex(phone_numbers, i);
             break;
         }
     }
     
     if (kDebugLevel > 0)
-        NSLog(@"ConsumerDataViewController:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: phone label: %@.", phone_label);
+        NSLog(@"ConsumerDataVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: phone label: %@.", phone_label);
     
     if (mobile_number != nil) {
         if (kDebugLevel > 0)
-            NSLog(@"ConsumerDataViewController:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: mobile number: %@.", mobile_number);
+            NSLog(@"ConsumerDataVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: mobile number: %@.", mobile_number);
         
         [PersonalDataController setDeposit:_our_data.deposit type:@"sms"];
         [PersonalDataController setDeposit:_our_data.deposit phoneNumber:mobile_number];
         _deposit_changed = true;
     }
     
-    [self dismissViewControllerAnimated:YES completion:nil];  // TODO(aka) Do we need this anymore?
-    [self configureView];
+    if ([[[UIDevice currentDevice] systemVersion] compare:@"8.0" options:NSNumericSearch] == NSOrderedAscending) {
+        [self dismissViewControllerAnimated:YES completion:nil];  // in 8.0+ people picker dismisses by itself
+    }
     
     return NO;
 }
 
 - (BOOL) peoplePickerNavigationController:(ABPeoplePickerNavigationController*)people_picker shouldContinueAfterSelectingPerson:(ABRecordRef)person property:(ABPropertyID)property identifier:(ABMultiValueIdentifier)identifier {
-    if (kDebugLevel > 2)
-        NSLog(@"ConsumerDataViewController:peoplePickerNavigationController:shouldContinueAfterSelectingPerson:property:identifier: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerDataVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson:property:identifier: called.");
     
     // Note, since we dismiss the ABPeoplePicker in :peoplePickerNavigationController:shouldContinueAfterSelectingPerson:, this routine will never get called (i.e., the user can't select more specific properties in a record).
     
     return NO;
 }
 
+- (void) peoplePickerNavigationController:(ABPeoplePickerNavigationController*)people_picker didSelectPerson:(ABRecordRef)person {
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerDataVC:peoplePickerNavigationController:didSelectingPerson: called (%d).", [NSThread isMainThread]);
+    
+    [self peoplePickerNavigationController:people_picker shouldContinueAfterSelectingPerson:person];
+}
+
+- (void) peoplePickerNavigationController:(ABPeoplePickerNavigationController*)people_picker didSelectPerson:(ABRecordRef)person     property:(ABPropertyID)property identifier:(ABMultiValueIdentifier)identifier {
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerDataVC:peoplePickerNavigationController:didSelectingPerson:property:identifier: called (%d).", [NSThread isMainThread]);
+    
+    [self peoplePickerNavigationController:people_picker shouldContinueAfterSelectingPerson:person property:property identifier:identifier];
+}
+
 - (void) peoplePickerNavigationControllerDidCancel:(ABPeoplePickerNavigationController*)people_picker {
-    if (kDebugLevel > 2)
-        NSLog(@"ConsumerDataViewController:peoplePickerNavigationControllerDidCancel: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerDataVC:peoplePickerNavigationControllerDidCancel: called.");
     
     [self dismissViewControllerAnimated:YES completion:nil];
 }
 
 // UIAlertView delegate functions.
 - (void) alertView:(UIAlertView*)alert_view clickedButtonAtIndex:(NSInteger)button_index {
-    if (kDebugLevel > 2)
-        NSLog(@"ConsumerDataViewController:alertView:clickedButtonAtIndex: called.");
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerDataVC:alertView:clickedButtonAtIndex: called.");
     
  	NSString* title = [alert_view buttonTitleAtIndex:button_index];
 	if([title isEqualToString:[NSString stringWithCString:kAlertButtonGenKeysMessage encoding:[NSString defaultCStringEncoding]]]) {
         if (kDebugLevel > 0)
-            NSLog(@"ConsumerDataViewController:alertView:clickedButtonAtIndex: matched GenKeysMessage.");
+            NSLog(@"ConsumerDataVC:alertView:clickedButtonAtIndex: matched GenKeysMessage.");
         
         [_our_data genAsymmetricKeys];
         _pub_keys_changed = true;
 	} else if([title isEqualToString:[NSString stringWithCString:kAlertButtonCancelMessage encoding:[NSString defaultCStringEncoding]]]) {
         if (kDebugLevel > 0)
-            NSLog(@"ConsumerDataViewController:alertView:clickedButtonAtIndex: matched CancelMessage.");
+            NSLog(@"ConsumerDataVC:alertView:clickedButtonAtIndex: matched CancelMessage.");
 	} else {
-        NSLog(@"ConsumerDataViewController:alertView:clickedButtonAtIndex: TODO(aka) unknown title: %s", [title cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        NSLog(@"ConsumerDataVC:alertView:clickedButtonAtIndex: TODO(aka) unknown title: %s", [title cStringUsingEncoding:[NSString defaultCStringEncoding]]);
 	}
     
     [self configureView];

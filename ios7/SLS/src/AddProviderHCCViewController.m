@@ -429,6 +429,11 @@ static NSString* answer = nil;
             NSString* our_challenge_encrypted = nil;
             NSString* their_challenge_encrypted = nil;
             err_msg = [PersonalDataController asymmetricEncryptString:answer publicKeyRef:[provider publicKeyRef] encryptedString:&our_challenge_encrypted];
+            if (err_msg) {
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"AddProviderHCCViewController:send_msg:" message:err_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+            }
+            
             err_msg = [PersonalDataController asymmetricEncryptString:answer publicKeyRef:[provider publicKeyRef] encryptedString:&their_challenge_encrypted];
             if (err_msg) {
                 UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"AddProviderHCCViewController:send_msg:" message:err_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];

@@ -14,7 +14,7 @@
 #import "PersonalDataController.h"
 #import "security-defines.h"
 
-static const int kDebugLevel = 1;
+static const int kDebugLevel = 5;
 
 static const size_t kChosenCipherKeySize = CIPHER_KEY_SIZE;  // 16 bytes
 //static const size_t kChosenCipherBlockSize = CIPHER_BLOCK_SIZE;
@@ -288,6 +288,7 @@ enum {
     [kc_dict setObject:[NSNumber numberWithUnsignedInt:CSSM_ALGID_AES] forKey:(__bridge id)kSecAttrKeyType];
     [kc_dict setObject:[NSNumber numberWithUnsignedInt:(unsigned int)(kChosenCipherKeySize << 3)] forKey:(__bridge id)kSecAttrKeySizeInBits];
     [kc_dict setObject:[NSNumber numberWithUnsignedInt:(unsigned int)(kChosenCipherKeySize << 3)] forKey:(__bridge id)kSecAttrEffectiveKeySize];
+    [kc_dict setObject:(__bridge id)(kSecAttrAccessibleAfterFirstUnlock) forKey:(__bridge id)kSecAttrAccessible];
     
     /* XXX TODO(aka) Don't know if we need these or not
      [dict setObject:(id)kCFBooleanTrue forKey:(__bridge id)kSecAttrCanEncrypt];
@@ -305,8 +306,8 @@ enum {
     status = SecItemAdd((__bridge CFDictionaryRef)kc_dict, NULL);
     if (status != noErr) {
         if (status == errSecDuplicateItem) {
-            if (kDebugLevel > 0)
-                NSLog(@"SymmetricKeysController:generateSymmetricKey: SecItemAdd() returned errSecDuplicateItem using tag: %s.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            NSString* err_msg = [[NSString alloc] initWithFormat:@"SymmetricKeysController:generateSymmetricKey: SecItemAdd() returned errSecDuplicateItem using tag: %s.", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+            return err_msg;
         } else {
             NSString* err_msg = [[NSString alloc] initWithFormat:@"SymmetricKeysController:generateSymmetricKey: SecItemAdd() failed using tag: %s, error: %d!", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]], (int)status];
             return err_msg;

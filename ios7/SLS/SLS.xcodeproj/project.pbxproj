@@ -7,13 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		374A996A190861630055A10E /* AWSRuntime.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 374A9969190861630055A10E /* AWSRuntime.framework */; };
-		374A996C1908617E0055A10E /* AWSS3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 374A996B1908617E0055A10E /* AWSS3.framework */; };
-		374CBFCB18FDB489000F1EC7 /* libGTLTouchStaticLib.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 374CBFCA18FDB489000F1EC7 /* libGTLTouchStaticLib.a */; };
-		374CBFCD18FDB4A7000F1EC7 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 374CBFCC18FDB4A7000F1EC7 /* Security.framework */; };
-		374CBFCF18FDB4B0000F1EC7 /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 374CBFCE18FDB4B0000F1EC7 /* SystemConfiguration.framework */; };
-		374CBFD118FDB5D1000F1EC7 /* GTMOAuth2ViewTouch.xib in Resources */ = {isa = PBXBuildFile; fileRef = 374CBFD018FDB5D1000F1EC7 /* GTMOAuth2ViewTouch.xib */; };
-		374CBFD318FDB5F6000F1EC7 /* GTLDrive_Sources.m in Sources */ = {isa = PBXBuildFile; fileRef = 374CBFD218FDB5F6000F1EC7 /* GTLDrive_Sources.m */; };
+		3779FE3A190AEA650018D20D /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3779FE39190AEA650018D20D /* Security.framework */; };
+		3779FE3C190AEA6C0018D20D /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3779FE3B190AEA6C0018D20D /* SystemConfiguration.framework */; };
+		3779FE3E190AEA830018D20D /* libGTLTouchStaticLib.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3779FE3D190AEA830018D20D /* libGTLTouchStaticLib.a */; };
+		3779FE40190AEAA00018D20D /* AWSRuntime.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3779FE3F190AEAA00018D20D /* AWSRuntime.framework */; };
+		3779FE42190AEAB30018D20D /* AWSS3.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3779FE41190AEAB30018D20D /* AWSS3.framework */; };
+		37B8EAF219A647EA00541D43 /* CL-nonworking@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 37B8EAF119A647EA00541D43 /* CL-nonworking@2x.png */; };
+		37CC01A71BEE7ECE00376702 /* GTMOAuth2ViewTouch.xib in Resources */ = {isa = PBXBuildFile; fileRef = 37CC01A61BEE7ECE00376702 /* GTMOAuth2ViewTouch.xib */; };
+		37CC01A91BEE7F1200376702 /* GTLDrive_Sources.m in Sources */ = {isa = PBXBuildFile; fileRef = 37CC01A81BEE7F1200376702 /* GTLDrive_Sources.m */; };
 		5C042EE4183FBDCF007B8344 /* AddConsumerViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C042EE2183FBDCF007B8344 /* AddConsumerViewController.m */; };
 		5C042EE7183FBF62007B8344 /* AddConsumerCTViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C042EE5183FBF62007B8344 /* AddConsumerCTViewController.m */; };
 		5C042EEA183FC088007B8344 /* ProviderDataViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C042EE9183FC088007B8344 /* ProviderDataViewController.m */; };
@@ -69,11 +70,6 @@
 		5CE2345218198340003CCECA /* rscode.c in Sources */ = {isa = PBXBuildFile; fileRef = 5CE2344C18198340003CCECA /* rscode.c */; };
 		5CE2345318198340003CCECA /* split.c in Sources */ = {isa = PBXBuildFile; fileRef = 5CE2344E18198340003CCECA /* split.c */; };
 		5CE80635184E08F600B58DC6 /* ProviderListViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CE80634184E08F600B58DC6 /* ProviderListViewController.m */; };
-		5CECFC9618D1F764006C2ABA /* libGTLTouchStaticLib.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CECFC9518D1F764006C2ABA /* libGTLTouchStaticLib.a */; };
-		5CECFC9818D1F770006C2ABA /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CECFC9718D1F770006C2ABA /* Security.framework */; };
-		5CECFC9A18D1F7A2006C2ABA /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CECFC9918D1F7A2006C2ABA /* SystemConfiguration.framework */; };
-		5CECFC9E18D1F934006C2ABA /* GTMOAuth2ViewTouch.xib in Resources */ = {isa = PBXBuildFile; fileRef = 5CECFC9D18D1F934006C2ABA /* GTMOAuth2ViewTouch.xib */; };
-		5CECFCA118D1F985006C2ABA /* GTLDrive_Sources.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CECFC9F18D1F985006C2ABA /* GTLDrive_Sources.m */; };
 		5CED42D91822AEE000D78098 /* ConsumerCell.xib in Resources */ = {isa = PBXBuildFile; fileRef = 5CED42D81822AEE000D78098 /* ConsumerCell.xib */; };
 		5CF341F518BCED1200BF5ACC /* AddProviderHCCViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5CF341F418BCED1200BF5ACC /* AddProviderHCCViewController.m */; };
 /* End PBXBuildFile section */
@@ -89,14 +85,16 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		374A9969190861630055A10E /* AWSRuntime.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AWSRuntime.framework; path = "../../../../src/aws-ios-sdk-1.7.1/AWSRuntime.framework"; sourceTree = "<group>"; };
-		374A996B1908617E0055A10E /* AWSS3.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AWSS3.framework; path = "../../../../src/aws-ios-sdk-1.7.1/AWSS3.framework"; sourceTree = "<group>"; };
-		374CBFCA18FDB489000F1EC7 /* libGTLTouchStaticLib.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libGTLTouchStaticLib.a; path = "../../../../src/google-api-objectivec-client-read-only/Source/build/Debug-iphoneos/libGTLTouchStaticLib.a"; sourceTree = "<group>"; };
-		374CBFCC18FDB4A7000F1EC7 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
-		374CBFCE18FDB4B0000F1EC7 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
-		374CBFD018FDB5D1000F1EC7 /* GTMOAuth2ViewTouch.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = GTMOAuth2ViewTouch.xib; path = "../../../../../src/google-api-objectivec-client-read-only/Source/OAuth2/Touch/GTMOAuth2ViewTouch.xib"; sourceTree = "<group>"; };
-		374CBFD218FDB5F6000F1EC7 /* GTLDrive_Sources.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GTLDrive_Sources.m; path = "../../../../../src/google-api-objectivec-client-read-only/Source/Services/Drive/Generated/GTLDrive_Sources.m"; sourceTree = "<group>"; };
-		374CBFD418FDB600000F1EC7 /* GTLDrive.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GTLDrive.h; path = "../../../../../src/google-api-objectivec-client-read-only/Source/Services/Drive/Generated/GTLDrive.h"; sourceTree = "<group>"; };
+		3779FE39190AEA650018D20D /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		3779FE3B190AEA6C0018D20D /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
+		3779FE3D190AEA830018D20D /* libGTLTouchStaticLib.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libGTLTouchStaticLib.a; path = "../../../src/google-api-objectivec-client-read-only/Source/build/Debug-iphoneos/libGTLTouchStaticLib.a"; sourceTree = "<group>"; };
+		3779FE3F190AEAA00018D20D /* AWSRuntime.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AWSRuntime.framework; path = "../../../src/aws-ios-sdk-1.7.1/AWSRuntime.framework"; sourceTree = "<group>"; };
+		3779FE41190AEAB30018D20D /* AWSS3.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AWSS3.framework; path = "../../../src/aws-ios-sdk-1.7.1/AWSS3.framework"; sourceTree = "<group>"; };
+		37B8EAF119A647EA00541D43 /* CL-nonworking@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "CL-nonworking@2x.png"; sourceTree = "<group>"; };
+		37CC01A61BEE7ECE00376702 /* GTMOAuth2ViewTouch.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = GTMOAuth2ViewTouch.xib; path = "../../../../src/google-api-objectivec-client/Source/OAuth2/Touch/GTMOAuth2ViewTouch.xib"; sourceTree = "<group>"; };
+		37CC01A81BEE7F1200376702 /* GTLDrive_Sources.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GTLDrive_Sources.m; path = "../../../../src/google-api-objectivec-client/Source/Services/Drive/Generated/GTLDrive_Sources.m"; sourceTree = "<group>"; };
+		37CC01AA1BEE7F2900376702 /* GTLDrive.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GTLDrive.h; path = "../../../../src/google-api-objectivec-client/Source/Services/Drive/Generated/GTLDrive.h"; sourceTree = "<group>"; };
+		37F97A7219A50F7200BF2F16 /* SLS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = SLS.entitlements; sourceTree = "<group>"; };
 		5C042EE2183FBDCF007B8344 /* AddConsumerViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AddConsumerViewController.m; sourceTree = "<group>"; };
 		5C042EE3183FBDCF007B8344 /* AddConsumerViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AddConsumerViewController.h; sourceTree = "<group>"; };
 		5C042EE5183FBF62007B8344 /* AddConsumerCTViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AddConsumerCTViewController.m; sourceTree = "<group>"; };
@@ -252,12 +250,6 @@
 		5CE2344F18198340003CCECA /* split.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = split.h; sourceTree = "<group>"; };
 		5CE80633184E08F600B58DC6 /* ProviderListViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProviderListViewController.h; sourceTree = "<group>"; };
 		5CE80634184E08F600B58DC6 /* ProviderListViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ProviderListViewController.m; sourceTree = "<group>"; };
-		5CECFC9518D1F764006C2ABA /* libGTLTouchStaticLib.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libGTLTouchStaticLib.a; path = "../../../../../Shared/src/google-api-objectivec-client-read-only/Source/build/Debug-iphoneos/libGTLTouchStaticLib.a"; sourceTree = "<group>"; };
-		5CECFC9718D1F770006C2ABA /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
-		5CECFC9918D1F7A2006C2ABA /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
-		5CECFC9D18D1F934006C2ABA /* GTMOAuth2ViewTouch.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; name = GTMOAuth2ViewTouch.xib; path = "../../../../../../Shared/src/google-api-objectivec-client-read-only/Source/OAuth2/Touch/GTMOAuth2ViewTouch.xib"; sourceTree = "<group>"; };
-		5CECFC9F18D1F985006C2ABA /* GTLDrive_Sources.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = GTLDrive_Sources.m; path = "../../../../../../Shared/src/google-api-objectivec-client-read-only/Source/Services/Drive/Generated/GTLDrive_Sources.m"; sourceTree = "<group>"; };
-		5CECFCA018D1F985006C2ABA /* GTLDrive.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GTLDrive.h; path = "../../../../../../Shared/src/google-api-objectivec-client-read-only/Source/Services/Drive/Generated/GTLDrive.h"; sourceTree = "<group>"; };
 		5CED42D81822AEE000D78098 /* ConsumerCell.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = ConsumerCell.xib; sourceTree = "<group>"; };
 		5CF341F318BCED1200BF5ACC /* AddProviderHCCViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AddProviderHCCViewController.h; sourceTree = "<group>"; };
 		5CF341F418BCED1200BF5ACC /* AddProviderHCCViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AddProviderHCCViewController.m; sourceTree = "<group>"; };
@@ -268,19 +260,18 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5CECFC9A18D1F7A2006C2ABA /* SystemConfiguration.framework in Frameworks */,
-				5CECFC9818D1F770006C2ABA /* Security.framework in Frameworks */,
-				5CECFC9618D1F764006C2ABA /* libGTLTouchStaticLib.a in Frameworks */,
 				5CBC3F1E18196D0E00379C2F /* CoreGraphics.framework in Frameworks */,
 				5CBC3F2018196D0E00379C2F /* UIKit.framework in Frameworks */,
 				5CBC3F1C18196D0E00379C2F /* Foundation.framework in Frameworks */,
 				5C9EF61E181ECE3600F9A9F2 /* AVFoundation.framework in Frameworks */,
+				3779FE3C190AEA6C0018D20D /* SystemConfiguration.framework in Frameworks */,
+				3779FE3A190AEA650018D20D /* Security.framework in Frameworks */,
 				5C7F50CB1819941A001F5515 /* AddressBook.framework in Frameworks */,
 				5C7F50CD18199421001F5515 /* AddressBookUI.framework in Frameworks */,
 				5CE2342518197081003CCECA /* MapKit.framework in Frameworks */,
-				374A996A190861630055A10E /* AWSRuntime.framework in Frameworks */,
-				374A996C1908617E0055A10E /* AWSS3.framework in Frameworks */,
-				374CBFCB18FDB489000F1EC7 /* libGTLTouchStaticLib.a in Frameworks */,
+				3779FE40190AEAA00018D20D /* AWSRuntime.framework in Frameworks */,
+				3779FE42190AEAB30018D20D /* AWSS3.framework in Frameworks */,
+				3779FE3E190AEA830018D20D /* libGTLTouchStaticLib.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -362,6 +353,8 @@
 		5CBC3F0F18196D0E00379C2F = {
 			isa = PBXGroup;
 			children = (
+				37B8EAF119A647EA00541D43 /* CL-nonworking@2x.png */,
+				37F97A7219A50F7200BF2F16 /* SLS.entitlements */,
 				5CE2343B181982A2003CCECA /* ext-src */,
 				5CC57CC218196E4C0070AFE8 /* src */,
 				5CBC3F4618196D0E00379C2F /* SLSTests */,
@@ -382,17 +375,11 @@
 		5CBC3F1A18196D0E00379C2F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-<<<<<<< HEAD
-				5CECFC9918D1F7A2006C2ABA /* SystemConfiguration.framework */,
-				5CECFC9718D1F770006C2ABA /* Security.framework */,
-				5CECFC9518D1F764006C2ABA /* libGTLTouchStaticLib.a */,
-=======
-				374A996B1908617E0055A10E /* AWSS3.framework */,
-				374A9969190861630055A10E /* AWSRuntime.framework */,
-				374CBFCE18FDB4B0000F1EC7 /* SystemConfiguration.framework */,
-				374CBFCC18FDB4A7000F1EC7 /* Security.framework */,
-				374CBFCA18FDB489000F1EC7 /* libGTLTouchStaticLib.a */,
->>>>>>> ada44f2c6ee6fd68a2445efbce104adbb86178ab
+				3779FE41190AEAB30018D20D /* AWSS3.framework */,
+				3779FE3F190AEAA00018D20D /* AWSRuntime.framework */,
+				3779FE3D190AEA830018D20D /* libGTLTouchStaticLib.a */,
+				3779FE3B190AEA6C0018D20D /* SystemConfiguration.framework */,
+				3779FE39190AEA650018D20D /* Security.framework */,
 				5C9EF61D181ECE3600F9A9F2 /* AVFoundation.framework */,
 				5C7F50CC18199421001F5515 /* AddressBookUI.framework */,
 				5C7F50CA1819941A001F5515 /* AddressBook.framework */,
@@ -508,6 +495,9 @@
 		5CE2343B181982A2003CCECA /* ext-src */ = {
 			isa = PBXGroup;
 			children = (
+				37CC01AA1BEE7F2900376702 /* GTLDrive.h */,
+				37CC01A81BEE7F1200376702 /* GTLDrive_Sources.m */,
+				37CC01A61BEE7ECE00376702 /* GTMOAuth2ViewTouch.xib */,
 				5CE23440181982ED003CCECA /* qrencode.h */,
 				5CE2343F181982ED003CCECA /* qrencode.c */,
 				5CE2344818198340003CCECA /* mask.c */,
@@ -522,14 +512,8 @@
 				5CE2344318198322003CCECA /* bitstream.h */,
 				5CE2344418198322003CCECA /* qrspec.c */,
 				5CE2344518198322003CCECA /* qrspec.h */,
-				5CECFC9F18D1F985006C2ABA /* GTLDrive_Sources.m */,
-				5CECFCA018D1F985006C2ABA /* GTLDrive.h */,
-				5CECFC9D18D1F934006C2ABA /* GTMOAuth2ViewTouch.xib */,
 				5CE2343C181982D3003CCECA /* NSData+Base64.m */,
 				5CE2343D181982D3003CCECA /* NSData+Base64.h */,
-				374CBFD018FDB5D1000F1EC7 /* GTMOAuth2ViewTouch.xib */,
-				374CBFD418FDB600000F1EC7 /* GTLDrive.h */,
-				374CBFD218FDB5F6000F1EC7 /* GTLDrive_Sources.m */,
 			);
 			path = "ext-src";
 			sourceTree = "<group>";
@@ -584,6 +568,9 @@
 					5CBC3F1718196D0E00379C2F = {
 						DevelopmentTeam = VX4C6MFG4D;
 						SystemCapabilities = {
+							com.apple.Keychain = {
+								enabled = 1;
+							};
 							com.apple.iOS = {
 								enabled = 1;
 							};
@@ -618,13 +605,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-<<<<<<< HEAD
-				5CECFC9E18D1F934006C2ABA /* GTMOAuth2ViewTouch.xib in Resources */,
-=======
-				374CBFD118FDB5D1000F1EC7 /* GTMOAuth2ViewTouch.xib in Resources */,
->>>>>>> ada44f2c6ee6fd68a2445efbce104adbb86178ab
+				37CC01A71BEE7ECE00376702 /* GTMOAuth2ViewTouch.xib in Resources */,
 				5C89CA2F182A99BA0080576A /* Main_iPhone.storyboard in Resources */,
 				5CC57CD818196E4C0070AFE8 /* Images.xcassets in Resources */,
+				37B8EAF219A647EA00541D43 /* CL-nonworking@2x.png in Resources */,
 				5CC57CD718196E4C0070AFE8 /* InfoPlist.strings in Resources */,
 				5CED42D91822AEE000D78098 /* ConsumerCell.xib in Resources */,
 			);
@@ -650,7 +634,6 @@
 				5CE2342D18197579003CCECA /* PersonalDataController.m in Sources */,
 				5C279F0D183E56F800E9EC70 /* QRDecodeDepositViewController.m in Sources */,
 				5C0D2D85185109C600A313B2 /* ConsumerListDataViewController.m in Sources */,
-				5CECFCA118D1F985006C2ABA /* GTLDrive_Sources.m in Sources */,
 				5C042EE7183FBF62007B8344 /* AddConsumerCTViewController.m in Sources */,
 				5CE2344618198322003CCECA /* bitstream.c in Sources */,
 				5C279EF5183BD51A00E9EC70 /* AddProviderViewController.m in Sources */,
@@ -682,10 +665,10 @@
 				5CC9045518BFAC730079F28B /* AddConsumerHCCViewController.m in Sources */,
 				5C3C429B183BBA0900CFACCF /* AddProviderCTViewController.m in Sources */,
 				5C3FBDC218903BEA0055475C /* KeyBundleController.m in Sources */,
-				374CBFD318FDB5F6000F1EC7 /* GTLDrive_Sources.m in Sources */,
 				5C48005318A3D284009D9CBD /* PolicyController.m in Sources */,
 				5CC57CD918196E4C0070AFE8 /* main.m in Sources */,
 				5C7F50A718198B46001F5515 /* CoreLocationController.m in Sources */,
+				37CC01A91BEE7F1200376702 /* GTLDrive_Sources.m in Sources */,
 				5CE23429181973E1003CCECA /* SLSAppDelegate.m in Sources */,
 				5C7F50BD1819923B001F5515 /* ConsumerCellController.m in Sources */,
 			);
@@ -754,6 +737,7 @@
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "iPhone Developer: Andrew K Adams (4N96Z8D34W)";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -773,20 +757,18 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
-<<<<<<< HEAD
-					"/Users/Shared/src/google-api-objectivec-client-read-only/Source/**",
-=======
 					"/Users/papi/projects/src/aws-sdk-ios/src/include/**",
->>>>>>> ada44f2c6ee6fd68a2445efbce104adbb86178ab
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_LDFLAGS = (
 					"-ObjC",
 					"-all_load",
 				);
+				PROVISIONING_PROFILE = "62bdbc08-cb02-4779-acb9-1c3453b9c3e0";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				"USER_HEADER_SEARCH_PATHS[arch=*]" = "/Users/papi/projects/src/google-api-objectivec-client/Source/** /Users/papi/projects/src/gtm-session-fetcher/Source/**";
 				VALID_ARCHS = "armv7 armv7s arm64";
 			};
 			name = Debug;
@@ -807,7 +789,8 @@
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CODE_SIGN_IDENTITY = "iPhone Distribution: Andrew K Adams (VX4C6MFG4D)";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution: Andrew K Adams (VX4C6MFG4D)";
 				COPY_PHASE_STRIP = YES;
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
@@ -820,19 +803,17 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
-<<<<<<< HEAD
-					"/Users/Shared/src/google-api-objectivec-client-read-only/Source/**",
-=======
 					"/Users/papi/projects/src/aws-sdk-ios/src/include/**",
->>>>>>> ada44f2c6ee6fd68a2445efbce104adbb86178ab
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
 				OTHER_LDFLAGS = (
 					"-ObjC",
 					"-all_load",
 				);
+				PROVISIONING_PROFILE = "1ef69923-a02c-4eaf-9c80-6e68bf0cceb5";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				"USER_HEADER_SEARCH_PATHS[arch=*]" = "/Users/papi/projects/src/google-api-objectivec-client/Source/** /Users/papi/projects/src/gtm-session-fetcher/Source/**";
 				VALIDATE_PRODUCT = YES;
 				VALID_ARCHS = "armv7 armv7s arm64";
 			};
@@ -843,6 +824,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CODE_SIGN_ENTITLEMENTS = SLS.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				FRAMEWORK_SEARCH_PATHS = (
@@ -851,6 +833,7 @@
 				);
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "src/SLS-Prefix.pch";
+				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = "GTM_USE_SESSION_FETCHER=1";
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
@@ -858,19 +841,9 @@
 					"/Users/papi/projects/src/aws-ios-sdk-1.7.1/src/include/**",
 				);
 				INFOPLIST_FILE = "src/SLS-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(USER_LIBRARY_DIR)/Developer/Xcode/DerivedData/Secure_Location_Sharing-byjcolrwbskfxqbjuwfhtbblivwx/Build/Products/Debug-iphoneos",
-<<<<<<< HEAD
-					"/Users/Shared/src/google-api-objectivec-client-read-only/Source/build/Debug-iphoneos",
-				);
-				ONLY_ACTIVE_ARCH = NO;
-				OTHER_LDFLAGS = (
-					"-ObjC",
-					"-all_load",
-				);
-=======
 					"/Users/papi/projects/src/google-api-objectivec-client-read-only/Source/build/Debug-iphoneos",
 				);
 				ONLY_ACTIVE_ARCH = YES;
@@ -878,9 +851,9 @@
 					"-ObjC",
 					"-all_load",
 				);
->>>>>>> ada44f2c6ee6fd68a2445efbce104adbb86178ab
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
+				"USER_HEADER_SEARCH_PATHS[arch=*]" = "/Users/papi/projects/src/gtm-session-fetcher/Source/** /Users/papi/projects/src/google-api-objectivec-client/Source/**";
 				VALID_ARCHS = "armv7 armv7s arm64";
 				WRAPPER_EXTENSION = app;
 			};
@@ -891,6 +864,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CODE_SIGN_ENTITLEMENTS = SLS.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				FRAMEWORK_SEARCH_PATHS = (
@@ -899,6 +873,7 @@
 				);
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "src/SLS-Prefix.pch";
+				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = "GTM_USE_SESSION_FETCHER=1";
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
@@ -906,24 +881,19 @@
 					"/Users/papi/projects/src/aws-ios-sdk-1.7.1/src/include/**",
 				);
 				INFOPLIST_FILE = "src/SLS-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 7.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(USER_LIBRARY_DIR)/Developer/Xcode/DerivedData/Secure_Location_Sharing-byjcolrwbskfxqbjuwfhtbblivwx/Build/Products/Debug-iphoneos",
-<<<<<<< HEAD
-					"/Users/Shared/src/google-api-objectivec-client-read-only/Source/build/Debug-iphoneos",
-				);
-=======
 					"/Users/papi/projects/src/google-api-objectivec-client-read-only/Source/build/Debug-iphoneos",
 				);
 				ONLY_ACTIVE_ARCH = YES;
->>>>>>> ada44f2c6ee6fd68a2445efbce104adbb86178ab
 				OTHER_LDFLAGS = (
 					"-ObjC",
 					"-all_load",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "";
+				"USER_HEADER_SEARCH_PATHS[arch=*]" = "/Users/papi/projects/src/gtm-session-fetcher/Source/** /Users/papi/projects/src/google-api-objectivec-client/Source,/**";
 				VALID_ARCHS = "armv7 armv7s arm64";
 				WRAPPER_EXTENSION = app;
 			};

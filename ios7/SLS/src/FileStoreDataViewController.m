@@ -13,7 +13,7 @@
 #import "FileStoreDataViewController.h"
 
 
-static const int kDebugLevel = 4;
+static const int kDebugLevel = 1;
 
 // File-store public SLS credentials.
 static const char* kGDKeychainTag = "SLS Google Drive";
@@ -122,12 +122,14 @@ enum {
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWasShown:) name:UIKeyboardDidShowNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillBeHidden:) name:UIKeyboardWillHideNotification object:nil];
     
-    [self configureView];  // update the view with correct labels
+    [self configureView];  // update the view with correct labels (TODO(aka) shouldn't this be in viewDidAppear:?)
 }
 
 - (void) viewDidAppear:(BOOL)animated {
     if (kDebugLevel > 2)
         NSLog(@"FileStoreDataViewController:viewDidAppear: called.");
+    
+    [super viewDidAppear:animated];
 }
 
 - (void) configureView {
@@ -212,11 +214,11 @@ enum {
             NSLog(@"FileStoreDataViewController:configureView: on Drive enter, _drive: %@, auth: %d, root folder's id: %@, wvl: %@.", _our_data.drive, [_our_data googleDriveIsAuthorized], [_our_data.drive_ids objectForKey:[NSString stringWithFormat:@"%s", kFSRootFolderName]], [_our_data.drive_wvls objectForKey:[NSString stringWithFormat:@"%s", kFSRootFolderName]]);
         
         /* XXX
-        if (drive_api_querying) {
-            // Do nothing, because we're waiting on the Google Drive API to return.
-            return;
-        }
-*/
+         if (drive_api_querying) {
+         // Do nothing, because we're waiting on the Google Drive API to return.
+         return;
+         }
+         */
         if (_our_data.drive == nil || ![_our_data googleDriveIsAuthorized]) {
             // Initialize what the text field show.
             _label1.text = @"Client ID";
@@ -235,12 +237,14 @@ enum {
             [_verify_button setAlpha:1.0];
         } else if ([_our_data.drive_ids objectForKey:[NSString stringWithFormat:@"%s", kFSRootFolderName]] == nil) {
             [self googleDriveQueryRootFolder];  // will call googleDriveInsertRootFolder: and googleDriveUpdateRootFolderPermission: if necessary
+            _file_store_changed = true;  // drive_ids or drive_wvl can change
         } else if ([_our_data.drive_wvls objectForKey:[NSString stringWithFormat:@"%s", kFSRootFolderName]] == nil) {
             // Do nothing, as we encountered an error in either googleDriveInsertRootFolder: or googleDriveUpdateRootFolderPermission:.
             NSLog(@"FileStoreDataViewController:configureView: ERROR: TODO(aka) SLS folder does not have a WebViewLink!");
         } else if ([[NSString stringWithFormat:@"googleDriveUpdateRootFolderPermission"] isEqual:[_our_data.drive_wvls objectForKey:[NSString stringWithFormat:@"%s", kFSRootFolderName]]]) {
             // We need to query it one more time to get the WebViewLink.
             [self googleDriveQueryRootFolder];
+            _file_store_changed = true;   // drive_ids or drive_wvl can change
         } else {
             [_verify_button setTitle:[NSString stringWithFormat:@"%s Operational", [service cStringUsingEncoding:[NSString defaultCStringEncoding]]] forState:UIControlStateNormal];
             [_verify_button setAlpha:0.5];
@@ -385,7 +389,7 @@ enum {
 
 #pragma mark - Google Drive management
 
-// XXX TODO(aka) If we passed in the [self configureView] as the completion block, we probably could move these to PersonalDataController or wherever!
+// XXX TODO(aka) If we passed in the [self configureView] as the completion block, we probably could move these to PersonalDataController or wherever!  Actually, I think we can use the ones in PersonalDataController now ...
 
 - (void) googleDriveQueryRootFolder {
     if (kDebugLevel > 2)
@@ -410,7 +414,6 @@ enum {
     [_our_data.drive executeQuery:search_query completionHandler:^(GTLServiceTicket* ticket, GTLDriveFileList* files, NSError* gtl_err) {
         [progress_alert dismissWithClickedButtonIndex:0 animated:YES];
         if (gtl_err != nil) {
-            // XXX _current_state = MODE_INITIAL;
             UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"FileStoreDataViewController:googleDriveQueryRootFolder:" message:gtl_err.localizedDescription delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
             [alert show];
             
@@ -418,7 +421,6 @@ enum {
         } else {
             if ([files.items count] == 0) {
                 // Didn't find the file.
-                // XXX _current_state = MODE_DRIVE_FOLDER_NOT_FOUND;
                 [_our_data.drive_ids removeObjectForKey:[NSString stringWithFormat:@"%s", kFSRootFolderName]];  // just in-case
                 
                 // Create it.
@@ -427,29 +429,24 @@ enum {
                 GTLDriveFile* sls_folder = [files.items objectAtIndex:0];
                 [_our_data.drive_ids setObject:sls_folder.identifier forKey:[NSString stringWithFormat:@"%s", kFSRootFolderName]];
                 [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveIDsFilename] dictionary:_our_data.drive_ids];
-                // XXX _current_state = MODE_DRIVE_FOLDER_FOUND;
                 
-#if 1
-                NSString* msg = [NSString stringWithFormat:@"DEBUG: Root folder exists, checking role (%@), type (%@) and WVL (%@) to see if public!", sls_folder.userPermission.role, sls_folder.userPermission.type, sls_folder.webViewLink];
-                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"FileStoreDataViewController:googleDriveQueryRootFolder:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-                [alert show];
-#endif
-
+                if (kDebugLevel > 2) {
+                    NSString* msg = [NSString stringWithFormat:@"DEBUG: Root folder exists, checking role (%@), type (%@) and WVL (%@) to see if public!", sls_folder.userPermission.role, sls_folder.userPermission.type, sls_folder.webViewLink];
+                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"FileStoreDataViewController:googleDriveQueryRootFolder:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                    [alert show];
+                }
+                
                 // See if it's public.
-                // XXX if ([_sls_folder.userPermission.role isEqual:[NSString stringWithFormat:@"reader"]] && [_sls_folder.userPermission.type isEqual:[NSString stringWithFormat:@"anyone"]]) {
                 if (sls_folder.webViewLink != nil) {
                     [_our_data.drive_wvls setObject:sls_folder.webViewLink forKey:[NSString stringWithFormat:@"%s", kFSRootFolderName]];
                     [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveWVLsFilename] dictionary:_our_data.drive_wvls];
-
-                    // XXX _current_state = MODE_DRIVE_OPERATIONAL;
+                    
                     [self configureView];  // all done
                 } else {
-                    // XXX _current_state = MODE_DRIVE_FOLDER_NOT_PUBLIC;
                     [self googleDriveUpdateRootFolderPermission:sls_folder];  // TODO(aka) This could cause infinite recursion ...
                 }
             } else {
                 // Argh!  How can we have more than one file called "SLS"!?!
-                // XXX _current_state = MODE_INITIAL;
                 UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"FileStoreDataViewController:googleDriveQueryRootFolder:" message:@"Query returned more than one folder!" delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
                 [alert show];
                 
@@ -466,8 +463,8 @@ enum {
     // Create the root folder in Drive.
     GTLDriveFile* tmp_sls_folder = [GTLDriveFile object];
     tmp_sls_folder.title = [NSString stringWithFormat:@"%s", kFSRootFolderName];
-        tmp_sls_folder.mimeType = @"application/vnd.google-apps.folder";
-
+    tmp_sls_folder.mimeType = @"application/vnd.google-apps.folder";
+    
 #if 0  // XXX This doesn't seem to work ... dratz!
     // Make sure the folder is a public folder.
     GTLDrivePermission* permissions = [GTLDrivePermission object];
@@ -478,8 +475,6 @@ enum {
 #endif
     
     GTLQueryDrive* insert_query = [GTLQueryDrive queryForFilesInsertWithObject:tmp_sls_folder uploadParameters:nil];
-    
-    // XXX _current_state = MODE_DRIVE_FOLDER_QUERIED;  // mark that we're querying in the background
     
     UIAlertView* progress_alert = [[UIAlertView alloc] initWithTitle:@"Creating Folder in Google Drive" message:@"Please wait..." delegate:nil cancelButtonTitle:nil otherButtonTitles:nil];
     [progress_alert show];
@@ -494,82 +489,26 @@ enum {
     [_our_data.drive executeQuery:insert_query completionHandler:^(GTLServiceTicket* ticket, GTLDriveFile* updated_file, NSError* gtl_err) {
         [progress_alert dismissWithClickedButtonIndex:0 animated:YES];
         if (gtl_err != nil) {
-            // XXX _current_state = MODE_INITIAL;
             UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"FileStoreDataViewController:googleDriveInsertRootFolder:" message:gtl_err.localizedDescription delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
             [alert show];
-        
+            
             [self configureView];
         } else {
             [_our_data.drive_ids setObject:updated_file.identifier forKey:[NSString stringWithFormat:@"%s", kFSRootFolderName]];
             [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveIDsFilename] dictionary:_our_data.drive_ids];
-                // XXX _current_state = MODE_DRIVE_FOLDER_CREATED;
             
             // See if it's public.
             if (updated_file.webViewLink != nil) {
                 [_our_data.drive_wvls setObject:updated_file.webViewLink forKey:[NSString stringWithFormat:@"%s", kFSRootFolderName]];
                 [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveWVLsFilename] dictionary:_our_data.drive_wvls];
                 
-                // XXX _current_state = MODE_DRIVE_OPERATIONAL;
                 [self configureView];  // all done
             } else {
-                // XXX _current_state = MODE_DRIVE_FOLDER_NOT_PUBLIC;
                 [self googleDriveUpdateRootFolderPermission:updated_file];
-            }
-#if 0 // XXX
-            if ([_sls_folder.userPermission.role isEqual:[NSString stringWithFormat:@"reader"]] && [_sls_folder.userPermission.type isEqual:[NSString stringWithFormat:@"anyone"]]) {
-                _current_state = MODE_DRIVE_OPERATIONAL;
-                
-               [self configureView];  // all done
-            } else {
-                _current_state = MODE_DRIVE_FOLDER_NOT_PUBLIC;
-                [self googleDriveUpdateRootFolderPermission:_sls_folder];
-            }
-#endif
-        }
-    }];
- }
-
-#if 0  // XXX Deprecated
-- (void) googleDriveQueryRootFolderPermission:(GTLDriveFile*)sls_folder {
-    if (kDebugLevel > 2)
-        NSLog(@"FileStoreDataViewController:googleDriveQueryRootFolderPermission: called.");
-    
-    GTLQueryDrive* search_query = [GTLQueryDrive queryForPermissionsGetWithFileId:sls_folder.identifier permissionId:sls_folder.userPermission.identifier];
-    
-    _current_state = MODE_DRIVE_FOLDER_QUERIED;  // mark that we're querying in the background
-    
-    UIAlertView* progress_alert = [[UIAlertView alloc] initWithTitle:@"Querying Folder in Google Drive" message:@"Please wait..." delegate:nil cancelButtonTitle:nil otherButtonTitles:nil];
-    [progress_alert show];
-    UIActivityIndicatorView* activity_view = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
-    activity_view.center = CGPointMake(progress_alert.bounds.size.width / 2, progress_alert.bounds.size.height - 45);
-    [progress_alert addSubview:activity_view];
-    [activity_view startAnimating];
-    
-    if (kDebugLevel > 1)
-        NSLog(@"FileStoreDataViewController:googleDriveQueryRootFolderPermission: Attempting permission query on %@ (%@).", sls_folder.title, sls_folder.identifier);
-    
-    // GTLServiceTicket can be used to track the status of the request.
-    GTLServiceTicket* query_ticket = [_our_data.drive executeQuery:search_query completionHandler:^(GTLServiceTicket* ticket, GTLDrivePermission* permission, NSError* gtl_err) {
-        [progress_alert dismissWithClickedButtonIndex:0 animated:YES];
-        if (gtl_err != nil) {
-            _current_state = MODE_INITIAL;
-            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"FileStoreDataViewController:googleDriveQueryRootFolderPermission:" message:gtl_err.localizedDescription delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-            [alert show];
-            
-           [self configureView];
-        } else {
-            // We got the permissions, see if the folder is public.
-            if ([permission.role isEqual:[NSString stringWithFormat:@"reader"]] && [permission.type isEqual:[NSString stringWithFormat:@"anyone"]]) {
-                _current_state = MODE_DRIVE_OPERATIONAL;
-                [self configureView];  // all done
-            } else {
-                _current_state = MODE_DRIVE_FOLDER_NOT_PUBLIC;
-                [self googleDriveUpdateRootFolderPermission:sls_folder];
             }
         }
     }];
 }
-#endif
 
 - (void) googleDriveUpdateRootFolderPermission:(GTLDriveFile*)sls_folder {
     if (kDebugLevel > 2)
@@ -590,8 +529,6 @@ enum {
     
     GTLQueryDrive* update_query = [GTLQueryDrive queryForPermissionsInsertWithObject:new_permission fileId:sls_folder.identifier];
     
-    // XXX _current_state = MODE_DRIVE_FOLDER_QUERIED;  // mark that we're querying in the background
-    
     UIAlertView* progress_alert = [[UIAlertView alloc] initWithTitle:@"Updating Folder in Google Drive" message:@"Please wait ..." delegate:nil cancelButtonTitle:nil otherButtonTitles:nil];
     [progress_alert show];
     UIActivityIndicatorView* activity_view = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
@@ -606,7 +543,6 @@ enum {
     [_our_data.drive executeQuery:update_query completionHandler:^(GTLServiceTicket* ticket, GTLDrivePermission* permission, NSError* gtl_err) {
         [progress_alert dismissWithClickedButtonIndex:0 animated:YES];
         if (gtl_err != nil) {
-            // XXX _current_state = MODE_INITIAL;
             UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"FileStoreDataViewController:googleDriveUpdateRootFolderPermission:" message:gtl_err.localizedDescription delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
             [alert show];
             
@@ -616,14 +552,12 @@ enum {
             [_our_data.drive_wvls setObject:[NSString stringWithFormat:@"googleDriveUpdateRootFolderPermission"] forKey:[NSString stringWithFormat:@"%s", kFSRootFolderName]];
             [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveWVLsFilename] dictionary:_our_data.drive_wvls];
             
-                // XXX _current_state = MODE_DRIVE_OPERATIONAL;
-
-#if 0
-            NSString* msg = [NSString stringWithFormat:@"DEBUG: Updated permissions on file: %@, id: %@, permission id: %@, drive_ids count: %ld.", _sls_folder.title, _sls_folder.identifier, sls_folder.userPermission.identifier, (unsigned long)[_our_data.drive_ids count]];
-            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"FileStoreDataViewController:googleDriveUpdateRootFolderPermission:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-            [alert show];
-#endif
-
+            if (kDebugLevel > 3) {
+                NSString* msg = [NSString stringWithFormat:@"DEBUG: Updated permissions on file: %@, id: %@, permission id: %@, drive_ids count: %ld.", sls_folder.title, sls_folder.identifier, sls_folder.userPermission.identifier, (unsigned long)[_our_data.drive_ids count]];
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"FileStoreDataViewController:googleDriveUpdateRootFolderPermission:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+            }
+            
             [self configureView];
         }
     }];
@@ -665,63 +599,6 @@ enum {
             return;
         }
         
-#if 0 // XXX Deprecated!
-        if (kDebugLevel > 1)
-            NSLog(@"FileStoreDataViewController:verifyCredentials: current state: %d.", _current_state);
-        
-        switch (_current_state) {
-                xxx;   // XXX This won't work anymore
-            case MODE_INITIAL :
-            {
-                // See if we have the user's credentials in our keychain.
-                err_msg = [_our_data googleDriveKeychainAuth:[PersonalDataController getFileStoreKeychainTag:_our_data.file_store] clientID:[PersonalDataController getFileStoreClientID:_our_data.file_store] clientSecret:[PersonalDataController getFileStoreClientSecret:_our_data.file_store]];
-                if (err_msg != nil) {
-                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"FileStoreDataViewController:verifyCredentials:" message:err_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-                    [alert show];
-                    return;
-                }
-
-                // If we were unable to get the credentials from the keychain, prompt the user.
-                if (![_our_data googleDriveIsAuthorized]) {
-                    if (kDebugLevel > 0)
-                        NSLog(@"FileStoreDataViewController:verifyCredentials: credentials not found in keychain, requesting ...");
-                    
-                    GTMOAuth2ViewControllerTouch* auth_controller = [[GTMOAuth2ViewControllerTouch alloc] initWithScope:@"https://www.googleapis.com/auth/drive.file" clientID:[PersonalDataController getFileStoreClientID:_our_data.file_store] clientSecret:[PersonalDataController getFileStoreClientSecret:_our_data.file_store] keychainItemName:[PersonalDataController getFileStoreKeychainTag:_our_data.file_store] delegate:self finishedSelector:@selector(viewController:finishedWithAuth:error:)];
-                    [self presentViewController:auth_controller animated:YES completion:nil];
-                } else {
-                    [self configureView];  // we're authorized
-                    return;
-                }
-            }
-                break;
-                
-            case MODE_DRIVE_AUTHORIZED :  // query the root "SLS" folder
-            {
-                [self googleDriveQueryRootFolder];
-            }
-                break;
-                
-            case MODE_DRIVE_FOLDER_QUERIED :  // nothing to do here during this state
-                break;
-                
-            case MODE_DRIVE_FOLDER_NOT_FOUND :  // create the root "SLS" folder
-            {
-                [self googleDriveInsertRootFolder];
-            }
-                break;
-                
-            case MODE_DRIVE_FOLDER_NOT_PUBLIC :  // update permissions on the root "SLS" folder
-            {
-                [self googleDriveUpdateRootFolderPermission:_sls_folder];
-            }
-                break;
-
-            default :
-                err_msg = [NSString stringWithFormat:@"Unknown mode: %d", _current_state];
-                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"FileStoreDataViewController:verifyCredentials:" message:err_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-                [alert show];
-        }
-#endif
     } else {
         UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"FileStoreDataViewController:verifyCredentials:" message:@"Unknown service." delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
         [alert show];
@@ -765,8 +642,6 @@ enum {
             _our_data.drive_ids = nil;
         if (_our_data.drive_wvls != nil)
             _our_data.drive_wvls = nil;
-        
-        // XXX _current_state = MODE_INITIAL;
      }
     
     // Note, I considered zero-ing out the other file-store keys, but it'd be nice if the old keys stuck around incase someone wanted to easily switch between file-stores.
@@ -864,9 +739,8 @@ enum {
     } else {
         // Auth successful
         _our_data.drive.authorizer = auth_result;
-        // XXX _current_state = MODE_DRIVE_AUTHORIZED;
 
-        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"FileStoreDataViewController:viewController:finishedWithResult:" message:@"Authentication Successful" delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"FileStoreDataViewController:viewController:finishedWithResult:" message:@"Authentication Successful, hit DONE" delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
         [alert show];
     }
 

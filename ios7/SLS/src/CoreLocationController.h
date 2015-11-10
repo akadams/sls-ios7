@@ -38,5 +38,6 @@
 @protocol CoreLocationControllerDelegate 
 @required
 - (void) locationUpdate:(CLLocation*)location;  // our location updates are sent here
+- (void) locationsUpdate:(NSArray*)locations;   // our location array updates are sent here
 - (void) locationError:(NSError*)error;         // any errors are sent here
 @end

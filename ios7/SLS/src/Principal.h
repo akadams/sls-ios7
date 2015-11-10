@@ -67,7 +67,7 @@
 #endif
 - (SecKeyRef) publicKeyRef;
 - (NSData*) getPublicKey;
-- (void) setPublicKey:(NSData*)public_key accessGroup:(NSString*)access_group;
+- (NSString*) setPublicKey:(NSData*)public_key accessGroup:(NSString*)access_group;
 - (BOOL) isEqual:(Principal*)principal;
 
 #pragma mark - ConsumerMaster VC utilities

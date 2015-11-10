@@ -284,7 +284,7 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
     return public_key;
 }
 
-- (void) setPublicKey:(NSData*)public_key accessGroup:(NSString*)access_group {
+- (NSString*) setPublicKey:(NSData*)public_key accessGroup:(NSString*)access_group {
     if (kDebugLevel > 2)
         NSLog(@"Principal:setPublicKey: called.");
     
@@ -300,13 +300,17 @@ static const float kDefaultFrequency = 300.0;       // 5 minutes between fetches
     
     // Add the new key to our key-chain.
     NSString* err_msg = [PersonalDataController saveKeyData:public_key withTag:application_tag accessGroup:access_group];
-    if (err_msg != nil)
-        NSLog(@"Principal:setPublicKey: TODO(aka) saveKeyData() failed: %s.", [err_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    if (err_msg != nil) {
+        return err_msg;
+    }
     
     // And get a reference to the newly added key.
     err_msg = [PersonalDataController queryKeyRef:application_tag keyRef:&publicKeyRef];
-    if (err_msg != nil)
-        NSLog(@"Principal:setPublicKey: TODO(aka) queryKeyRef() failed: %s.", [err_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    if (err_msg != nil) {
+        return err_msg;
+    }
+    
+    return nil;
 }
 
 - (BOOL) isEqual:(Principal*)principal {

@@ -21,6 +21,7 @@
 #define PDC_ROOT_FOLDER_NAME "SLS"
 #define PDC_HISTORY_LOG_FILENAME "history.log"
 #define PDC_KEY_BUNDLE_EXTENSION "kb"
+#define PDC_ASYNC_OP_DONE "async_op_done"
 
 
 @interface PersonalDataController : NSObject <NSCopying> {
@@ -69,8 +70,7 @@
 - (SecKeyRef) privateKeyRef;
 - (NSData*) getPublicKey;
 
-// XXX TODO(aka) The following two methods should return an error message!  And make all encryption/decryption routines work on generic NSData and NSString values, as opposed to symmetric_keys, asymmetric_keys, etc.
-- (void) genAsymmetricKeys;
+- (NSString*) genAsymmetricKeys;
 
 // TODO(aka) The next two are deprecated (use asymmetricDecryptData: and asymmetricDecryptString:)
 - (NSData*) decryptSymmetricKey:(NSData*)encrypted_symmetric_key;
@@ -136,6 +136,7 @@
 
 #pragma mark - File-store utilities
 - (BOOL) isFileStoreAuthorized;
+- (NSString*) genFileStoreBucket:(NSString*)bucket rootFolder:(NSString*)root_folder_name asynchronous:(BOOL*)status;
 - (NSString*) genFileStoreKeyBundle:(Principal*)consumer URL:(NSURL**)url;
 // XXX - (NSString*) genFileStoreURLAuthority:(NSURL**)url;  // TODO(aka) Not sure if this needs to be an instance or not?
 - (NSString*) genFileStoreHistoryLog:(NSString*)policy path:(NSString**)path;
@@ -176,9 +177,22 @@
 - (NSString*) amazonS3Upload:(NSString*)data bucket:(NSString*)bucket filename:(NSString*)filename;
 - (NSString*) googleDriveInit;
 - (NSString*) googleDriveKeychainAuth:(NSString*)keychain_tag clientID:(NSString*)client_id clientSecret:(NSString*)client_secret;
+- (NSString*) googleDriveUpload:(NSString*)data rootFolder:(NSString*)root_folder_name bucket:(NSString*)bucket filename:(NSString*)filename idKey:(NSString*)id_key;
+- (void) googleDriveQueryFolder:(NSString*)folder rootID:(NSString*)root_id;
+- (void) googleDriveInsertFolder:(NSString*)folder rootID:(NSString*)root_id;
+- (void) googleDriveQueryFileId:(NSString*)file_id;
+- (void) googleDriveUpdateFolderPermission:(GTLDriveFile*)folder;
 - (BOOL) googleDriveIsAuthorized;
 // XXX - (NSString*) googleDriveUpload:(NSString*)data bucket:(NSString*)bucket filename:(NSString*)filename;
 // XXX - (NSString*) genFileStoreDepositMsg:(NSString*)consumer_identity_hash withPrecision:(NSNumber*)precision;
 // XXX deprecated - (NSString*) uploadData:(NSString*)data bucketName:(NSString*)bucket_name filename:(NSString*)filename;
+
+#pragma mark - Google Drive Class functions
+// XXX TODO(aka) Why are they class functions if they take our_data as the first parameter!?!
++ (NSString*) googleDriveUpload:(PersonalDataController*)our_data data:(NSString*)data rootFolder:(NSString*)root_folder_name bucket:(NSString*)bucket filename:(NSString*)filename idKey:(NSString*)id_key;
++ (void) googleDriveQueryFolder:(PersonalDataController*)our_data folder:(NSString*)folder rootID:(NSString*)root_id;
++ (void) googleDriveInsertFolder:(PersonalDataController*)our_data folder:(NSString*)folder rootID:(NSString*)root_id;
++ (void) googleDriveQueryFileId:(PersonalDataController*)our_data fileID:(NSString*)file_id;
++ (void) googleDriveUpdateFolderPermission:(PersonalDataController*)our_data folder:(GTLDriveFile*)folder;
 
 @end

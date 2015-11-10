@@ -9,7 +9,7 @@
 	<key>CFBundleExecutable</key>
 	<string>${EXECUTABLE_NAME}</string>
 	<key>CFBundleIdentifier</key>
-	<string>adams.pgh.pa.us.${PRODUCT_NAME:rfc1034identifier}</string>
+	<string>us.pa.pgh.adams.sls</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -34,9 +34,15 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>1.0</string>
+	<string>1.112</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>SLS shares your location data with only those consumers' that you choose.</string>
+	<key>NSLocationUsageDescription</key>
+	<string>SLS shares your location with only those that you choose.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>SLS shares your location data with only those consumers' that you choose.</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main_iPhone</string>
 	<key>UIMainStoryboardFile~ipad</key>

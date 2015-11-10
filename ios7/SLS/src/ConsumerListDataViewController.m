@@ -270,8 +270,6 @@ static const char* kAlertButtonDeleteConsumerMessage = "Yes, delete this consume
     if (kDebugLevel > 0)
         NSLog(@"ConsumerListDataViewController:precisionValueChanged: called.");
     
-    
-    
     UISlider* slider = (UISlider*)sender;
     _desired_policy = [PolicyController precisionLevelName:[[NSNumber alloc] initWithFloat:slider.value]];
     

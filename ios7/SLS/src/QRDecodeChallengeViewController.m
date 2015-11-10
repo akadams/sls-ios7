@@ -16,7 +16,7 @@
 #import "QRDecodeChallengeViewController.h"
 
 
-static const int kDebugLevel = 3;
+static const int kDebugLevel = 1;
 
 
 @interface QRDecodeChallengeViewController ()
@@ -254,8 +254,12 @@ static const int kDebugLevel = 3;
     _scan_results = [[metadata_objects objectAtIndex:0] stringValue];  // just grab the first result
     
     // Parse what was returned, and change our UIView to show it.
-    NSString* message = [[NSString alloc] initWithFormat:@"If the contents below look correct, hit DONE, otherwise rescan with SCAN button above:\n\n"];
-    message = [message stringByAppendingString:_scan_results];
+    NSString* message = [[NSString alloc] initWithFormat:@"Scan successful, hit DONE to move to the next phase."];
+    if (kDebugLevel > 1) {
+        message = [message stringByAppendingString:@"\nIf the contents below look correct, hit DONE, otherwise rescan with SCAN button above:\n\n"];
+        message = [message stringByAppendingString:_scan_results];
+    }
+    
     _text_view.text = message;
     
     [_session stopRunning];

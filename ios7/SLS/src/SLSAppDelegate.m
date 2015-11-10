@@ -91,7 +91,7 @@ static const int kDebugLevel = 1;
                         if (kDebugLevel > 0)
                             NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Found device iPhone Simulator.");
                         
-#if 1  // SIMULATOR HACK:
+#if 1  // SIMULATOR HACK: Make sure address book has iPhone Simulator entry.
                         {
                             NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Seeing if we need to add entry for iPhone Simulator to AddressBook.");
                             
@@ -194,6 +194,83 @@ static const int kDebugLevel = 1;
                                 NSString* error_msg = [provider_master.consumer_list_controller addConsumer:tmp_consumer];
                                 if (error_msg != nil)
                                     NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: DEBUG: Adding bogus Consumer failed: %s.", [error_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+                            }
+                        }
+#endif
+                    } else if ([ui_device.name caseInsensitiveCompare:@"shadow"] == NSOrderedSame) {
+                        if (kDebugLevel > 0)
+                            NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Found device shadow.");
+#if 0  // SIMULATOR HACK:
+                        {
+                            // Send a copy of our high precision symmetric key to storage, so the consumer on the simulator can get it (as the simulator can not read SMS!).
+                            
+                            // XXX Not needed, file-store is sent via SMS!
+                            
+                            if (provider_master.symmetric_keys_controller != nil && [provider_master.symmetric_keys_controller count] > 0) {
+                                NSData* sym_key = [provider_master.symmetric_keys_controller objectForKey:[NSNumber numberWithInt:SKC_PRECISION_HIGH]];
+                                NSString* sym_key_b64 = [sym_key base64EncodedString];
+                                NSString* err_msg = [provider_master.our_data amazonS3Upload:sym_key_b64 bucketName:@"aka-tmp-sls-mistwraith" filename:@"symmetric-key.b64"];
+                                if (err_msg != nil) {
+                                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"SLSAppDelegate:didFinishLaunchingWithOptions:" message:err_msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
+                                    [alert show];
+                                }
+                            }
+                        }
+#endif
+#if 0  // SIMULATOR HACK:  Add our public key to File-store so simulator can download it.
+                        {
+                            // Send a copy of our public key to storage, so the consumer on the simulator can get it (as the simulator can not scan the encoded key!).
+                            
+                            if (provider_master.our_data != nil && provider_master.our_data.identity != nil && [provider_master.our_data.identity length] > 0) {
+                                // Setup application tag for key-chain query and attempt to get a key.
+                                NSString* public_key_identity = [NSString stringWithFormat:@"Andrew K. Adams.publickey"];
+                                NSData* application_tag = [public_key_identity dataUsingEncoding:[NSString defaultCStringEncoding]];
+                                NSData* public_key = nil;
+                                NSString* error_msg = [PersonalDataController queryKeyData:application_tag keyData:&public_key];
+                                if (error_msg != nil)
+                                    NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: queryKeyData() failed: %s.", [error_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+                                
+                                NSString* public_key_b64 = [public_key base64EncodedString];
+                                NSString* filename = [[NSString alloc] initWithFormat:@"public-key.b64"];
+                                NSString* dict_key = filename;  // key-bundle filenames are unique
+                                NSString* bucket = provider_master.our_data.identity_hash;
+                               
+#if 1
+                                NSString* sls_folder_id = [provider_master.our_data.drive_ids objectForKey:[NSString stringWithFormat:@"SLS"]];
+                                [provider_master googleDriveQueryFolder:bucket rootID:sls_folder_id];
+#else
+                                error_msg = [provider_master googleDriveUpload:public_key_b64 bucket:bucket filename:filename idKey:dict_key];
+                                if (error_msg != nil) {
+                                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"SLSAppDelegate:didFinishLaunchingWithOptions:" message:error_msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
+                                    [alert show];
+                                }
+#endif
+                                if ([provider_master.our_data.drive_wvls objectForKey:bucket] != nil)
+                                    NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Use %@ for path to public-key!", [provider_master.our_data.drive_wvls objectForKey:bucket]);
+                                else
+                                    NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: XXX: WVL to fetch public-key not yet installed for %@.", bucket);
+                            }
+                        }
+#endif
+#if 0  // For Debugging: key-chain testing!
+                        {
+                            // TODO(aka) See if we can add a key.
+                            Principal* tmp_consumer = [[Consumer alloc] initWithIdentity:@"Key Test"];
+                            
+                            // Setup application tag for key-chain query and attempt to get a key.
+                            NSString* public_key_identity = [NSString stringWithFormat:@"Andrew K. Adams.publickey"];
+                            NSData* application_tag = [public_key_identity dataUsingEncoding:[NSString defaultCStringEncoding]];
+                            NSData* public_key = nil;
+                            NSString* error_msg = [PersonalDataController queryKeyData:application_tag keyData:&public_key];
+                            if (error_msg != nil)
+                                NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: queryKeyData() failed: %s.", [error_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+                            if (public_key != nil) {
+                                // Okay, key save worked, so now delete the key.
+                                [PersonalDataController deleteKeyRef:application_tag];
+#if 0
+                                [tmp_consumer setPublicKey:public_key];
+                                NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: setPublicKey() test status: %d.", ([tmp_consumer publicKeyRef] == NULL) ? false : true);
+#endif
                             }
                         }
 #endif
@@ -440,9 +517,9 @@ static const int kDebugLevel = 1;
                             CFRelease(address_book_ref);
                         }
 #endif
-                    } else if ([ui_device.name caseInsensitiveCompare:@"mistwraith"] == NSOrderedSame) {
+                    } else if ([ui_device.name caseInsensitiveCompare:@"shadow"] == NSOrderedSame) {
                         if (kDebugLevel > 0)
-                            NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Found device mistwraith.");
+                            NSLog(@"SLSAppDelegate:didFinishLaunchingWithOptions: Found device shadow.");
 #if 0  // SIMULATOR HACK:
                         {
                             // Add myself as a provider.  TODO(aka) This should really happen for free (or with a button click).  But I don't know how to get the Consumer our symmetric key!  What if we only had one PersonalDataController?
@@ -504,7 +581,8 @@ static const int kDebugLevel = 1;
         i++;
     }
     
-    // Make sure we set the Provider's delegate.
+    // Make sure we set the Provider's delegate to the Consumer.  Note, if the Consumer wants to talk to the Provider, it can do so through NSNotificationCenter ...
+    
     if (!provider_delegate_set) {
         [provider_master setDelegate:consumer_master];
         provider_delegate_set = true;

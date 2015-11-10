@@ -49,6 +49,7 @@
 @property (weak, nonatomic) IBOutlet UIButton* toggle_power_saving_button;
 @property (weak, nonatomic) IBOutlet UISlider* distance_filter_slider;
 @property (weak, nonatomic) IBOutlet UILabel* distance_filter_label;
+@property (weak, nonatomic) IBOutlet UILabel* build_version_label;
 
 #pragma mark - Initialization
 - (id) init;

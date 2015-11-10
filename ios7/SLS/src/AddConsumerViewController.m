@@ -45,7 +45,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 - (id) init {
     if (kDebugLevel > 4)
-        NSLog(@"AddConsumerViewController:init: called.");
+        NSLog(@"AddConsumerVC:init: called.");
     
     if (self = [super init]) {
         _our_data = nil;
@@ -59,7 +59,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 - (id) initWithNibName:(NSString*)nib_name_or_nil bundle:(NSBundle*)nib_bundle_or_nil {
     if (kDebugLevel > 4)
-        NSLog(@"AddConsumerViewController:initWithNibName:bundle: called, but not implemented.");
+        NSLog(@"AddConsumerVC:initWithNibName:bundle: called, but not implemented.");
     
     self = [super initWithNibName:nib_name_or_nil bundle:nib_bundle_or_nil];
     if (self) {
@@ -77,7 +77,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 - (void) viewDidLoad {
     if (kDebugLevel > 4)
-        NSLog(@"AddConsumerViewController:viewDidLoad: called.");
+        NSLog(@"AddConsumerVC:viewDidLoad: called.");
     
     [super viewDidLoad];
     
@@ -87,7 +87,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 - (void) configureView {
     if (kDebugLevel > 4)
-        NSLog(@"AddConsumerViewController:configureView: called.");
+        NSLog(@"AddConsumerVC:configureView: called.");
     
     static bool first_time_in = true;
     
@@ -110,7 +110,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 - (void) didReceiveMemoryWarning {
     if (kDebugLevel > 4)
-        NSLog(@"AddConsumerViewController:didReceiveMemoryWarning: called.");
+        NSLog(@"AddConsumerVC:didReceiveMemoryWarning: called.");
     
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
@@ -121,17 +121,17 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 // UIPickerView.
 - (NSInteger) numberOfComponentsInPickerView:(UIPickerView*)picker_view {
     if (kDebugLevel > 4)
-        NSLog(@"AddConsumerViewController:numberOfComponentsInPickerView: called.");
+        NSLog(@"AddConsumerVC:numberOfComponentsInPickerView: called.");
     
     return 1;
 }
 
 - (NSInteger) pickerView:(UIPickerView*)picker_view numberOfRowsInComponent:(NSInteger)component {
     if (kDebugLevel > 4)
-        NSLog(@"AddConsumerViewController:pickerView:numberOfRowsInComponent: called.");
+        NSLog(@"AddConsumerVC:pickerView:numberOfRowsInComponent: called.");
     
     
-    NSLog(@"AddConsumerViewController:pickerView:numberOfRowsInComponent: returning %lu rows.", (unsigned long)[[AddConsumerViewController supportedPairingProtocols] count]);
+    NSLog(@"AddConsumerVC:pickerView:numberOfRowsInComponent: returning %lu rows.", (unsigned long)[[AddConsumerViewController supportedPairingProtocols] count]);
     
     return [[AddConsumerViewController supportedPairingProtocols] count];
 }
@@ -140,21 +140,21 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 - (void) prepareForSegue:(UIStoryboardSegue*)segue sender:(id)sender {
     if (kDebugLevel > 4)
-        NSLog(@"AddConsumerViewController:prepareForSegue: called.");
+        NSLog(@"AddConsumerVC:prepareForSegue: called.");
     
     if (kDebugLevel > 1)
-        NSLog(@"AddConsumerViewController:prepareForSegue: our identity: %s, deposit: %s, public-key: %s, and Consumer's identity: %s.", [_our_data.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [[_our_data.deposit description] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[_our_data.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [_consumer.identity cStringUsingEncoding: [NSString defaultCStringEncoding]]);
+        NSLog(@"AddConsumerVC:prepareForSegue: our identity: %s, deposit: %s, public-key: %s, and Consumer's identity: %s.", [_our_data.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [[_our_data.deposit description] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[_our_data.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [_consumer.identity cStringUsingEncoding: [NSString defaultCStringEncoding]]);
     
     if ([[segue identifier] isEqualToString:@"UnwindToProviderMasterViewID"]) {
         if (kDebugLevel > 0)
-            NSLog(@"AddConsumerViewController:prepareForSeque: unwinding to ProviderMasterViewController.");
+            NSLog(@"AddConsumerVC:prepareForSeque: unwinding to ProviderMasterViewController.");
         
         // User hit CANCEL; clear our consumer object if it's set.
         if (_consumer != nil)
             _consumer = nil;  // probably not necessary, as the ProviderMasterVC ignores unwinds from here
     } else if ([[segue identifier] isEqualToString:@"ShowAddConsumerCTViewID"]) {
         if (kDebugLevel > 0)
-            NSLog(@"AddConsumerViewController:prepareForSeque: Segue'ng to ShowAddConsumerCTViewID.");
+            NSLog(@"AddConsumerVC:prepareForSeque: Segue'ng to ShowAddConsumerCTViewID.");
         
         // Pass in *our_data* and (potentially) new consumer's info from our AddressBook.
         UINavigationController* nav_controller = (UINavigationController*)segue.destinationViewController;
@@ -164,26 +164,26 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
         view_controller.consumer = _consumer;
         
         if (kDebugLevel > 0)
-            NSLog(@"AddConsumerViewController:prepareForSegue: the ShowAddConsumerCTView controller's now has identity: %s, deposit: %s, public-key: %s, and Consumer's identity: %s.", [view_controller.our_data.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [[view_controller.our_data.deposit description] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[view_controller.our_data.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [view_controller.consumer.identity cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            NSLog(@"AddConsumerVC:prepareForSegue: the ShowAddConsumerCTView controller's now has identity: %s, deposit: %s, public-key: %s, and Consumer's identity: %s.", [view_controller.our_data.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [[view_controller.our_data.deposit description] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[view_controller.our_data.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [view_controller.consumer.identity cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     } else {
         if (kDebugLevel > 0)
-            NSLog(@"AddConsumerViewController:prepareForSeque: TODO(aka) unknown segue: %s.", [[segue identifier] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            NSLog(@"AddConsumerVC:prepareForSeque: TODO(aka) unknown segue: %s.", [[segue identifier] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     }
 }
 
 - (IBAction) unwindToAddConsumer:(UIStoryboardSegue*)segue {
     if (kDebugLevel > 4)
-        NSLog(@"AddConsumerViewController:unwindToAddConsumer: called.");
+        NSLog(@"AddConsumerVC:unwindToAddConsumer: called.");
     
     UIViewController* sourceViewController = segue.sourceViewController;
     
     if ([sourceViewController isKindOfClass:[AddConsumerCTViewController class]]) {
         if (kDebugLevel > 2)
-            NSLog(@"AddConsumerViewController:unwindToAddConsumer: AddConsumerCTView callback.");
+            NSLog(@"AddConsumerVC:unwindToAddConsumer: AddConsumerCTView callback.");
         
         // User hit CANCEL.
     } else {
-        NSLog(@"AddConsumerViewController:unwindToAddConsumer: TODO(aka) unknown segue: %s.", [[segue identifier] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        NSLog(@"AddConsumerVC:unwindToAddConsumer: TODO(aka) unknown segue: %s.", [[segue identifier] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     }
     
     // No need to dismiss the view controller in an unwind segue.
@@ -195,7 +195,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 - (IBAction) showAddressBook:(id)sender {
     if (kDebugLevel > 4)
-        NSLog(@"AddConsumerViewController:showAddressBook: called.");
+        NSLog(@"AddConsumerVC:showAddressBook: called.");
     
     // First request authorization to Address Book
     ABAddressBookRef address_book_ref = ABAddressBookCreateWithOptions(NULL, NULL);
@@ -231,7 +231,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 - (IBAction)startPairing:(id)sender {
     if (kDebugLevel > 4)
-        NSLog(@"AddConsumerViewController:startPairing: called, chosen_protocol: %ld.", (long)_chosen_protocol);
+        NSLog(@"AddConsumerVC:startPairing: called, chosen_protocol: %ld.", (long)_chosen_protocol);
     
     if (_chosen_protocol == 0)
         [self performSegueWithIdentifier:@"ShowAddConsumerCTViewID" sender:nil];
@@ -243,7 +243,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 + (NSArray*) supportedPairingProtocols {
     if (kDebugLevel > 4)
-        NSLog(@"AddConsumerViewController:supportedPairingProtocols: called.");
+        NSLog(@"AddConsumerVC:supportedPairingProtocols: called.");
     
     static NSArray* protocols = nil;
     
@@ -260,7 +260,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 // ABPeoplePicker delegate functions.
 - (BOOL) peoplePickerNavigationController:(ABPeoplePickerNavigationController*)people_picker shouldContinueAfterSelectingPerson:(ABRecordRef)person {
     if (kDebugLevel > 4)
-        NSLog(@"AddConsumerViewController:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: called.");
+        NSLog(@"AddConsumerVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: called.");
     
     NSString* first_name = (__bridge_transfer NSString*)ABRecordCopyValue(person, kABPersonFirstNameProperty);
     NSString* last_name = (__bridge_transfer NSString*)ABRecordCopyValue(person, kABPersonLastNameProperty);
@@ -286,12 +286,12 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
         _consumer.identity = identity;
     
     if (kDebugLevel > 1)
-        NSLog(@"AddConsumerViewController:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: identity set to: %s.", [_consumer.identity cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        NSLog(@"AddConsumerVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: identity set to: %s.", [_consumer.identity cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     _identity_label.text = _consumer.identity;
     
     if (kDebugLevel > 2)
-        NSLog(@"AddConsumerViewController:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: TODO(aka) Need to see if we have a cell phone or e-mail.");
+        NSLog(@"AddConsumerVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: TODO(aka) Need to see if we have a cell phone or e-mail.");
     
     // Look for other data we could use, specifically; mobile phone number, e-mail address.
     NSString* mobile_number = nil;
@@ -322,23 +322,39 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
     // XXX TODO(aka) _email_input.text = email_address;
     
     if (kDebugLevel > 0)
-        NSLog(@"AddConsumerViewController:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: Got phone (%s): %s, e-mail (%s): %s.", [(NSString*)kABPersonPhoneMobileLabel cStringUsingEncoding:[NSString defaultCStringEncoding]], [mobile_number cStringUsingEncoding:[NSString defaultCStringEncoding]], [email_label cStringUsingEncoding:[NSString defaultCStringEncoding]], [email_address cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        NSLog(@"AddConsumerVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: Got phone (%s): %s, e-mail (%s): %s.", [(NSString*)kABPersonPhoneMobileLabel cStringUsingEncoding:[NSString defaultCStringEncoding]], [mobile_number cStringUsingEncoding:[NSString defaultCStringEncoding]], [email_label cStringUsingEncoding:[NSString defaultCStringEncoding]], [email_address cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
-    [self dismissViewControllerAnimated:YES completion:nil];
+    if ([[[UIDevice currentDevice] systemVersion] compare:@"8.0" options:NSNumericSearch] == NSOrderedAscending) {
+        [self dismissViewControllerAnimated:YES completion:nil];  // in 8.0+ people picker dismisses by itself
+    }
     
     return NO;
 }
 
 - (BOOL) peoplePickerNavigationController:(ABPeoplePickerNavigationController*)people_picker shouldContinueAfterSelectingPerson:(ABRecordRef)person property:(ABPropertyID)property identifier:(ABMultiValueIdentifier)identifier {
     if (kDebugLevel > 4)
-        NSLog(@"AddConsumerViewController:peoplePickerNavigationController:shouldContinueAfterSelectingPerson:property:identifier: called.");
+        NSLog(@"AddConsumerVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson:property:identifier: called.");
     
     return NO;
 }
 
+- (void) peoplePickerNavigationController:(ABPeoplePickerNavigationController*)people_picker didSelectPerson:(ABRecordRef)person {
+    if (kDebugLevel > 4)
+        NSLog(@"AddConsumerVC:peoplePickerNavigationController:didSelectingPerson: called (%d).", [NSThread isMainThread]);
+    
+    [self peoplePickerNavigationController:people_picker shouldContinueAfterSelectingPerson:person];
+}
+
+- (void) peoplePickerNavigationController:(ABPeoplePickerNavigationController*)people_picker didSelectPerson:(ABRecordRef)person     property:(ABPropertyID)property identifier:(ABMultiValueIdentifier)identifier {
+    if (kDebugLevel > 4)
+        NSLog(@"AddConsumerVC:peoplePickerNavigationController:didSelectingPerson:property:identifier: called (%d).", [NSThread isMainThread]);
+    
+    [self peoplePickerNavigationController:people_picker shouldContinueAfterSelectingPerson:person property:property identifier:identifier];
+}
+
 - (void) peoplePickerNavigationControllerDidCancel:(ABPeoplePickerNavigationController*)people_picker {
     if (kDebugLevel > 4)
-        NSLog(@"AddConsumerViewController:peoplePickerNavigationControllerDidCancel: called.");
+        NSLog(@"AddConsumerVC:peoplePickerNavigationControllerDidCancel: called.");
     
     [self dismissViewControllerAnimated:YES completion:nil];
 }
@@ -346,14 +362,14 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 // UIPickerView delegate functions.
 - (NSString*) pickerView:(UIPickerView*)picker_view titleForRow:(NSInteger)row forComponent:(NSInteger)component {
     if (kDebugLevel > 4)
-        NSLog(@"AddConsumerViewController:pickerView:titleForRow:forComponent: called with row: %ld.", (long)row);
+        NSLog(@"AddConsumerVC:pickerView:titleForRow:forComponent: called with row: %ld.", (long)row);
     
     return [[AddConsumerViewController supportedPairingProtocols] objectAtIndex:row];
 }
 
 - (void) pickerView:(UIPickerView*)picker_view didSelectRow:(NSInteger)row inComponent:(NSInteger)component {
     if (kDebugLevel > 4)
-        NSLog(@"AddConsumerViewController:pickerView:didSelectRow:inComponent: called.");
+        NSLog(@"AddConsumerVC:pickerView:didSelectRow:inComponent: called.");
     
     // Mark which pairing protocol was selected.
     if (row > [[AddConsumerViewController supportedPairingProtocols] count])

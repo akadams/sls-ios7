@@ -26,6 +26,7 @@
 
 static const int kDebugLevel = 2;
 
+// ACCESS_GROUPS:
 static const char* kAccessGroupHCC = KC_ACCESS_GROUP_HCC;
 
 static const char* kPathFileStore = URI_PATH_FILE_STORE;
@@ -58,6 +59,8 @@ static const char kArraySerializerDelimiter = ' ';  // TODO(aka) need to add to 
 
 static const char* kAlertButtonCancelPairingMessage = "No, cancel pairing!";
 static const char* kAlertButtonContinuePairingMessage = "Yes, continue with pairing.";
+
+static const char* kStateDataUpdate = "stateDataUpdate";  // TODO(aka) need to add to a define file
 
 
 @interface ConsumerMasterViewController ()
@@ -177,40 +180,112 @@ static const char* kAlertButtonContinuePairingMessage = "Yes, continue with pair
     if (kDebugLevel > 4)
         NSLog(@"ConsumerMVC:viewDidAppear: called.");
     
+    [super viewDidAppear:animated];
+    
     // Call configureView: to get the work done (note, this sets a timer for updateAllProviderData:).
     [self configureView:true];  // first time in, set the map focus
 }
+
+/*
+// XXXX Test to fix unwind to segues ...
+- (UIViewController*) viewControllerForUnwindSegueAction:(SEL)action fromViewController:(UIViewController*)fromViewController withSender:(id)sender {
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerMVC:viewControllerForUnwindSegueAction: called.");
+    
+    
+    for (UIViewController* vc in self.childViewControllers) {
+        // Always use -canPerformUnwindSegueAction:fromViewController:withSender:
+        // to determine if a view controller wants to handle an unwind action.
+        if ([vc canPerformUnwindSegueAction:action fromViewController:fromViewController withSender:sender])
+            return vc;
+    }
+    
+    return [super viewControllerForUnwindSegueAction:action fromViewController:fromViewController withSender:sender];
+}
+*/
 
 - (void) configureView:(BOOL)set_map_focus {
     if (kDebugLevel > 4)
         NSLog(@"ConsumerMVC:configureView: called.");
     
     static bool first_time_in = true;
+    static bool identity_help = true;
+    static bool asymmetric_keys_help = true;
+    static bool deposit_help = true;
+    static bool pairing_help = true;
     
-    // USER-HELP:
-    NSString* help_msg = nil;
-    if (_our_data == nil || _our_data.identity == nil || [_our_data.identity length] == 0) {
-        help_msg = [NSString stringWithFormat:@"In order to view others' location data, you first must set your identity (click on the Config button)."];
-        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Consumer Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-        [alert show];
-        if (first_time_in) {
-            help_msg = [NSString stringWithFormat:@"A \"Consumer\" is one that views, tracks or consumes other's location data.  You are currently in the CONSUMER's VIEW."];
-            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Consumer Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-            [alert show];
+    if (self.isViewLoaded && self.view.window) {
+        // USER-HELP:
+        NSString* help_msg = nil;
+        if (_our_data == nil || _our_data.identity == nil || [_our_data.identity length] == 0) {
+            if (first_time_in) {
+                help_msg = [NSString stringWithFormat:@"A \"Consumer\" is one that views, tracks or consumes others' location data.  You are currently in the CONSUMER's VIEW."];
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Consumer Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+            } else if (identity_help) {
+                help_msg = [NSString stringWithFormat:@"In order to view others' location data, you first must set your identity (click on the Config button)."];
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Consumer Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+                identity_help = false;
+            }
+        } else if (_our_data.privateKeyRef == NULL || _our_data.publicKeyRef == NULL) {
+            if (asymmetric_keys_help) {
+                help_msg = [NSString stringWithFormat:@"In order to view others' secure data, you must generate a private/public key pair (click on the Config button)."];
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Consumer Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+                asymmetric_keys_help = false;
+            }
+        } else if (_our_data.deposit == nil || [_our_data.deposit count] == 0) {
+            if (deposit_help) {
+                help_msg = [NSString stringWithFormat:@"In order to pair with others, you must have an out-of-band deposit (click on the Config button)."];
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Consumer Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+                deposit_help = false;
+            }
+        } else if (_provider_list == nil || [_provider_list countOfList] == 0) {
+            if (pairing_help) {
+                help_msg = [NSString stringWithFormat:@"In order to view someone's location, you must first pair with them (click on the + button)."];
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Consumer Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+                pairing_help = false;
+            }
         }
-    } else if (_our_data.privateKeyRef == NULL || _our_data.publicKeyRef == NULL) {
-        help_msg = [NSString stringWithFormat:@"In order to view others' secure data, you must generate a private/public key pair (click on the Config button)."];
-        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Consumer Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-        [alert show];
-    } else if (_our_data.deposit == nil || [_our_data.deposit count] == 0) {
-        help_msg = [NSString stringWithFormat:@"In order to pair with others, you must have an out-of-band deposit (click on the Config button)."];
-        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Consumer Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-        [alert show];
-    } else if (_provider_list == nil || [_provider_list countOfList] == 0) {
-        help_msg = [NSString stringWithFormat:@"In order to view someone's location, you must first pair with them (click on the + button)."];
-        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Consumer Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-        [alert show];
     }
+    
+#if 0  // ENCRYPTION_TEST:
+    static bool encryption_test = true;
+    if (_our_data.privateKeyRef != NULL && _our_data.publicKeyRef != NULL && encryption_test) {
+        int challenge = arc4random() % 9999;  // get a four digit challenge
+        NSString* challenge_str = [NSString stringWithFormat:@"%d", challenge];
+        NSString* encrypted_challenge = nil;
+        NSString* err_msg = [PersonalDataController asymmetricEncryptString:challenge_str publicKeyRef:_our_data.publicKeyRef encryptedString:&encrypted_challenge];
+        if (err_msg != nil) {
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Provider Help" message:err_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+            [alert show];
+        } else {
+            if (kDebugLevel > 0)
+                NSLog(@"ConsumerMVC:configureView: Attempting to decrypt (%ldB): %@.", (unsigned long)[encrypted_challenge length], encrypted_challenge);
+            
+            NSString* decrypted_challenge = nil;
+            err_msg = [PersonalDataController asymmetricDecryptString:encrypted_challenge privateKeyRef:_our_data.privateKeyRef string:&decrypted_challenge];
+            if (err_msg != nil) {
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Consumer Help" message:err_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+            } else {
+                if ([challenge_str compare:decrypted_challenge] == NSOrderedSame) {
+                    help_msg = [NSString stringWithFormat:@"Asymmetric encryption test succeeded."];
+                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Consumer Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                    [alert show];
+                } else {
+                    NSString* failure_msg = [NSString stringWithFormat:@"Asymmetric encryption test failed: %@ != %@.", challenge_str, decrypted_challenge];
+                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Consumer Help" message:failure_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                    [alert show];
+                }
+            }
+        }
+        encryption_test = false;
+    }
+#endif
     
     // Refresh UIMapView.  TODO(aka) What are we doing here?  Clearing all pins?
     NSMutableArray* annotation_list = [[NSMutableArray alloc] init];
@@ -220,6 +295,8 @@ static const char* kAlertButtonContinuePairingMessage = "Yes, continue with pair
         }
     }
     [_map_view removeAnnotations:annotation_list];
+    
+    NSLog(@"ConsumerMVC:configureView: TODO(aka) We need to center map on current location, if first_time_in is set!");
     
     CLLocationCoordinate2D map_focus_location = [self plotProviderLocations:nil];  // attempt to plot all providers
     
@@ -322,7 +399,7 @@ static const char* kAlertButtonContinuePairingMessage = "Yes, continue with pair
             
             int bearing = ((int)(bearing_rads * 180.0 / M_PI) + 360) % 360;
             
-            if (kDebugLevel > 0) {
+            if (kDebugLevel > 1) {
                 NSString* msg = [[NSString alloc] initWithFormat:@"%@ location[%lu]: %+.7fx%+.7f vs %+.7fx%+.7f, delta-lon: %fR, lat-prev: %fR, lat-new: %fR, y: %fR, x: %fR, bearing: %fR, bearing in degrees: %d, received course: %f",  [provider identity], (unsigned long)index, new_location.coordinate.longitude, new_location.coordinate.latitude, previous_location.coordinate.longitude, previous_location.coordinate.latitude,delta_lon, lat_prev, lat_new, y, x, bearing_rads, bearing, new_location.course];
                 NSLog(@"ConsumerMVC:plotProviderLocations: %s.", [msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
 #if 0
@@ -561,6 +638,11 @@ static const char* kAlertButtonContinuePairingMessage = "Yes, continue with pair
                 [_our_data saveIdentityState];
                 [_our_data saveDepositState];
             }
+            
+            // Now tell Provider MVC to slurp up new data.
+            NSString* name = [NSString stringWithFormat:@"%s", kStateDataUpdate];
+            NSLog(@"ConsumerMVC:unwindToConsumerMaster: XXXXX Issuing notification for %@", name);
+            [[NSNotificationCenter defaultCenter] postNotificationName:name object:nil];
         }
         
         if (source.fetch_toggle_changed) {
@@ -579,6 +661,15 @@ static const char* kAlertButtonContinuePairingMessage = "Yes, continue with pair
             if (kDebugLevel > 0)
                 NSLog(@"ConsumerMVC:unwindToConsumerMaster: adding new provider: %s, public-key: %s.", [source.provider.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [[source.provider.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
             
+#if 1  // SIMULATOR HACK: The simulator can't receive the file-store via its deposit, so fake the URL for this new provider.
+            UIDevice* ui_device = [UIDevice currentDevice];
+            if ([ui_device.name caseInsensitiveCompare:@"iPhone Simulator"] == NSOrderedSame) {
+                NSLog(@"ConsumerMasterVC:addConsumerToProvider: Found device iPhone Simulator.");
+                NSURL* file_store_url = [NSURL URLWithString:@""];
+                [source.provider setFile_store_url:file_store_url];
+            }
+#endif
+
             NSString* err_msg = [_provider_list addProvider:source.provider];
             if (err_msg != nil) {
                 UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ConsumerMasterVC:unwindToConsumerMaster:" message:err_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
@@ -641,7 +732,8 @@ static const char* kAlertButtonContinuePairingMessage = "Yes, continue with pair
     NSString* err_msg = nil;
     
     if (![provider isKeyBundleURLValid]) {
-        err_msg = [[NSString alloc] initWithFormat:@"ConsumerMasterVC:fetchKeyBundle: key-bundle URL not set for: %s", [provider.identity cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+        // We probably have not  received the file-store deposit message, yet.  Just log it and return.
+        err_msg = [NSString stringWithFormat:@"INVALID_KEYBUNDLE"];
         return err_msg;
     }
     
@@ -829,12 +921,20 @@ static const char* kAlertButtonContinuePairingMessage = "Yes, continue with pair
         err_msg = [self fetchKeyBundle:provider keyBundle:&key_bundle];
         if (err_msg != nil) {
             provider.last_fetch = [[NSDate alloc] init];  // make sure we don't keep trying this provider
-            NSString* msg = [[NSString alloc] initWithFormat:@"ConsumerMasterVC:updateProviderData: %s.", [err_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]];
-            UILocalNotification* notice = [[UILocalNotification alloc] init];
-            notice.alertBody = msg;
-            notice.alertAction = @"Show";
-            [[UIApplication sharedApplication] presentLocalNotificationNow:notice];
-            return;
+            if ([err_msg isEqual:@"INVALID_KEYBUNDLE"]) {
+                // Just log the fact that we have not yet received their file-store information.
+                if (kDebugLevel > 0)
+                    NSLog(@"ConsumerMasterVC:updateProviderData: key-bundle URL invalid, or not yet set.");
+                return;
+            } else {
+                // A real error ...
+                NSString* msg = [[NSString alloc] initWithFormat:@"ConsumerMasterVC:updateProviderData: %s.", [err_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+                UILocalNotification* notice = [[UILocalNotification alloc] init];
+                notice.alertBody = msg;
+                notice.alertAction = @"Show";
+                [[UIApplication sharedApplication] presentLocalNotificationNow:notice];
+                return;
+            }
         }
         
         // Remember to save our state.
@@ -859,10 +959,14 @@ static const char* kAlertButtonContinuePairingMessage = "Yes, continue with pair
     if (![provider isFileStoreURLValid]) {
         provider.last_fetch = [[NSDate alloc] init];  // make sure we don't keep trying this provider
         NSString* msg = [[NSString alloc] initWithFormat:@"ConsumerMasterVC:updateProviderData: %s\'s file-store not valid: %s.", [provider.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [[provider.file_store_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
-        UILocalNotification* notice = [[UILocalNotification alloc] init];
-        notice.alertBody = msg;
-        notice.alertAction = @"Show";
-        [[UIApplication sharedApplication] presentLocalNotificationNow:notice];
+        if (self.isViewLoaded && self.view.window) {
+            UILocalNotification* notice = [[UILocalNotification alloc] init];
+            notice.alertBody = msg;
+            notice.alertAction = @"Show";
+            [[UIApplication sharedApplication] presentLocalNotificationNow:notice];
+        } else {
+            NSLog(@"%@", msg);
+        }
         return;
     }
     
@@ -870,10 +974,14 @@ static const char* kAlertButtonContinuePairingMessage = "Yes, continue with pair
     if (err_msg != nil) {
         provider.last_fetch = [[NSDate alloc] init];  // make sure we don't keep trying this provider
         NSString* msg = [[NSString alloc] initWithFormat:@"ConsumerMasterVC:updateProviderData: %s.", [err_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]];
-        UILocalNotification* notice = [[UILocalNotification alloc] init];
-        notice.alertBody = msg;
-        notice.alertAction = @"Show";
-        [[UIApplication sharedApplication] presentLocalNotificationNow:notice];
+        if (self.isViewLoaded && self.view.window) {
+            UILocalNotification* notice = [[UILocalNotification alloc] init];
+            notice.alertBody = msg;
+            notice.alertAction = @"Show";
+            [[UIApplication sharedApplication] presentLocalNotificationNow:notice];
+        } else {
+            NSLog(@"%@", msg);
+        }
         return;
     }
 }
@@ -912,7 +1020,7 @@ static const char* kAlertButtonContinuePairingMessage = "Yes, continue with pair
     
     NSTimeInterval next_timeout = [_provider_list getNextTimeInterval];
     
-    if (kDebugLevel > 0)
+    if (kDebugLevel > 1)
         NSLog(@"ConsumerMVC:setTimerForFetchingData: setting timer for %fs.", next_timeout);
     
     [NSTimer scheduledTimerWithTimeInterval:next_timeout target:self selector:@selector(updateAllProviderData) userInfo:nil repeats:NO];
@@ -973,7 +1081,7 @@ static const char* kAlertButtonContinuePairingMessage = "Yes, continue with pair
         
         [tab_controller setSelectedIndex:0];
         
-        return [NSString stringWithFormat:@"ConsumerMasterVC:checkNSUserDefaults: message destined for consumer mode: %@", url_string];
+        return [NSString stringWithFormat:@"ConsumerMasterVC:checkNSUserDefaults: message destined for provider mode: %@", url_string];
     }
     
     // Process the URL depending on its path.
@@ -1250,7 +1358,14 @@ static const char* kAlertButtonContinuePairingMessage = "Yes, continue with pair
 
         // TODO(aka) Note, in-order to get a SecKeyRef of our NSData pubkey, we need to first put it in the keychain (stupid iOS API!), so if we don't add this Principal as a consumer later on, we'll need to eventually delete the key from our keychain!
         
-        [potential_principal.principal setPublicKey:pub_key accessGroup:[NSString stringWithFormat:@"%s", kAccessGroupHCC]];
+#if 1  // ACCESS_GROUP: TODO(aka) This doesn't work!
+        err_msg = [potential_principal.principal setPublicKey:pub_key accessGroup:[NSString stringWithFormat:@"%s", kAccessGroupHCC]];
+#else
+        err_msg = [potential_principal.principal setPublicKey:pub_key accessGroup:nil];
+#endif
+        if (err_msg != nil)
+            return err_msg;
+        
         potential_principal.their_secret_question = secret_question;
         potential_principal.mode = [NSNumber numberWithInt:HCC_MODE_CONSUMER_PUBKEY_RECEIVED];
         
@@ -1582,7 +1697,9 @@ static const char* kAlertButtonContinuePairingMessage = "Yes, continue with pair
     if (kDebugLevel > 0)
         NSLog(@"ConsumerMVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: Got phone (%s): %s, e-mail (%s): %s.", [(NSString*)kABPersonPhoneMobileLabel cStringUsingEncoding:[NSString defaultCStringEncoding]], [mobile_number cStringUsingEncoding:[NSString defaultCStringEncoding]], [email_label cStringUsingEncoding:[NSString defaultCStringEncoding]], [email_address cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
-    [self dismissViewControllerAnimated:YES completion:nil];
+    if ([[[UIDevice currentDevice] systemVersion] compare:@"8.0" options:NSNumericSearch] == NSOrderedAscending) {
+        [self dismissViewControllerAnimated:YES completion:nil];  // in 8.0+ people picker dismisses by itself
+    }
     
     return NO;
 }
@@ -1592,6 +1709,20 @@ static const char* kAlertButtonContinuePairingMessage = "Yes, continue with pair
         NSLog(@"ConsumerMVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson:property:identifier: called.");
     
     return NO;
+}
+
+- (void) peoplePickerNavigationController:(ABPeoplePickerNavigationController*)people_picker didSelectPerson:(ABRecordRef)person {
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerMVC:peoplePickerNavigationController:didSelectingPerson: called (%d).", [NSThread isMainThread]);
+    
+    [self peoplePickerNavigationController:people_picker shouldContinueAfterSelectingPerson:person];
+}
+
+- (void) peoplePickerNavigationController:(ABPeoplePickerNavigationController*)people_picker didSelectPerson:(ABRecordRef)person     property:(ABPropertyID)property identifier:(ABMultiValueIdentifier)identifier {
+    if (kDebugLevel > 4)
+        NSLog(@"ConsumerMVC:peoplePickerNavigationController:didSelectingPerson:property:identifier: called (%d).", [NSThread isMainThread]);
+    
+    [self peoplePickerNavigationController:people_picker shouldContinueAfterSelectingPerson:person property:property identifier:identifier];
 }
 
 - (void) peoplePickerNavigationControllerDidCancel:(ABPeoplePickerNavigationController*)people_picker {
@@ -1662,6 +1793,28 @@ static const char* kAlertButtonContinuePairingMessage = "Yes, continue with pair
 }
 
 // ProviderMasterViewController
+- (void) updateIdentity:(NSString*)identity {
+    if (kDebugLevel > 3)
+        NSLog(@"ConsumerMVC:updateIdentity: called.");
+    
+    // XXX TODO(aka) I don't think this call is used anymore!
+    
+    if (identity != nil && [identity length] > 0) {
+        _our_data.identity = identity;
+        _our_data.identity_hash = [PersonalDataController hashMD5String:_our_data.identity];
+    }
+    
+    // TODO(aka) I don't think I need a configureView here, and besides, I think hashMD5* is asnchronous
+}
+
+- (void) updatePersonalDataController {
+    if (kDebugLevel > 3)
+        NSLog(@"ConsumerMVC:updatePersonalDataController: called.");
+    
+    // The Provider MVC generated new info, but hopefully it saved state, so we can just slurp in the data from the state saved on disc.
+    [_our_data loadState];
+}
+
 - (void) addSelfToProviders:(NSString*)identity fileStoreURL:(NSURL*)file_store keyBundleURL:(NSURL*)key_bundle {
     if (kDebugLevel > 3)
         NSLog(@"ConsumerMVC:addSelfToProviders: called.");

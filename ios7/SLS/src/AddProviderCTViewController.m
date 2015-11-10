@@ -14,6 +14,7 @@
 
 static const int kDebugLevel = 1;
 
+// ACCESS_GROUPS:
 static const char* kAccessGroupCT = KC_ACCESS_GROUP_CT;
 
 
@@ -312,9 +313,13 @@ enum {
         view_controller.delegate = self;
         _challenge = arc4random() % 9999;  // get a four digit challenge (response will have + 1)
         NSString* encrypted_challenge = nil;
-        NSString* error_msg = [PersonalDataController asymmetricEncryptString:[NSString stringWithFormat:@"%d", _challenge] publicKeyRef:[_provider publicKeyRef] encryptedString:&encrypted_challenge];
-        if (error_msg) {
-            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"AddProviderCTViewController:prepareForSeque:" message:error_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+        NSString* err_msg = [PersonalDataController asymmetricEncryptString:[NSString stringWithFormat:@"%d", _challenge] publicKeyRef:[_provider publicKeyRef] encryptedString:&encrypted_challenge];
+        if (err_msg) {
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"AddProviderCTViewController:prepareForSeque:" message:err_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+            [alert show];
+        } else {
+            NSString* msg = [NSString stringWithFormat:@"%ld byte b64 challenge: %@", (unsigned long)[encrypted_challenge length], encrypted_challenge];
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"AddProviderCTViewController:prepareForSeque:" message:msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
             [alert show];
         }
         
@@ -416,34 +421,30 @@ enum {
         NSLog(@"AddProviderCTViewController:qrDecodePKViewControllerDidFinish: called.");
     
     if (identity_hash == nil) {
-#if 1  // SIMULATOR HACK:
-        // For Debugging: the simulator can't scan, so we have to fake it.
-        UIDevice* ui_device = [UIDevice currentDevice];
-        if ([ui_device.name caseInsensitiveCompare:@"iPhone Simulator"] == NSOrderedSame) {
-            NSLog(@"qrDecodePKViewControllerDidFinish: Found device iPhone Simulator.");
-            
-            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"qrDecodePKViewControllerDidFinish:" message:[NSString stringWithFormat:@"done: called, but using simulator, so faking hash and key."] delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-            [alert show];
-            
-            identity_hash = [PersonalDataController hashMD5String:_provider.identity];
-#if 0
-            // Regardless of who I set it to, grab my public key from my file store.
-            NSURL* pub_key_url = [[NSURL alloc] initWithString:@"https://s3.amazonaws.com/aka-tmp-sls-mistwraith/public-key.b64"];
-            NSError* status = nil;
-            NSString* public_key_b64 = [[NSString alloc] initWithContentsOfURL:pub_key_url encoding:[NSString defaultCStringEncoding] error:&status];
-            if (status) {
-                NSString* err_msg = [[status localizedDescription] stringByAppendingString:([status localizedFailureReason] ? [status localizedFailureReason] :@"")];
-                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"qrDecodePKViewControllerDidFinish: initWithContentsOfURL()" message:err_msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
+#if 1  // SIMULATOR HACK:  Fake identity hash and download public key from file-store.
+        {
+            UIDevice* ui_device = [UIDevice currentDevice];
+            if ([ui_device.name caseInsensitiveCompare:@"iPhone Simulator"] == NSOrderedSame) {
+                NSLog(@"qrDecodePKViewControllerDidFinish: Found device iPhone Simulator.");
+                
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"qrDecodePKViewControllerDidFinish:" message:[NSString stringWithFormat:@"done: called, but using simulator, so faking hash and key."] delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
                 [alert show];
-                [self configureView];
-                [self dismissViewControllerAnimated:YES completion:nil];
-                return;
-            } else {
+                
+                identity_hash = [PersonalDataController hashMD5String:_provider.identity];
+                
+                NSURL* pub_key_url = [[NSURL alloc] initWithString:@"https://googledrive.com/host/0B_Z2PRmWhpcKeEx4MlhjRlVaNTg/public-key.b64"];
+                NSError* status = nil;
+                NSString* public_key_b64 = [[NSString alloc] initWithContentsOfURL:pub_key_url encoding:[NSString defaultCStringEncoding] error:&status];
+                if (status) {
+                    NSString* err_msg = [[status localizedDescription] stringByAppendingString:([status localizedFailureReason] ? [status localizedFailureReason] :@"")];
+                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"qrDecodePKViewControllerDidFinish: initWithContentsOfURL()" message:err_msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
+                    [alert show];
+                    [self configureView];
+                    [self dismissViewControllerAnimated:YES completion:nil];
+                    return;
+                }
                 public_key = [NSData dataFromBase64String:public_key_b64];
             }
-#else
-            public_key = [_our_data getPublicKey];  // TOOD(aka) just use our public key for now
-#endif
         }
         
         // Fall-through so idenity_hash & public key can be processed as a success.
@@ -460,8 +461,17 @@ enum {
     // Add our identity hash and new public key to our Provider object.
     if (identity_hash != nil)
         _provider.identity_hash = identity_hash;
-    if (public_key != nil)
-        [_provider setPublicKey:public_key accessGroup:[NSString stringWithFormat:@"%s", kAccessGroupCT]];
+    if (public_key != nil) {
+#if 1  // ACCESS_GROUP
+        NSString* err_msg = [_provider setPublicKey:public_key accessGroup:[NSString stringWithFormat:@"%s", kAccessGroupCT]];
+#else
+        NSString* err_msg = [_provider setPublicKey:public_key accessGroup:nil];
+#endif
+        if (err_msg != nil) {
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"AddProviderCTViewController:qrDecodePKViewControllerDidFinish:" message:err_msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
+            [alert show];
+        }
+    }
     
     if (kDebugLevel > 0)
         NSLog(@"AddProviderCTViewController:qrDecodePKViewControllerDidFinish: identity: %s, hash: %s, public key: %s, publicKeyRef: %d.", [_provider.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [_provider.identity_hash cStringUsingEncoding: [NSString defaultCStringEncoding]], [[_provider.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], ([_provider publicKeyRef] == NULL ? false : true));
@@ -502,27 +512,41 @@ enum {
     if (kDebugLevel > 4)
         NSLog(@"AddProviderCTViewController:qrDecodeChallengeViewControllerDidFinish: called.");
     
+    NSString* challenge_b64 = nil;
+    
     if (scan_results == nil) {
-#if 1  // SIMULATOR HACK:
-        // For Debugging: the simulator can't scan, so we have to fake it.
+#if 1  // SIMULATOR HACK: Download the challenge from the file-store.
         UIDevice* ui_device = [UIDevice currentDevice];
         if ([ui_device.name caseInsensitiveCompare:@"iPhone Simulator"] == NSOrderedSame) {
             NSLog(@"AddProviderCTViewController:qrDecodeChallengeViewControllerDidFinish: TOOD(aka) Found device iPhone Simulator.");
             
-            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"qrDecodeChallengeViewControllerDidFinish:" message:[NSString stringWithFormat:@"done: called, but using simulator, so faking challenge."] delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"qrDecodeChallengeViewControllerDidFinish:" message:[NSString stringWithFormat:@"done: called, but using simulator, so downloading challenge."] delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
             [alert show];
             
-            _response = 1234;
-            _current_state = MODE_DECODE_CHALLENGE;
+            NSURL* challenge_url = [[NSURL alloc] initWithString:@"https://googledrive.com/host/0B_Z2PRmWhpcKeEx4MlhjRlVaNTg/challenge.b64"];
+            NSError* status = nil;
+            challenge_b64 = [[NSString alloc] initWithContentsOfURL:challenge_url encoding:[NSString defaultCStringEncoding] error:&status];
+            if (status) {
+                NSString* err_msg = [[status localizedDescription] stringByAppendingString:([status localizedFailureReason] ? [status localizedFailureReason] :@"")];
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"qrDecodeChallengeViewControllerDidFinish: initWithContentsOfURL()" message:err_msg delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil];
+                [alert show];
+                [self configureView];
+                [self dismissViewControllerAnimated:YES completion:nil];
+                return;
+            }
         }
+        
+        // Fall-through to process encrypted challenge string.
 #else
         UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"AddProviderCTViewController:qrDecodeChallengeViewControllerDidFinish:" message:@"Scan was unsuccessful, canceling operation!" delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
         [alert show];
-#endif
         
         [self configureView];
         [self dismissViewControllerAnimated:YES completion:nil];
         return;
+#endif
+    } else {
+        challenge_b64 = scan_results;
     }
     
     if (kDebugLevel > 0)
@@ -530,9 +554,9 @@ enum {
     
     // Decrypt the challenge.
     NSString* challenge_str = nil;
-    NSString* error_msg = [_our_data decryptString:scan_results decryptedString:&challenge_str];  // XXX change to asymmetricDecryptString!
-    if (error_msg) {
-        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"AddProviderCTViewController:qrDecodeChallengeViewControllerDidFinish: TODO(aka)" message:error_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+    NSString* err_msg = [PersonalDataController asymmetricDecryptString:challenge_b64 privateKeyRef:_our_data.privateKeyRef string:&challenge_str];
+    if (err_msg) {
+        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"AddProviderCTViewController:qrDecodeChallengeViewControllerDidFinish: TODO(aka)" message:err_msg delegate:self cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
         [alert show];
         [self configureView];
         [self dismissViewControllerAnimated:YES completion:nil];
@@ -578,8 +602,8 @@ enum {
         NSLog(@"AddConsumerCTViewController:qrDecodeDepositViewControllerDidFinish: called.");
     
     if (deposit == nil) {
-#if 1  // SIMULATOR HACK:
-        // For Debugging: the simulator can't scan, so we have to fake it.
+#if 1  // SIMULATOR HACK:  Simulator can't scan, so fake the deposit, since we can't send SMS anyways!
+        // For Debugging:
         UIDevice* ui_device = [UIDevice currentDevice];
         if ([ui_device.name caseInsensitiveCompare:@"iPhone Simulator"] == NSOrderedSame) {
             NSLog(@"qrDecodeDepositViewControllerDidFinish: Found device iPhone Simulator.");

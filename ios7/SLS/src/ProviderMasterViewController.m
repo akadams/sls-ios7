@@ -28,8 +28,9 @@
 
 #import "ConsumerMasterViewController.h"  // XXX Just to debug delegate stuff
 
-static const int kDebugLevel = 2;
+static const int kDebugLevel = 3;
 
+// ACCESS_GROUPS:
 static const char* kAccessGroupHCC = KC_ACCESS_GROUP_HCC;
 
 static const char* kSchemeSLS = URI_SCHEME_SLS;
@@ -64,6 +65,8 @@ static const char* kFSRootFolderName = PDC_ROOT_FOLDER_NAME;      // root folder
 static const char* kFSHistoryLogFile = PDC_HISTORY_LOG_FILENAME;  // filename for history-log in file-store
 static const char* kFSKeyBundleExt = PDC_KEY_BUNDLE_EXTENSION;    // extension of key-bundle in file-store
 
+static const char* kFSAsyncOpDone = PDC_ASYNC_OP_DONE;    // NSNotification flag
+
 static const char* kGDriveIDsFilename = "drive-ids.dict";         // filename to store the drive_ids dictionary on local disk
 static const char* kGDriveWVLsFilename = "drive-wvls.dict";       // filename to store the drive_wvls dictionary on local disk
 
@@ -74,6 +77,10 @@ static const char kArraySerializerDelimiter = ' ';  // TODO(aka) need to add to 
 
 static const char* kAlertButtonCancelPairingMessage = "No, cancel pairing!";
 static const char* kAlertButtonContinuePairingMessage = "Yes, continue with pairing.";
+
+static const char* kStateDataUpdate = "stateDataUpdate";  // TODO(aka) need to add to a define file
+
+static Principal* us_as_consumer = nil;     // us, and a flag used during asynchronous file-store track-self operations
 
 
 @interface ProviderMasterViewController ()
@@ -189,6 +196,17 @@ enum {
         _our_data = [[PersonalDataController alloc] init];
     }
     
+    // Set us up to listen for state-update messages from the Consumer.
+    NSString* name = [NSString stringWithFormat:@"%s", kStateDataUpdate];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(updateOurDataState:) name:name object:nil];
+    
+    // And for any asynchronous file-store operations.
+    // Set us up to listen for state-update messages from the Consumer.
+    name = [NSString stringWithFormat:@"%s", kFSAsyncOpDone];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(sendConsumerVCSelf:) name:name object:nil];
+    if (kDebugLevel > 0)
+        NSLog(@"ProviderMVC:loadState: Added notification for %s, %s.", kStateDataUpdate, kFSAsyncOpDone);
+    
     // Populate (or generate) the data associated with our data member's controllers.
     
     [_our_data loadState];
@@ -222,9 +240,28 @@ enum {
         }
     }
     
+    // Build our symmetric keys controller.
+    NSLog(@"ProviderMVC:loadState: XXXXX TODO(aka) Why am I using a temp controller here?  _symmetric_keys_controller is <strong>, so I don't think I need to worry about the setter ...");
+    
+    SymmetricKeysController* tmp_keys_controller = [[SymmetricKeysController alloc] init];
+    NSString* err_msg = [tmp_keys_controller loadState];
+    if (err_msg != nil)
+        NSLog(@"ProviderMVC:loadState: TODO(aka): %@.", err_msg);
+    
+    if (kDebugLevel > 2)
+        NSLog(@"ProviderMVC:loadState: loaded %lu symmetric keys into the tmp controller.", (unsigned long)[tmp_keys_controller count]);
+    
+    _symmetric_keys_controller = tmp_keys_controller;
+    
+    // XXXX HACK!
+    /*
+    NSString* policy = @"exact";
+    [_symmetric_keys_controller deleteSymmetricKey:policy];
+     */
+    
     // Build our CLLocation controller and set the CoreLocation controller's delegate to us.
     _location_controller = [[CoreLocationController alloc] init];
-    _location_controller.delegate = self;
+    _location_controller.delegate = self;  // note, if we change the MVC (e.g., adding symmetric keys) we need to rewrite the delegate  (XXX You mean it's not a pointer?  This doesn't sound right to me ...)
     
     // Load in any previously saved state for location services, and start up (if previously on).
     [_location_controller loadState];
@@ -242,19 +279,6 @@ enum {
 #endif
     }
     
-    // Build our symmetric keys controller.
-    NSLog(@"ProviderMVC:loadState: XXXXX TODO(aka) Why am I using a temp controller here?  _symmetric_keys_controller is <strong>, so I don't think I need to worry about the setter ...");
-    
-    SymmetricKeysController* tmp_keys_controller = [[SymmetricKeysController alloc] init];
-    NSString* err_msg = [tmp_keys_controller loadState];
-    if (err_msg != nil)
-        NSLog(@"ProviderMVC:loadState: TODO(aka): %@.", err_msg);
-    
-    if (kDebugLevel > 2)
-        NSLog(@"ProviderMVC:loadState: loaded %lu symmetric keys into the tmp controller.", (unsigned long)[tmp_keys_controller count]);
-    
-    _symmetric_keys_controller = tmp_keys_controller;
-
     // Load in any previous locations (history logs) for any policy levels we have (and make sure each individual log is not over our allocated size!).
     _history_logs = [[PersonalDataController loadStateDictionary:[[NSString alloc] initWithCString:kHistoryLogFilename encoding:[NSString defaultCStringEncoding]]] mutableCopy];
     if (_history_logs == nil)
@@ -287,8 +311,6 @@ enum {
     // self.navigationItem.rightBarButtonItem = self.editButtonItem;
 
 	// Do any additional setup after loading the view, typically from a nib.
-    [self configureView];
-    
     if (location_gathering_on_startup)
         [_location_controller enableLocationGathering];
 }
@@ -297,6 +319,10 @@ enum {
     if (kDebugLevel > 4)
         NSLog(@"ProviderMVC:viewDidAppear: called.");
     
+    [super viewDidAppear:animated];
+
+    [self configureView];
+
 #if 1  // SIMULATOR HACK:
     // For Debugging: the simulator can't tell if we've moved, so force location updates everytime we go to provider-mode.
     UIDevice* ui_device = [UIDevice currentDevice];
@@ -349,41 +375,218 @@ enum {
 #endif
 }
 
+-(void) viewWillAppear:(BOOL)animated {
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderMVC:viewWillAppear: called (%d).", [NSThread isMainThread]);
+    
+    [super viewWillAppear:animated];
+}
+
 - (void) configureView {
     if (kDebugLevel > 4)
         NSLog(@"ProviderMVC:configureView: called.");
     
-    static bool first_time_in = true;
-    
-    // USER-HELP:
-    NSString* help_msg = nil;
-    if (_our_data == nil || _our_data.identity == nil || [_our_data.identity length] == 0) {
-        help_msg = [NSString stringWithFormat:@"In order to share your location data with others, you first must set your identity (click on the Config button)."];
-        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Provider Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-        [alert show];
-        if (first_time_in) {
-            help_msg = [NSString stringWithFormat:@"A \"Provider\" is one that shares or provides their location data to others.  You are currently in the PROVIDER's VIEW."];
-            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Provider Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-            [alert show];
-            first_time_in = false;
+    if (kDebugLevel > 0) {
+        // For Debugging: Get all the attributes associated with our key(s).
+        
+        const char* kPublicKeyExt = KC_QUERY_KEY_PUBLIC_KEY_EXT;
+        NSString* pubkey_identity = [_our_data.identity stringByAppendingFormat:@"%s", kPublicKeyExt];
+        NSData* pubkey_tag = [pubkey_identity dataUsingEncoding:[NSString  defaultCStringEncoding]];
+        
+        // XXX What's the minimum you need to search (and find) the key?
+        NSMutableDictionary* pubkey_dict = [[NSMutableDictionary alloc] init];
+        [pubkey_dict setObject:pubkey_tag forKey:(__bridge id)kSecAttrApplicationTag];
+        [pubkey_dict setObject:(__bridge id)kSecClassKey forKey:(__bridge id)kSecClass];
+#if 0
+        [pubkey_dict setObject:(__bridge id)kSecAttrKeyTypeRSA forKey:(__bridge id)kSecAttrKeyType];
+        [pubkey_dict setObject:(__bridge id)kSecClassKey forKey:(__bridge id)kSecClass];
+        [pubkey_dict setObject:[NSNumber numberWithUnsignedInt:CSSM_ALGID_AES] forKey:(__bridge id)kSecAttrKeyType];
+        [pubkey_dict setObject:[NSNumber numberWithBool:YES] forKey:(__bridge id)kSecReturnAttributes];
+        [pubkey_dict setObject:(__bridge id)kSecAttrAccessibleAfterFirstUnlock forKey:(__bridge id)kSecAttrAccessible];
+        
+        [dict setObject:[NSNumber numberWithInt:kChosenKeyBitSize] forKey:(__bridge id)kSecAttrKeySizeInBits];
+        [dict setObject:(__bridge id)(kSecAttrAccessibleAfterFirstUnlock) forKey:(__bridge id)(kSecAttrAccessible)];
+        [public_key_dict setObject:[NSNumber numberWithBool:YES] forKey:(__bridge id)kSecAttrIsPermanent];
+
+
+        if (access_group != nil && [access_group length] > 0)
+            [key_dict setObject:access_group forKey:(__bridge id)kSecAttrAccessGroup];
+#endif
+        
+        // Attempt to get the key's attributes from the key chain.
+        CFDictionaryRef return_dict_ref = NULL;
+        OSStatus status = noErr;
+        status = SecItemCopyMatching((__bridge CFDictionaryRef)pubkey_dict, (CFTypeRef*)&return_dict_ref);
+        if (status != noErr) {
+            NSLog(@"XXXX: key for %s not found!", [[[NSString alloc] initWithData:pubkey_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        } else {
+            if (kDebugLevel > 0)
+                NSLog(@"XXXX: saveKeyData: %s SecItemCopyMatching(%@) -> %@", [[[NSString alloc] initWithData:pubkey_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]], [pubkey_dict description], return_dict_ref);
         }
-    } else if (_our_data.privateKeyRef == NULL || _our_data.publicKeyRef == NULL) {
-        help_msg = [NSString stringWithFormat:@"In order to securely share your location data, you first need to generate a private/public key pair (click on the Config button)."];
-        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Provider Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-        [alert show];
-    } else if (_our_data.file_store == nil || ![PersonalDataController isFileStoreComplete:_our_data.file_store]) {
-        help_msg = [NSString stringWithFormat:@"In order to share your location data, you must setup a cloud file-store (click on the Config button)."];
-        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Provider Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-        [alert show];
-    } else if (_our_data.deposit == nil || [_our_data.deposit count] == 0) {
-        help_msg = [NSString stringWithFormat:@"In order to pair with others, you must setup a out-of-band deposit (click on the Config button)."];
-        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Provider Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-        [alert show];
-    } else if (_consumer_list == nil || [_consumer_list countOfList] == 0) {
-        help_msg = [NSString stringWithFormat:@"In order to share your location, you must first pair with someone (click on the + button)."];
-        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Provider Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-        [alert show];
+        
+#if 0  // XXX
+        // Setup the asymmetric key query dictionary.
+        static const char* kSymmetricKey = "symmetric-key";  // prefix in key-chain
+        NSString* policy = @"exact";
+        NSString* application_tag_str = [[NSString alloc] initWithFormat:@"%s.%s", kSymmetricKey, [policy cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+        NSData* application_tag = [application_tag_str dataUsingEncoding:[NSString  defaultCStringEncoding]];
+
+        // XXX What's the minimum you need to search (and find) the key?
+        NSMutableDictionary* key_dict = [[NSMutableDictionary alloc] init];
+        [key_dict setObject:(__bridge id)kSecClassKey forKey:(__bridge id)kSecClass];
+        [key_dict setObject:[NSNumber numberWithUnsignedInt:CSSM_ALGID_AES] forKey:(__bridge id)kSecAttrKeyType];
+        [key_dict setObject:application_tag forKey:(__bridge id)kSecAttrApplicationTag];
+        [key_dict setObject:[NSNumber numberWithBool:YES] forKey:(__bridge id)kSecReturnAttributes];
+        [key_dict setObject:(__bridge id)kSecAttrAccessibleAfterFirstUnlock forKey:(__bridge id)kSecAttrAccessible];
+
+        //[key_dict setObject:[NSNumber numberWithBool:YES] forKey:(__bridge id)kSecReturnData];
+        /*
+        [key_dict setObject:(__bridge id)kSecAttrKeyTypeRSA forKey:(__bridge id)kSecAttrKeyType];
+                         [kc_dict setObject:[NSNumber numberWithUnsignedInt:CSSM_ALGID_AES] forKey:(__bridge id)kSecAttrKeyType];
+         [kc_dict setObject:[NSNumber numberWithBool:YES] forKey:(__bridge id)kSecReturnData];
+         
+         // Get the key.
+         CFTypeRef symmetric_key_ref = nil;
+         OSStatus status = noErr;
+         status = SecItemCopyMatching((__bridge CFDictionaryRef)kc_dict, (CFTypeRef*)&symmetric_key_ref);
+         */
+#if 0
+        if (access_group != nil && [access_group length] > 0)
+            [key_dict setObject:access_group forKey:(__bridge id)kSecAttrAccessGroup];
+#endif
+        
+        // Attempt to get the key's attributes from the key chain.
+        CFDictionaryRef return_dict_ref = NULL;
+        OSStatus status = noErr;
+        status = SecItemCopyMatching((__bridge CFDictionaryRef)key_dict, (CFTypeRef*)&return_dict_ref);
+        if (status != noErr) {
+            NSLog(@"XXXX: key for %s not found!", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        } else {
+            if (kDebugLevel > 0)
+                NSLog(@"XXXX: saveKeyData: %s SecItemCopyMatching(%@) -> %@", [[[NSString alloc] initWithData:application_tag encoding:[NSString defaultCStringEncoding]] cStringUsingEncoding:[NSString defaultCStringEncoding]], [key_dict description], return_dict_ref);
+        }
+#endif
     }
+    
+    static bool first_time_in = true;
+    static bool identity_help = true;
+    static bool asymmetric_keys_help = true;
+    static bool file_store_help = true;
+    static bool deposit_help = true;
+    static bool pairing_help = true;
+    
+    if (self.isViewLoaded && self.view.window) {
+        // USER-HELP:
+        NSString* help_msg = nil;
+        if (_our_data == nil || _our_data.identity == nil || [_our_data.identity length] == 0) {
+            if (first_time_in) {
+                help_msg = [NSString stringWithFormat:@"A \"Provider\" is one that shares or provides their location data to others.  You are currently in the PROVIDER's VIEW."];
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Provider Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+                first_time_in = false;
+            } else if (identity_help) {
+                help_msg = [NSString stringWithFormat:@"In order to share your location data with others, you first must set your identity (click on the Config button)."];
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Provider Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+                identity_help = false;
+            }
+        } else if (_our_data.privateKeyRef == NULL || _our_data.publicKeyRef == NULL) {
+            if (asymmetric_keys_help) {
+                help_msg = [NSString stringWithFormat:@"In order to securely share your location data, you first need to generate a private/public key pair (click on the Config button)."];
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Provider Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+                asymmetric_keys_help = false;
+            }
+        } else if (_our_data.file_store == nil || ![PersonalDataController isFileStoreComplete:_our_data.file_store]) {
+            if (file_store_help) {
+                help_msg = [NSString stringWithFormat:@"In order to share your location data, you must setup a cloud file-store (click on the Config button)."];
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Provider Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+                file_store_help = false;
+            }
+        } else if (_our_data.deposit == nil || [_our_data.deposit count] == 0) {
+            if (deposit_help) {
+                help_msg = [NSString stringWithFormat:@"In order to pair with others, you must setup a out-of-band deposit (click on the Config button)."];
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Provider Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+                deposit_help = false;
+            }
+        } else if (_consumer_list == nil || [_consumer_list countOfList] == 0) {
+            if (pairing_help) {
+                help_msg = [NSString stringWithFormat:@"In order to share your location, you must first pair with someone (click on the + button)."];
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Provider Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+                pairing_help = false;
+            }
+        }
+    }
+    
+    if ([PersonalDataController isFileStoreComplete:_our_data.file_store]) {
+        // Make sure we are authorized to use our file-store.
+        NSString* err_msg = nil;
+        if (![_our_data isFileStoreAuthorized]) {
+            // Try once to get authorized.  Note, since some SDKs require a view controller, we need to check each separately here ...
+            if ([PersonalDataController isFileStoreServiceAmazonS3:_our_data.file_store]) {
+                err_msg = [_our_data amazonS3Auth:[PersonalDataController getFileStoreAccessKey:_our_data.file_store] secretKey:[PersonalDataController getFileStoreSecretKey:_our_data.file_store]];
+            } else if ([PersonalDataController isFileStoreServiceGoogleDrive:_our_data.file_store]) {
+                err_msg = [_our_data googleDriveKeychainAuth:[PersonalDataController getFileStoreKeychainTag:_our_data.file_store] clientID:[PersonalDataController getFileStoreClientID:_our_data.file_store] clientSecret:[PersonalDataController getFileStoreClientSecret:_our_data.file_store]];
+                if (err_msg == nil && ![_our_data googleDriveIsAuthorized]) {
+                    // Prompt the user for the credentials.
+                    GTMOAuth2ViewControllerTouch* auth_controller = [[GTMOAuth2ViewControllerTouch alloc] initWithScope:@"https://www.googleapis.com/auth/drive.file" clientID:[PersonalDataController getFileStoreClientID:_our_data.file_store] clientSecret:[PersonalDataController getFileStoreClientSecret:_our_data.file_store] keychainItemName:[PersonalDataController getFileStoreKeychainTag:_our_data.file_store] delegate:self finishedSelector:@selector(viewController:finishedWithAuth:error:)];
+                    
+                    [self presentViewController:auth_controller animated:YES completion:nil];
+                }
+            } else {
+                err_msg = [[NSString alloc] initWithFormat:@"Unknown file-store service: %s.", [[PersonalDataController getFileStoreService:_our_data.file_store] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+            }
+            
+            if (err_msg != nil) {
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterVC:configureView:" message:err_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+            }
+            
+            if (![_our_data isFileStoreAuthorized]) {
+                err_msg = [[NSString alloc] initWithFormat:@"Not authorized for file-store service: %s.", [[PersonalDataController getFileStoreService:_our_data.file_store] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterVC:configureView:" message:err_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+            }
+        }
+    }
+    
+#if 0  // ENCRYPTION_TEST:
+    static bool encryption_test = true;
+    if (_our_data.privateKeyRef != NULL && _our_data.publicKeyRef != NULL && encryption_test) {
+        int challenge = arc4random() % 9999;  // get a four digit challenge
+        NSString* challenge_str = [NSString stringWithFormat:@"%d", challenge];
+        NSString* encrypted_challenge = nil;
+        NSString* err_msg = [PersonalDataController asymmetricEncryptString:challenge_str publicKeyRef:_our_data.publicKeyRef encryptedString:&encrypted_challenge];
+        if (err_msg != nil) {
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Provider Help" message:err_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+            [alert show];
+        } else {
+            if (kDebugLevel > 0)
+                NSLog(@"ProviderMVC:configureView: Attempting to decrypt (%ldB): %@.", (unsigned long)[encrypted_challenge length], encrypted_challenge);
+            
+            NSString* decrypted_challenge = nil;
+            err_msg = [PersonalDataController asymmetricDecryptString:encrypted_challenge privateKeyRef:_our_data.privateKeyRef string:&decrypted_challenge];
+            if (err_msg != nil) {
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Provider Help" message:err_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+            } else {
+                if ([challenge_str compare:decrypted_challenge] == NSOrderedSame) {
+                    help_msg = [NSString stringWithFormat:@"Asymmetric encryption test succeeded."];
+                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Provider Help" message:help_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                    [alert show];
+                } else {
+                    NSString* failure_msg = [NSString stringWithFormat:@"Asymmetric encryption test failed: %@ != %@.", challenge_str, decrypted_challenge];
+                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"Provider Help" message:failure_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                    [alert show];
+                }
+            }
+        }
+        encryption_test = false;
+    }
+#endif
     
     // See if we have any SLS URLs hanging around in NSUserDefaults.
     NSString* err_msg = [self checkNSUserDefaults];
@@ -616,6 +819,17 @@ enum {
                 [_our_data saveIdentityState];
                 [_our_data saveDepositState];
             }
+            
+            if (source.identity_changed || source.pub_keys_changed) {
+                // Tell the ConsumerMaster VC to look for the new information about ourselves!
+                if (![[self delegate] isKindOfClass:[ConsumerMasterViewController class]])
+                    NSLog(@"ProviderMVC:unwindToProviderMaster: ERROR: Delegate not found!");
+                
+                if (kDebugLevel > 0)
+                    NSLog(@"ProviderMVC:unwindToProviderMaster: Telling consumer to re-load state.");
+                
+                [[self delegate] updatePersonalDataController];
+            }
         }
         
         if (source.location_sharing_toggle_changed) {
@@ -634,49 +848,107 @@ enum {
             if (kDebugLevel > 2)
                 NSLog(@"ProviderMVC:unwindToProviderMaster: track self requested.");
             
-            // First, add ourselves to our consumer list.
-            Principal* tmp_consumer = [[Principal alloc] initWithIdentity:_our_data.identity];
-            [tmp_consumer setDeposit:_our_data.deposit];
-            tmp_consumer.policy = [PolicyController precisionLevelName:[[NSNumber alloc] initWithInt:PC_PRECISION_IDX_EXACT]];
-
+            us_as_consumer = [[Principal alloc] initWithIdentity:_our_data.identity];
+            [us_as_consumer setDeposit:_our_data.deposit];
+            us_as_consumer.policy = [PolicyController precisionLevelName:[[NSNumber alloc] initWithInt:PC_PRECISION_IDX_EXACT]];
+            
             if (kDebugLevel > 2)
-                NSLog(@"ProviderMVC:unwindToProviderMaster: tmp consumer: %@, %@, %@.", tmp_consumer.identity, tmp_consumer.identity_hash, tmp_consumer.policy);
+                NSLog(@"ProviderMVC:unwindToProviderMaster: tmp consumer: %@, %@, %@.", us_as_consumer.identity, us_as_consumer.identity_hash, us_as_consumer.policy);
             
-            // Note, we don't need to set the public key now, we'll retrieve it from the key chain when we need it (since it's already in under our identity!).
-            
-            if (![_consumer_list containsObject:tmp_consumer]) {
-                // We don't have ourselves, yet, so add us (i.e., we didn't load it in via state).
-                if (kDebugLevel > 0)
-                    NSLog(@"ProviderMVC:unwindToProviderMaster: Adding to our consumer list: %s.", [[tmp_consumer serialize] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
-                
-                [_consumer_list addConsumer:tmp_consumer];
-                [self.tableView reloadData];
+            // Make sure we have a symmetric key for policy EXACT.
+            if (![_symmetric_keys_controller haveKey:[PolicyController precisionLevelName:[NSNumber numberWithInt:PC_PRECISION_IDX_EXACT]]]) {
+                NSString* err_msg = [_symmetric_keys_controller generateSymmetricKey:[PolicyController precisionLevelName:[NSNumber numberWithInt:PC_PRECISION_IDX_EXACT]]];
+                if (err_msg != nil) {
+                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterVC:unwindToProviderMaster:" message:err_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                    [alert show];
+                    
+                    return;
+                } else {
+                    _location_controller.delegate = self;  // reset CLLocationManager delegate
+                }
             }
+
+           // Before we can ship our meta-data to the consumer (via our delegate method, since the consumer won't receive a deposit message from us), we need to make sure the bucket exists in our file-store.  (Un)fortunately, some file-store operations are asynchronous, so all we can really do here is call the method, set a flag, and wait in configureView for the bucket to be made (before adding the ourselves as a consumer, uploading our key-bundle and informing consumer-mode that we're ready to be tracked!).
             
-            // Upload our key-bundle.
-            [self uploadKeyBundle:tmp_consumer.policy consumer:tmp_consumer];
+            // Build this consumer's (our's) personal bucket.
+            NSString* root_folder_name = [NSString stringWithFormat:@"%s", kFSRootFolderName];
+            NSNumber* nonce = [_our_data.file_store objectForKey:[NSString stringWithCString:kFSKeyNonce encoding:[NSString defaultCStringEncoding]]];
+            NSString* consumer_bucket = [PersonalDataController hashMD5String:[[NSString alloc] initWithFormat:@"%s%d", [us_as_consumer.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [nonce intValue]]];
             
-            // Note, the key-bundle upload may be asynchronous (if using Google Drive, e.g.).
-            
-            // Build the cloud meta-data info, as we (as the consumer) will not get a meta-data message to our deposit.
-            NSURL* file_store_url = [PersonalDataController genFileStoreURLAuthority:_our_data.file_store];
-            NSURL* key_bundle_url = nil;
-            NSString* err_msg = [_our_data genFileStoreKeyBundle:tmp_consumer URL:&key_bundle_url];
+            BOOL asynchronous = false;
+            NSString* err_msg = [_our_data genFileStoreBucket:consumer_bucket rootFolder:root_folder_name asynchronous:&asynchronous];
             if (err_msg != nil) {
+                // Something bad happend, report it and clear our meta-data.
                 UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMVC:unwindToProviderMaster:" message:err_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
                 [alert show];
+                us_as_consumer = nil;
                 return;
             }
             
-            if (![[self delegate] isKindOfClass:[ConsumerMasterViewController class]])
-                NSLog(@"ProviderMVC:unwindToProviderMaster: ERROR: Delegate not found!");
+            // And make sure that this policy's (EXACT) history log bucket exists.
+            NSString* policy_bucket = [PersonalDataController hashMD5String:[[NSString alloc] initWithFormat:@"%s%s%d", [_our_data.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [us_as_consumer.policy cStringUsingEncoding:[NSString defaultCStringEncoding]], [nonce intValue]]];
+            err_msg = [_our_data genFileStoreBucket:policy_bucket rootFolder:root_folder_name asynchronous:&asynchronous];
+            if (err_msg != nil) {
+                // Something bad happend, report it and clear our meta-data.
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMVC:unwindToProviderMaster:" message:err_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+                us_as_consumer = nil;
+                return;
+            }
             
-            if (kDebugLevel > 0)
-                NSLog(@"ProviderMVC:unwindToProviderMaster: Sending consumer file-store URL: %s, key-bundle URL: %s.", [[file_store_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[key_bundle_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
-
-            // Tell the ConsumerMaster VC to add ourselves to their provider list!
-            [[self delegate] addSelfToProviders:_our_data.identity fileStoreURL:file_store_url keyBundleURL:key_bundle_url];
+            NSLog(@"ProviderMVC:unwindToProviderMaster: XXXX track_self, ansync: %d, consumer bucket: %@, policy bucket: %@.", asynchronous, consumer_bucket, policy_bucket);
+            
+            // If we're not in asynchronous mode, then we should be good to finish up ...
+            if (!asynchronous) {
+                // First, add ourselves to our consumer list.
+                
+                // Note, we don't need to set the public key now, we'll retrieve it from the key chain when we need it (since it's already in under our identity!).
+                
+                if (![_consumer_list containsObject:us_as_consumer]) {
+                    // We don't have ourselves, yet, so add us (i.e., we didn't load it in via state).
+                    if (kDebugLevel > 0)
+                        NSLog(@"ProviderMVC:unwindToProviderMaster: Adding to our consumer list: %s.", [[us_as_consumer serialize] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+                    
+                    [_consumer_list addConsumer:us_as_consumer];
+                    [self.tableView reloadData];
+                }
+                
+                // Note, the key-bundle upload may be asynchronous (if using Google Drive, e.g.).
+                [self uploadKeyBundle:us_as_consumer.policy consumer:us_as_consumer];
+                
+                // Build our meta-data.
+                NSURL* file_store_url = [PersonalDataController genFileStoreURLAuthority:_our_data.file_store];
+                NSURL* key_bundle_url = nil;
+                err_msg = [_our_data genFileStoreKeyBundle:us_as_consumer URL:&key_bundle_url];
+                if (err_msg != nil) {
+                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMVC:unwindToProviderMaster: TODO(aka) " message:err_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                    [alert show];
+                    return;
+                }
+                
+                // And tell the Consumer MVC to add ourselves to their provider list!
+                if (![[self delegate] isKindOfClass:[ConsumerMasterViewController class]])
+                    NSLog(@"ProviderMVC:unwindToProviderMaster: ERROR: Delegate not found!");
+                
+                if (kDebugLevel > 0)
+                    NSLog(@"ProviderMVC:unwindToProviderMaster: Sending consumer file-store URL: %s, key-bundle URL: %s.", [[file_store_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[key_bundle_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+                
+                [[self delegate] addSelfToProviders:_our_data.identity fileStoreURL:file_store_url keyBundleURL:key_bundle_url];
+                
+                _track_self_status = true;
+                us_as_consumer = nil;  // clean up
+            }
         }
+        
+#if 0 // For Debugging:
+        // See if the root "SLS" folder exists in Drive.
+        NSString* sls_folder_id = [_our_data.drive_ids objectForKey:[NSString stringWithFormat:@"%s", kFSRootFolderName]];
+        if (sls_folder_id == nil || [sls_folder_id length] == 0) {
+            NSLog(@"DEBUG: %s's root folder: %s, does NOT exist after unwind to Provider MVC", [[PersonalDataController getFileStoreService:_our_data.file_store] cStringUsingEncoding:[NSString defaultCStringEncoding]], kFSRootFolderName);
+        } else {
+            NSLog(@"DEBUG: %s's root folder: %s, does EXISTS after unwind to Provider MVC", [[PersonalDataController getFileStoreService:_our_data.file_store] cStringUsingEncoding:[NSString defaultCStringEncoding]], kFSRootFolderName);
+        }
+#endif
     } else if ([sourceViewController isKindOfClass:[ConsumerListDataViewController class]]) {
         if (kDebugLevel > 2)
             NSLog(@"ProviderMVC:unwindToProviderMaster: ConsumerListDataViewController callback.");
@@ -709,6 +981,8 @@ enum {
                         [alert show];
                         
                         return;
+                    } else {
+                        _location_controller.delegate = self;  // reset CLLocationManager delegate
                     }
                     
                     [self uploadKeyBundle:policy consumer:nil];
@@ -734,6 +1008,8 @@ enum {
                             [alert show];
                             
                             return;
+                        } else {
+                            _location_controller.delegate = self;  // reset CLLocationManager delegate
                         }
                         
                         [self uploadKeyBundle:old_policy consumer:nil];
@@ -748,6 +1024,8 @@ enum {
                         [alert show];
                         
                         return;
+                    } else {
+                        _location_controller.delegate = self;  // reset CLLocationManager delegate
                     }
                 }
                 
@@ -819,7 +1097,9 @@ enum {
                 UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMVC:unwindToProviderMaster:" message:err_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
                 [alert show];
             } else {
-                // Remind the provider to set the new consumer's policy & send the file-store meta-data out!
+                [self sendCloudMetaData:source.consumer];
+
+                // Remind the provider to set the new consumer's policy!
                 UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"New Consumer Added" message:@"Remember to set policy for the new consumer!" delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
                 [alert show];
                 
@@ -876,6 +1156,82 @@ enum {
     // No need to dismiss the view controller in an unwind segue.
     
     [self configureView];
+}
+
+#pragma mark - NSNotification handlers
+
+- (void) updateOurDataState:(NSNotification*)notification {
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderMVC:updateOurDataState: called.");
+    
+    if (_our_data == nil) {
+        if (kDebugLevel > 3)
+            NSLog(@"ProviderMVC:updateOurDataState: _our_data is nil.");
+        
+        _our_data = [[PersonalDataController alloc] init];
+    }
+    
+    NSLog(@"ProviderMVC:updateOurState: XXXX updating!");
+    [_our_data loadState];
+}
+
+- (void) sendConsumerVCSelf:(NSNotification*)notification {
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderMVC:sendConsumerVCSelf: called.");
+    
+    NSLog(@"ProviderMVC:sendConsumerVCSelf: XXXX updating!");
+    
+    // See if we're waiting on bucket creation prior to tracking self ...
+    if (us_as_consumer != nil) {
+        // Build this consumer's (our's) personal bucket.
+        NSNumber* nonce = [_our_data.file_store objectForKey:[NSString stringWithCString:kFSKeyNonce encoding:[NSString defaultCStringEncoding]]];
+        NSString* bucket = [PersonalDataController hashMD5String:[[NSString alloc] initWithFormat:@"%s%d", [us_as_consumer.identity cStringUsingEncoding:[NSString defaultCStringEncoding]], [nonce intValue]]];
+        
+        // See if we have a web-view link.
+        if ([_our_data.drive_wvls objectForKey:bucket] == nil) {
+            // Hmm, still don't have the web-view link.  For now, just send a notification ...
+            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMVC:configureView:" message:@"Web View Link not found yet, we'll check again at next location update." delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+            [alert show];
+        } else {
+            // First, add ourselves to our consumer list.
+            
+            // Note, we don't need to set the public key now, we'll retrieve it from the key chain when we need it (since it's already in under our identity!).
+            
+            if (![_consumer_list containsObject:us_as_consumer]) {
+                // We don't have ourselves, yet, so add us (i.e., we didn't load it in via state).
+                if (kDebugLevel > 0)
+                    NSLog(@"ProviderMVC:unwindToProviderMaster: Adding to our consumer list: %s.", [[us_as_consumer serialize] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+                
+                [_consumer_list addConsumer:us_as_consumer];
+                [self.tableView reloadData];
+            }
+            
+            // Note, the key-bundle upload may be asynchronous (if using Google Drive, e.g.).
+            [self uploadKeyBundle:us_as_consumer.policy consumer:us_as_consumer];
+            
+            // Build our meta-data.
+            NSURL* file_store_url = [PersonalDataController genFileStoreURLAuthority:_our_data.file_store];
+            NSURL* key_bundle_url = nil;
+            NSString* err_msg = [_our_data genFileStoreKeyBundle:us_as_consumer URL:&key_bundle_url];
+            if (err_msg != nil) {
+                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMVC:unwindToProviderMaster: TODO(aka) " message:err_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                [alert show];
+                return;
+            }
+            
+            // And tell the Consumer MVC to add ourselves to their provider list!
+            if (![[self delegate] isKindOfClass:[ConsumerMasterViewController class]])
+                NSLog(@"ProviderMVC:unwindToProviderMaster: ERROR: Delegate not found!");
+            
+            if (kDebugLevel > 0)
+                NSLog(@"ProviderMVC:unwindToProviderMaster: Sending consumer file-store URL: %s, key-bundle URL: %s.", [[file_store_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[key_bundle_url absoluteString] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            
+            [[self delegate] addSelfToProviders:_our_data.identity fileStoreURL:file_store_url keyBundleURL:key_bundle_url];
+            
+            _track_self_status = true;
+            us_as_consumer = nil;  // clean up
+        }
+    }
 }
 
 #pragma mark - NSUserDefaults management
@@ -1005,7 +1361,13 @@ enum {
         
         // TODO(aka) Note, in-order to get a SecKeyRef of our NSData pubkey, we need to first put it in the keychain (stupid iOS API!), so if we don't add this Principal as a consumer later on, we'll need to eventually delete the key from our keychain!
         
-        [_potential_consumer setPublicKey:pub_key accessGroup:[NSString stringWithFormat:@"%s", kAccessGroupHCC]];
+#if 1  // ACCESS_GROUP: TODO(aka) This doesn't work!
+        err_msg = [_potential_consumer setPublicKey:pub_key accessGroup:[NSString stringWithFormat:@"%s", kAccessGroupHCC]];
+#else
+        err_msg = [_potential_consumer setPublicKey:pub_key accessGroup:nil];
+#endif
+        if (err_msg != nil)
+            return err_msg;
         
         // Generate an HCCPotentialPrincipal object using our _potential_consumer and set its HCC status (mode), i.e., show that we are waiting to send challenge over alt channel.
         
@@ -1448,50 +1810,24 @@ enum {
                                                                          
 #pragma mark - Cloud operations
 
+// Routine to upload the key-bundle to the consumer's bucket.  TODO(aka) The sole_consumer must be in _consumer_list, which feels wrong.
+
 - (void) uploadKeyBundle:(NSString*)policy consumer:(Principal*)sole_consumer {
     if (kDebugLevel > 4)
         NSLog(@"ProviderMVC:uploadKeyBundle:consumer: called: %@.", policy);
     
     NSString* err_msg = nil;
     
-    // Make sure we are authorized to use our file-store.
-    if (![_our_data isFileStoreAuthorized]) {
-        // Try once to get authorized.  Note, since some SDKs require a view controller, we need to check each separately here ...
-        if ([PersonalDataController isFileStoreServiceAmazonS3:_our_data.file_store]) {
-            err_msg = [_our_data amazonS3Auth:[PersonalDataController getFileStoreAccessKey:_our_data.file_store] secretKey:[PersonalDataController getFileStoreSecretKey:_our_data.file_store]];
-        } else if ([PersonalDataController isFileStoreServiceGoogleDrive:_our_data.file_store]) {
-            err_msg = [_our_data googleDriveKeychainAuth:[PersonalDataController getFileStoreKeychainTag:_our_data.file_store] clientID:[PersonalDataController getFileStoreClientID:_our_data.file_store] clientSecret:[PersonalDataController getFileStoreClientSecret:_our_data.file_store]];
-            if (err_msg == nil && ![_our_data googleDriveIsAuthorized]) {
-                // Prompt the user for the credentials.
-                GTMOAuth2ViewControllerTouch* auth_controller = [[GTMOAuth2ViewControllerTouch alloc] initWithScope:@"https://www.googleapis.com/auth/drive.file" clientID:[PersonalDataController getFileStoreClientID:_our_data.file_store] clientSecret:[PersonalDataController getFileStoreClientSecret:_our_data.file_store] keychainItemName:[PersonalDataController getFileStoreKeychainTag:_our_data.file_store] delegate:self finishedSelector:@selector(viewController:finishedWithAuth:error:)];
-                
-                [self presentViewController:auth_controller animated:YES completion:nil];
-            }
-        } else {
-            err_msg = [[NSString alloc] initWithFormat:@"Unknown file-store service: %s.", [[PersonalDataController getFileStoreService:_our_data.file_store] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
-        }
-        
-        if (err_msg != nil) {
-            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterVC:uploadKeyBundle:" message:err_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-            [alert show];
-            return;  // nothing we can do for this consumer
-        }
-        
-        if (![_our_data isFileStoreAuthorized]) {
-            err_msg = [[NSString alloc] initWithFormat:@"Not authorized for file-store service: %s.", [[PersonalDataController getFileStoreService:_our_data.file_store] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
-            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterVC:uploadKeyBundle:" message:err_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-            [alert show];
-            return;  // nothing we can do for this consumer
-        }
-    }
-    
     // Get the symmetric key for this policy level.
     NSData* symmetric_key = [_symmetric_keys_controller objectForKey:policy];
     if (symmetric_key == nil) {
-        err_msg = [[NSString alloc] initWithFormat:@"No symmetric key for policy: %s.", [policy cStringUsingEncoding:[NSString defaultCStringEncoding]]];
-        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterVC:uploadKeyBundle:" message:err_msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-        [alert show];
-        return;  // nothing we can do for this consumer
+        if (kDebugLevel > 0)
+            NSLog(@"No symmetric key for policy: %s.", [policy cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        
+        [_symmetric_keys_controller generateSymmetricKey:policy];
+        _location_controller.delegate = self;  // reset CLLocationManager delegate
+
+        symmetric_key = [_symmetric_keys_controller objectForKey:policy];
     }
     
     // Loop over each consumer and generate & upload their key-bundle, *if* policy levels match ...
@@ -1566,12 +1902,12 @@ enum {
             NSString* dict_key = filename;  // key-bundle filenames are unique
             err_msg = [self googleDriveUpload:[key_bundle serialize] bucket:bucket filename:filename idKey:dict_key];
             
-#if 1  // For Debugging:
-            if ([_our_data.drive_wvls objectForKey:bucket] != nil)
-                NSLog(@"ProviderMVC:uploadKeyBundle: DEBUG: Use %@ to fetch key-bundle!", [_our_data.drive_wvls objectForKey:bucket]);
-            else
-                NSLog(@"ProviderMVC:uploadKeyBundle: DEBUG: WVL to fetch key-bundle not yet installed for %@.", bucket);
-#endif
+            if (kDebugLevel > 0) {
+                if ([_our_data.drive_wvls objectForKey:bucket] != nil)
+                    NSLog(@"ProviderMVC:uploadKeyBundle: DEBUG: Use %@ to fetch key-bundle!", [_our_data.drive_wvls objectForKey:bucket]);
+                else
+                    NSLog(@"ProviderMVC:uploadKeyBundle: DEBUG: WVL to fetch key-bundle not yet installed for %@.", bucket);
+            }
         } else {
             err_msg = [[NSString alloc] initWithFormat:@"Unknown service: %s", [[_our_data.file_store objectForKey:[NSString stringWithCString:kFSKeyService encoding:[NSString defaultCStringEncoding]]] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
             NSLog(@"ProviderMVC:uploadKeyBundle: %s.", [err_msg cStringUsingEncoding:[NSString defaultCStringEncoding]]);
@@ -1609,7 +1945,8 @@ enum {
     
     NSString* err_msg = nil;
     
-    // Make sure we are authorized to use our file-store.
+    // Make sure we are authorized to use our file-store.  Technically, this is done in configureView, but I guess it's possible that the locationManager delegate callback could be called prior to this routine ...
+    
     if (![_our_data isFileStoreAuthorized]) {
         // Try once to get authorized.  Note, since some SDKs require a view controller, we need to check each separately here ...
         if ([PersonalDataController isFileStoreServiceAmazonS3:_our_data.file_store]) {
@@ -1637,6 +1974,18 @@ enum {
     
     // For this policy (i.e., precision), we want to serialize the history log, encrypt if with the associated symmetric key, base64 it, and then upload it to the appropriate directory.  Note, each individual serialized LocationBundleController within each history log should already have a timestamp and signature.
     
+    if (kDebugLevel > 0)
+        NSLog(@"ProviderMVC:uploadHistoryLog: key controller size: %lu, checking policy %@.", (unsigned long)[_symmetric_keys_controller count], policy);
+    
+    // Get the symmetric key for this policy level.
+    NSData* symmetric_key = [_symmetric_keys_controller objectForKey:policy];
+    if (symmetric_key == nil) {
+        NSLog(@"ProviderMVC:uploadHistoryLog: XXX objectForKey really did fail!");
+        
+        err_msg = [NSString stringWithFormat:@"ProviderMVC:uploadHistoryLog: No symmetric key for policy: %s.", [policy cStringUsingEncoding:[NSString defaultCStringEncoding]]];
+        return err_msg;
+    }
+    
     // Serialize the current (serialized) LocationBundleControllers within the history log and convert it to an NSData object ...
 #if 1
     NSString* serialized_history_log_str = [[NSString alloc] init];
@@ -1662,7 +2011,7 @@ enum {
     
     // ... then encrypt & base64 the NSData.
     NSData* encrypted_data = nil;
-    err_msg = [PersonalDataController symmetricEncryptData:serialized_history_log symmetricKey:[_symmetric_keys_controller objectForKey:policy] encryptedData:&encrypted_data];
+    err_msg = [PersonalDataController symmetricEncryptData:serialized_history_log symmetricKey:symmetric_key encryptedData:&encrypted_data];
     if (err_msg != nil)
         return err_msg;
     NSString* encrypted_data_b64 = [encrypted_data base64EncodedString];
@@ -1691,18 +2040,18 @@ enum {
         NSString* dict_key = [NSString stringWithFormat:@"%s-%s", [policy cStringUsingEncoding:[NSString defaultCStringEncoding]], [filename cStringUsingEncoding:[NSString defaultCStringEncoding]]];
         err_msg = [self googleDriveUpload:encrypted_data_b64 bucket:bucket filename:filename idKey:dict_key];
         
-#if 1  // For Debugging:
-        if ([_our_data.drive_wvls objectForKey:bucket] != nil)
-            NSLog(@"ProviderMVC:uploadHistoryLog: DEBUG: Use %@ to fetch history-log!", [_our_data.drive_wvls objectForKey:bucket]);
-        else {
-            NSString* buf = [[NSString alloc] init];
-            for (id key in _our_data.drive_wvls) {
-                NSString* wvl = [_our_data.drive_wvls objectForKey:key];
-                buf = [buf stringByAppendingFormat:@"%@:%@ ", key, wvl];
+        if (kDebugLevel > 0) {
+            if ([_our_data.drive_wvls objectForKey:bucket] != nil)
+                NSLog(@"ProviderMVC:uploadHistoryLog: DEBUG: Use %@ to fetch history-log!", [_our_data.drive_wvls objectForKey:bucket]);
+            else {
+                NSString* buf = [[NSString alloc] init];
+                for (id key in _our_data.drive_wvls) {
+                    NSString* wvl = [_our_data.drive_wvls objectForKey:key];
+                    buf = [buf stringByAppendingFormat:@"%@:%@ ", key, wvl];
+                }
+                NSLog(@"ProviderMVC:uploadHistoryLog: DEBUG: WVL to fetch history-log not yet installed for %@, current dict: %@.", bucket, buf);
             }
-            NSLog(@"ProviderMVC:uploadHistoryLog: DEBUG: WVL to fetch history-log not yet installed for %@, current dict: %@.", bucket, buf);
         }
-#endif
     } else {
         err_msg = [[NSString alloc] initWithFormat:@"Unknown service: %s", [[_our_data.file_store objectForKey:[NSString stringWithCString:kFSKeyService encoding:[NSString defaultCStringEncoding]]] cStringUsingEncoding:[NSString defaultCStringEncoding]]];
     }
@@ -1722,6 +2071,8 @@ enum {
     
     return nil;
 }
+
+// We keep a set of the GoogleDrive file-store operations as instance methods of the ProviderMVC in order to better handle the asynchronous behavior of Google's SDK (i.e., we want to execute configureView when done).
 
 - (NSString*) googleDriveUpload:(NSString*)data bucket:(NSString*)bucket filename:(NSString*)filename idKey:(NSString*)id_key {
     if (kDebugLevel > 4)
@@ -1826,8 +2177,8 @@ enum {
         [progress_alert addSubview:activity_view];
         [activity_view startAnimating];
         
-        if (kDebugLevel > 1)
-            NSLog(@"ProviderMVC:googleDriveUpload: Attempting update query of %@ (id:%@, key:%@), in %@.", filename, file_id, id_key, bucket);
+        if (kDebugLevel > 0)
+            NSLog(@"ProviderMVC:googleDriveUpload: Attempting update query of %@ (id:%@, key:%@, wvl:%@), in %@.", filename, file_id, id_key, [_our_data.drive_wvls objectForKey:bucket], bucket);
         
         [_our_data.drive executeQuery:update_query completionHandler:^(GTLServiceTicket* ticket, GTLDriveFile* updated_file, NSError* gtl_err) {
             [progress_alert dismissWithClickedButtonIndex:0 animated:YES];
@@ -1888,10 +2239,11 @@ enum {
             for (id object in files.items) {
                 GTLDriveFile* file = (GTLDriveFile*)object;
                 if ([file.title isEqual:folder]) {
-                    
-                    NSString* msg = [NSString stringWithFormat:@"XXX Found file: %@, id: %@.", file.title, file.identifier];
-                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"googleDriveQueryFolder:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-                    [alert show];
+                    if (kDebugLevel > 2) {
+                        NSString* msg = [NSString stringWithFormat:@"DEBUG: Found file: %@, id: %@.", file.title, file.identifier];
+                        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMVC:googleDriveQueryFolder:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                        [alert show];
+                    }
                     
                     [_our_data.drive_ids setObject:file.identifier forKey:folder];
                     [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveIDsFilename] dictionary:_our_data.drive_ids];
@@ -1901,12 +2253,13 @@ enum {
                     if (file.webViewLink != nil) {
                         [_our_data.drive_wvls setObject:file.webViewLink forKey:folder];
                         [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveWVLsFilename] dictionary:_our_data.drive_wvls];
-
-#if 1
-                        NSString* msg = [NSString stringWithFormat:@"DEBUG: Added %@ into driveWVLs using key: %@", file.webViewLink, folder];
-                        UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterVC:googleDriveQueryFolder:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-                        [alert show];
-#endif
+                        
+                        if (kDebugLevel > 2) {
+                            NSString* msg = [NSString stringWithFormat:@"DEBUG: Added %@ into driveWVLs using key: %@", file.webViewLink, folder];
+                            UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterVC:googleDriveQueryFolder:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                            [alert show];
+                        }
+                        
                         [self configureView];  // all done
                     } else {
                         [self googleDriveUpdateFolderPermission:file];  // make it public (note, can this cause infinite recusion?)
@@ -1917,11 +2270,11 @@ enum {
                 // Didn't find the file.
                 [_our_data.drive_ids removeObjectForKey:folder];  // just in-case
                 
-#if 1
-                NSString* msg = [NSString stringWithFormat:@"DEBUG: Issuing create for %@", folder];
-                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMVC:googleDriveQueryFolder:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-                [alert show];
-#endif
+                if (kDebugLevel > 2) {
+                    NSString* msg = [NSString stringWithFormat:@"DEBUG: Issuing create for %@", folder];
+                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMVC:googleDriveQueryFolder:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                    [alert show];
+                }
                 
                 // Create it.
                 [self googleDriveInsertFolder:folder rootID:root_id];
@@ -1979,12 +2332,13 @@ enum {
             if (updated_file.webViewLink != nil) {
                 [_our_data.drive_wvls setObject:updated_file.webViewLink forKey:folder];
                 [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveWVLsFilename] dictionary:_our_data.drive_wvls];
-
-#if 1
-                NSString* msg = [NSString stringWithFormat:@"DEBUG: Added %@ into driveWVLs using key: %@", updated_file.webViewLink, folder];
-                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterVC:googleDriveInsertFolder:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-                [alert show];
-#endif
+                
+                if (kDebugLevel > 1) {
+                    NSString* msg = [NSString stringWithFormat:@"DEBUG: Added %@ into driveWVLs using key: %@", updated_file.webViewLink, folder];
+                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterVC:googleDriveInsertFolder:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                    [alert show];
+                }
+                
                 [self configureView];  // all done
             } else {
                 [self googleDriveUpdateFolderPermission:updated_file];  // make it public (note, can this cause infinite recusion with Query?)
@@ -2023,11 +2377,11 @@ enum {
                 [_our_data.drive_wvls setObject:updated_file.webViewLink forKey:updated_file.title];
                 [PersonalDataController saveState:[NSString stringWithFormat:@"%s", kGDriveWVLsFilename] dictionary:_our_data.drive_wvls];
                 
-#if 1
-                NSString* msg = [NSString stringWithFormat:@"DEBUG: Added %@ into driveWVLs using key: %@",  updated_file.webViewLink, updated_file.title];
-                UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterVC:googleDriveQueryFileId:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
-                [alert show];
-#endif
+                if (kDebugLevel > 2) {
+                    NSString* msg = [NSString stringWithFormat:@"DEBUG: Added %@ into driveWVLs using key: %@",  updated_file.webViewLink, updated_file.title];
+                    UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"ProviderMasterVC:googleDriveQueryFileId:" message:msg delegate:nil cancelButtonTitle:@"OKAY" otherButtonTitles:nil];
+                    [alert show];
+                }
             }
             
             [self configureView];
@@ -2095,12 +2449,13 @@ enum {
     
     CFRelease(address_book_ref);
     
-    if (!access_explicitly_granted &&
-        ((ABAddressBookGetAuthorizationStatus() == kABAuthorizationStatusDenied) ||
-         (ABAddressBookGetAuthorizationStatus() == kABAuthorizationStatusNotDetermined))) {
-            err_msg = [[NSString alloc] initWithFormat:@"ProviderMVC:getConsumerIdentity: Unable to respond to pairing request without access to Address Book."];
-            return err_msg;
-        }
+    if (!access_explicitly_granted && (ABAddressBookGetAuthorizationStatus() == kABAuthorizationStatusNotDetermined)) {
+        err_msg = [[NSString alloc] initWithFormat:@"ProviderMVC:getConsumerIdentity: Unable to respond to pairing request without access to Address Book."];
+        return err_msg;
+    } else if (ABAddressBookGetAuthorizationStatus() == kABAuthorizationStatusDenied) {
+        err_msg = [[NSString alloc] initWithFormat:@"ProviderMVC:getConsumerIdentity: Please allow SLS to access Address Book in order to get Consumer contact info."];
+        return err_msg;
+    }
     
     // Second, launch the people picker, so user can choose correct contact.
     ABPeoplePickerNavigationController *picker = [[ABPeoplePickerNavigationController alloc] init];
@@ -2242,7 +2597,9 @@ enum {
     if (kDebugLevel > 0)
         NSLog(@"ProviderMVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: Got phone (%s): %s, e-mail (%s): %s.", [(NSString*)kABPersonPhoneMobileLabel cStringUsingEncoding:[NSString defaultCStringEncoding]], [mobile_number cStringUsingEncoding:[NSString defaultCStringEncoding]], [email_label cStringUsingEncoding:[NSString defaultCStringEncoding]], [email_address cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
-    [self dismissViewControllerAnimated:YES completion:nil];
+    if ([[[UIDevice currentDevice] systemVersion] compare:@"8.0" options:NSNumericSearch] == NSOrderedAscending) {
+        [self dismissViewControllerAnimated:YES completion:nil];  // in 8.0+ people picker dismisses by itself
+    }
     
     return NO;
 }
@@ -2254,6 +2611,20 @@ enum {
     return NO;
 }
 
+- (void) peoplePickerNavigationController:(ABPeoplePickerNavigationController*)people_picker didSelectPerson:(ABRecordRef)person {
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderMVC:peoplePickerNavigationController:didSelectingPerson: called (%d).", [NSThread isMainThread]);
+    
+    [self peoplePickerNavigationController:people_picker shouldContinueAfterSelectingPerson:person];
+}
+
+- (void) peoplePickerNavigationController:(ABPeoplePickerNavigationController*)people_picker didSelectPerson:(ABRecordRef)person     property:(ABPropertyID)property identifier:(ABMultiValueIdentifier)identifier {
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderMVC:peoplePickerNavigationController:didSelectingPerson:property:identifier: called (%d).", [NSThread isMainThread]);
+    
+    [self peoplePickerNavigationController:people_picker shouldContinueAfterSelectingPerson:person property:property identifier:identifier];
+}
+
 - (void) peoplePickerNavigationControllerDidCancel:(ABPeoplePickerNavigationController*)people_picker {
     if (kDebugLevel > 4)
         NSLog(@"ProviderMVC:peoplePickerNavigationControllerDidCancel: called.");
@@ -2261,8 +2632,10 @@ enum {
     [self dismissViewControllerAnimated:YES completion:nil];
 }
 
-// CorelocationController delegate functions.
+// CLLocationManger delegate functions.
 - (void) locationManager:(CLLocationManager*)manager didUpdateToLocation:(CLLocation*)new_location fromLocation:(CLLocation*)old_location {
+    // TODO(aka) This routine is if the provider MVC would handle CLLocationManager updates locally, instead of through the CoreLocationManger.
+    
     if (kDebugLevel > 4)
         NSLog(@"ProviderMVC:locationManager:didUpdateToLocation:fromLocation: called.");
     
@@ -2270,6 +2643,7 @@ enum {
         return;
     
     NSLog(@"ProviderMVC:locationManager:didUpdateToLocation:fromLocation: TODO(aka) Check location date to make sure it's not stale.");
+    NSLog(@"ProviderMVC:locationManager:didUpdateToLocation:fromLocation: XXXX In locaitonManger, symmetricKeyController is %lu.", (unsigned long)[_symmetric_keys_controller count]);
     
     /*
      // If it's a relatively recent event, turn off updates to save power
@@ -2291,7 +2665,7 @@ enum {
     
     // Modify the location data for each policy (precision), then append it (as a LocationBundle) to that policy's history log.
     
-    // Note, we can loop either on polcies or symmetric_keys (in our _symmetric_keys_controller), as once is simply the index into the other!
+    // Note, we can loop either on polcies or symmetric_keys (in our _symmetric_keys_controller), as one is simply the index into the other!
     
 #if 0
     // NSEnumerator example.
@@ -2303,6 +2677,15 @@ enum {
 #endif
 
     NSArray* policies = _symmetric_keys_controller.policies;
+    
+#if 0
+    // For Debugging: XXX
+    UILocalNotification* notice = [[UILocalNotification alloc] init];
+    NSString* msg = [[NSString alloc] initWithFormat:@"locationManger:didUpdateLocation: Uploaded: %+.6f, %+.6f, %f, policies: %d", new_location.coordinate.latitude, new_location.coordinate.longitude, new_location.course, (unsigned int)[policies count]];
+    notice.alertBody = msg;
+    notice.alertAction = @"Show";
+    [[UIApplication sharedApplication] presentLocalNotificationNow:notice];
+#endif
     for (id object in policies) {
         NSString* policy = (NSString*)object;
         
@@ -2326,7 +2709,7 @@ enum {
         if ([history_log count] > kHistoryLogSize)
             [history_log removeLastObject];
         
-        NSLog(@"ProviderMVC:locationManager:didUpdateToLocation: XXX TODO(aka) Is it necessary to add our pointer back to the dict???.");
+        NSLog(@"ProviderMVC:locationManager:didUpdateToLocation: XXXXXX TODO(aka) Is it necessary to add our pointer back to the dict???.");
         // Add the updated history log back to our dictionary.
         [_history_logs setObject:history_log forKey:policy];
         
@@ -2355,18 +2738,20 @@ enum {
         NSLog(@"ProviderMVC:locationManager:didUpdateToLocation: _history_logs has %lu objects.", (unsigned long)[_history_logs count]);
     
     [PersonalDataController saveState:[[NSString alloc] initWithCString:kHistoryLogFilename encoding:[NSString defaultCStringEncoding]] dictionary:_history_logs];
+    
+    [self configureView];
 }
 
-- (void) locationUpdate:(CLLocation*)location {
+// CorelocationController delegate functions.
+- (void) locationsUpdate:(NSArray*)locations {
     if (kDebugLevel > 4)
-        NSLog(@"ProviderMVC:locationUpdate: called.");
-    
-    // Note, this routine is the same as locationManager:didUpdateToLocation:fromLocation: above.
+        NSLog(@"ProviderMVC:locationsUpdate: called.");
     
     if (![PersonalDataController isFileStoreComplete:_our_data.file_store])
         return;
     
-    NSLog(@"ProviderMVC:locationUpdate: TODO(aka) Check location date to make sure it's not stale: %@.", [location description]);
+    NSLog(@"ProviderMVC:locationssUpdate: TODO(aka) Check location date to make sure it's not stale: %@.", [[locations objectAtIndex:0] description]);
+    NSLog(@"ProviderMVC:locationsUpdate: XXXX In locaitonManger, symmetricKeyController is %lu.", (unsigned long)[_symmetric_keys_controller count]);
     
     /*
      // If it's a relatively recent event, turn off updates to save power
@@ -2384,6 +2769,148 @@ enum {
     // TODO(aka) We may want to ignore this fetch (or replace our last) if the distance between this and our last coordinate is within some distance filter.  (Note, however, that the consumer knows nothing of the provider's current distance filter ... so, we're just going to look at the timestamp.
 
     if (kDebugLevel > 2)
+        NSLog(@"ProviderMVC:locationsUpdate: Location description: %s.", [[[locations objectAtIndex:0] description] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+    
+    // Modify the location data for each policy (precision), then append it (as a LocationBundle) to that policy's history log.
+    
+    // Note, we can loop either on polcies or symmetric_keys (in our _symmetric_keys_controller), as once is simply the index into the other!
+    
+#if 0
+    // NSEnumerator example.
+    NSEnumerator* enumerator = [_symmetric_keys_controller keyEnumerator];
+    id key;
+    while ((key = [enumerator nextObject])) {
+        NSString* policy = (NSString*)key;
+    }
+#endif
+    
+    NSArray* policies = _symmetric_keys_controller.policies;
+
+#if 0
+    // For Debugging: XXX
+    UILocalNotification* notice = [[UILocalNotification alloc] init];
+    NSString* msg = [[NSString alloc] initWithFormat:@"locationManger:locationUpdate: Got %+.6f, %+.6f, %f, policies: %d", location.coordinate.latitude, location.coordinate.longitude, location.course, (unsigned int)[policies count]];
+    notice.alertBody = msg;
+    notice.alertAction = @"Show";
+    [[UIApplication sharedApplication] presentLocalNotificationNow:notice];
+#endif
+    for (id object in policies) {
+        NSString* policy = (NSString*)object;
+        
+        // Since Amazon S3 (at least) does not have an API for *appending* to a file, we actually upload the entire history log, as opposed to just this new location update.  As it turn out, this isn't a big problem, because we keep an NSMutableArray of our location bundles, i.e., the history log!
+        
+        // Get the NSMutableArray for this policy, if one exists.
+        NSMutableArray* history_log = [_history_logs objectForKey:policy];
+        if (history_log == nil)
+            history_log = [[NSMutableArray alloc] initWithCapacity:kHistoryLogSize];
+        
+        // Loop over all possible CLLocaitons in our array ...
+        CLLocation* location = nil;
+        for (id object in [locations reverseObjectEnumerator]) {
+            location = (CLLocation*)object;
+            
+            // Generate the new location bundle for this policy.
+            LocationBundleController* location_bundle = [[LocationBundleController alloc] init];
+            [location_bundle build:location privateKeyRef:[_our_data privateKeyRef] policy:[PolicyController precisionLevelIndex:policy]];
+            
+            // TODO(aka) It's arguable that we should encrypt the LocationBundle now, but (i) that would require us to pass in the symmetric key, and (ii) we wouldnl't be able to read it locally again, easily!  (Not sure how important either of these really is, though on the Provider.)
+            
+            if (kDebugLevel > 1)
+                NSLog(@"ProviderMVC:locationsUpdate: Inserting %s at index 0.", [[location_bundle serialize] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            
+#if 1  // For Debugging:  Sanity check previous timestamps.
+            if ([history_log count] > 0) {
+                LocationBundleController* prev_location_bundle = [[LocationBundleController alloc] init];
+                [prev_location_bundle generateWithString:[history_log objectAtIndex:0]];
+                if ([prev_location_bundle.time_stamp intValue] >= [location_bundle.time_stamp intValue]) {
+                    NSLog(@"ProviderMVC:locationUpdate: DEBUG: Not adding location, because timestamp: %d, is older than last: %d.", [prev_location_bundle.time_stamp intValue], [location_bundle.time_stamp intValue]);
+                    return;
+                }
+            }
+#endif
+            
+            // Push the new location bundle to this history log queue.
+            [history_log insertObject:[location_bundle serialize] atIndex:0];
+            
+            // If this gave us more than our allotted queue size, delete the last object.
+            if ([history_log count] > kHistoryLogSize)
+                [history_log removeLastObject];
+        }
+        
+        NSLog(@"ProviderMVC:locationsUpdate: XXXXX TODO(aka) Is it necessary to add our pointer back to the dict???.");
+        // Add the updated history log back to our dictionary.
+        [_history_logs setObject:history_log forKey:policy];
+        
+        if (kDebugLevel > 2)
+            NSLog(@"ProviderMVC:locationsUpdate: \'%@\' history-log has %lu objects.", policy, (unsigned long)[history_log count]);
+        
+        // Serialzie, encrypt, base64 then upload the history log for this policy.
+        NSString* err_msg = [self uploadHistoryLog:history_log policy:policy];
+        if (err_msg != nil || [policy isEqualToString:[PolicyController precisionLevelName:[[NSNumber alloc] initWithInt:0]]]) {
+            UILocalNotification* notice = [[UILocalNotification alloc] init];
+            if (err_msg != nil) {
+                NSString* msg = @"locationsUpdate: ";
+                msg = [msg stringByAppendingString:err_msg];
+                notice.alertBody = msg;
+            } else {
+                NSString* msg = [[NSString alloc] initWithFormat:@"locationsUpdate: Uploaded: %+.6f, %+.6f, %f", location.coordinate.latitude, location.coordinate.longitude, location.course];
+                notice.alertBody = msg;
+            }
+            notice.alertAction = @"Show";
+            [[UIApplication sharedApplication] presentLocalNotificationNow:notice];
+        }
+    }  // for (id object in policies) {
+    
+    // Finally, save our current state (of all our history logs).
+    if (kDebugLevel > 1)
+        NSLog(@"ProviderMVC:locationsUpdate: uploaded %lu history-log(s), now saving state.", (unsigned long)[_history_logs count]);
+    
+#if 0  // For Debugging:
+    for (id key in _history_logs) {
+        NSString* policy = (NSString*)key;
+        NSArray* array = [_history_logs objectForKey:policy];
+        int cnt = 0;
+        for (id object in array) {
+            NSString* location_bundle = (NSString*)object;
+            NSLog(@"ProviderMVC:locationsUpdate: DEBUG: _history_log[%@][%i]: %@.", policy, cnt, location_bundle);
+            cnt++;
+        }
+    }
+#endif
+    
+    [PersonalDataController saveState:[[NSString alloc] initWithCString:kHistoryLogFilename encoding:[NSString defaultCStringEncoding]] dictionary:_history_logs];
+    
+    [self configureView];
+}
+
+- (void) locationUpdate:(CLLocation*)location {
+    if (kDebugLevel > 4)
+        NSLog(@"ProviderMVC:locationUpdate: called.");
+    
+    // Note, this routine is the same as locationManager:didUpdateToLocation:fromLocation: above.
+    
+    if (![PersonalDataController isFileStoreComplete:_our_data.file_store])
+        return;
+    
+    NSLog(@"ProviderMVC:locationUpdate: TODO(aka) Check location date to make sure it's not stale: %@.", [location description]);
+    NSLog(@"ProviderMVC:locationManager:didUpdateToLocation:fromLocation: XXXX In locaitonManger, symmetricKeyController is %lu.", (unsigned long)[_symmetric_keys_controller count]);
+    
+    /*
+     // If it's a relatively recent event, turn off updates to save power
+     NSDate* eventDate = newLocation.timestamp;
+     NSTimeInterval howRecent = [eventDate timeIntervalSinceNow];
+     if (abs(howRecent) < 15.0)
+     {
+     NSLog(@"latitude %+.6f, longitude %+.6f\n",
+     newLocation.coordinate.latitude,
+     newLocation.coordinate.longitude);
+     }
+     // else skip the event and process the next one.
+     */
+    
+    // TODO(aka) We may want to ignore this fetch (or replace our last) if the distance between this and our last coordinate is within some distance filter.  (Note, however, that the consumer knows nothing of the provider's current distance filter ... so, we're just going to look at the timestamp.
+    
+    if (kDebugLevel > 2)
         NSLog(@"ProviderMVC:locationUpdate: Location description: %s.", [[location description] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     // Modify the location data for each policy (precision), then append it (as a LocationBundle) to that policy's history log.
@@ -2400,6 +2927,15 @@ enum {
 #endif
     
     NSArray* policies = _symmetric_keys_controller.policies;
+    
+#if 0
+    // For Debugging: XXX
+    UILocalNotification* notice = [[UILocalNotification alloc] init];
+    NSString* msg = [[NSString alloc] initWithFormat:@"locationManger:locationUpdate: Got %+.6f, %+.6f, %f, policies: %d", location.coordinate.latitude, location.coordinate.longitude, location.course, (unsigned int)[policies count]];
+    notice.alertBody = msg;
+    notice.alertAction = @"Show";
+    [[UIApplication sharedApplication] presentLocalNotificationNow:notice];
+#endif
     for (id object in policies) {
         NSString* policy = (NSString*)object;
         
@@ -2416,10 +2952,11 @@ enum {
         
         // TODO(aka) It's arguable that we should encrypt the LocationBundle now, but (i) that would require us to pass in the symmetric key, and (ii) we wouldnl't be able to read it locally again, easily!  (Not sure how important either of these really is, though on the Provider.)
         
-        NSLog(@"ProviderMVC:locationUpdate: XXX Inserting %s at index 0.", [[location_bundle serialize] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        if (kDebugLevel > 1)
+            NSLog(@"ProviderMVC:locationUpdate: Inserting %s at index 0.", [[location_bundle serialize] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
         
 #if 1  // For Debugging:  Sanity check previous timestamps.
-        if ([history_log objectAtIndex:0] != nil) {
+        if ([history_log count] > 0) {
             LocationBundleController* prev_location_bundle = [[LocationBundleController alloc] init];
             [prev_location_bundle generateWithString:[history_log objectAtIndex:0]];
             if ([prev_location_bundle.time_stamp intValue] >= [location_bundle.time_stamp intValue]) {
@@ -2436,7 +2973,7 @@ enum {
         if ([history_log count] > kHistoryLogSize)
             [history_log removeLastObject];
         
-        NSLog(@"ProviderMVC:locationUpdate: XXX TODO(aka) Is it necessary to add our pointer back to the dict???.");
+        NSLog(@"ProviderMVC:locationUpdate: XXXXX TODO(aka) Is it necessary to add our pointer back to the dict???.");
         // Add the updated history log back to our dictionary.
         [_history_logs setObject:history_log forKey:policy];
         
@@ -2478,6 +3015,8 @@ enum {
 #endif
     
     [PersonalDataController saveState:[[NSString alloc] initWithCString:kHistoryLogFilename encoding:[NSString defaultCStringEncoding]] dictionary:_history_logs];
+    
+    [self configureView];
 }
 
 - (void) locationError:(NSError*)error {

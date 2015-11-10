@@ -17,7 +17,7 @@
 #import "security-defines.h"
 
 
-static const int kDebugLevel = 4;
+static const int kDebugLevel = 2;
 
 /* XXX TODO(aka) Do we need this?
 static const char* kSchemeSLS = URI_SCHEME_SLS;
@@ -43,7 +43,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 - (id) init {
     if (kDebugLevel > 4)
-        NSLog(@"AddProviderViewController:init: called.");
+        NSLog(@"AddProviderVC:init: called.");
     
     if (self = [super init]) {
         _our_data = nil;
@@ -57,7 +57,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 - (id) initWithNibName:(NSString*)nib_name_or_nil bundle:(NSBundle*)nib_bundle_or_nil {
     if (kDebugLevel > 4)
-        NSLog(@"AddProviderViewController:initWithNibName:bundle: called, but not implemented.");
+        NSLog(@"AddProviderVC:initWithNibName:bundle: called, but not implemented.");
     
     self = [super initWithNibName:nib_name_or_nil bundle:nib_bundle_or_nil];
     if (self) {
@@ -75,7 +75,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 - (void) viewDidLoad {
     if (kDebugLevel > 4)
-        NSLog(@"AddProviderViewController:viewDidLoad: called.");
+        NSLog(@"AddProviderVC:viewDidLoad: called.");
     
     [super viewDidLoad];
     
@@ -85,7 +85,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 - (void) configureView {
     if (kDebugLevel > 4)
-        NSLog(@"AddProviderViewController:configureView: called.");
+        NSLog(@"AddProviderVC:configureView: called.");
     
     static bool first_time_in = true;
     
@@ -110,7 +110,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 - (void) didReceiveMemoryWarning {
     if (kDebugLevel > 4)
-        NSLog(@"AddProviderViewController:didReceiveMemoryWarning: called.");
+        NSLog(@"AddProviderVC:didReceiveMemoryWarning: called.");
     
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
@@ -121,17 +121,17 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 // UIPickerView.
 - (NSInteger) numberOfComponentsInPickerView:(UIPickerView*)picker_view {
     if (kDebugLevel > 4)
-        NSLog(@"AddProviderViewController:numberOfComponentsInPickerView: called.");
+        NSLog(@"AddProviderVC:numberOfComponentsInPickerView: called.");
     
     return 1;
 }
 
 - (NSInteger) pickerView:(UIPickerView*)picker_view numberOfRowsInComponent:(NSInteger)component {
     if (kDebugLevel > 4)
-        NSLog(@"AddProviderViewController:pickerView:numberOfRowsInComponent: called.");
+        NSLog(@"AddProviderVC:pickerView:numberOfRowsInComponent: called.");
     
     
-    NSLog(@"AddProviderViewController:pickerView:numberOfRowsInComponent: returning %lu rows.", (unsigned long)[[AddProviderViewController supportedPairingProtocols] count]);
+    NSLog(@"AddProviderVC:pickerView:numberOfRowsInComponent: returning %lu rows.", (unsigned long)[[AddProviderViewController supportedPairingProtocols] count]);
     
     return [[AddProviderViewController supportedPairingProtocols] count];
 }
@@ -140,21 +140,21 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 - (void) prepareForSegue:(UIStoryboardSegue*)segue sender:(id)sender {
     if (kDebugLevel > 4)
-        NSLog(@"AddProviderViewController:prepareForSegue: called.");
+        NSLog(@"AddProviderVC:prepareForSegue: called.");
     
     if (kDebugLevel > 1)
-        NSLog(@"AddProviderViewController:prepareForSegue: our identity: %s, deposit: %s, public-key: %s, and provider's identity: %s.", [_our_data.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [[_our_data.deposit description] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[_our_data.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [_provider.identity cStringUsingEncoding: [NSString defaultCStringEncoding]]);
+        NSLog(@"AddProviderVC:prepareForSegue: our identity: %s, deposit: %s, public-key: %s, and provider's identity: %s.", [_our_data.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [[_our_data.deposit description] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[_our_data.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [_provider.identity cStringUsingEncoding: [NSString defaultCStringEncoding]]);
     
     if ([[segue identifier] isEqualToString:@"UnwindToConsumerMasterViewID"]) {
         if (kDebugLevel > 0)
-            NSLog(@"AddProviderViewController:prepareForSeque: unwinding to ConsumerMasterViewController.");
+            NSLog(@"AddProviderVC:prepareForSeque: unwinding to ConsumerMasterViewController.");
         
         // User hit CANCEL; clear our provider object if it's set.
         if (_provider != nil)
             _provider = nil;  // probably not necessary, as the ConsumerMasterVC ignores unwinds from here
     } else if ([[segue identifier] isEqualToString:@"ShowAddProviderCTViewID"]) {
         if (kDebugLevel > 0)
-            NSLog(@"AddProviderViewController:prepareForSeque: Segue'ng to AddProviderCTViewController.");
+            NSLog(@"AddProviderVC:prepareForSeque: Segue'ng to AddProviderCTViewController.");
         
         // Pass in *our_data* and (potentially) new provider's info from our AddressBook.
         UINavigationController* nav_controller = (UINavigationController*)segue.destinationViewController;
@@ -164,10 +164,10 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
         view_controller.provider = _provider;
         
         if (kDebugLevel > 0)
-            NSLog(@"AddProviderViewController:prepareForSegue: the ShowAddProviderCTView controller's now has identity: %s, deposit: %s, public-key: %s, and provider's identity: %s.", [view_controller.our_data.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [[view_controller.our_data.deposit description] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[view_controller.our_data.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [view_controller.provider.identity cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            NSLog(@"AddProviderVC:prepareForSegue: the ShowAddProviderCTView controller's now has identity: %s, deposit: %s, public-key: %s, and provider's identity: %s.", [view_controller.our_data.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [[view_controller.our_data.deposit description] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[view_controller.our_data.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [view_controller.provider.identity cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     } else if ([[segue identifier] isEqualToString:@"ShowAddProviderHCCViewID"]) {
         if (kDebugLevel > 0)
-            NSLog(@"AddProviderViewController:prepareForSeque: Segue'ng to AddProviderHCCViewController.");
+            NSLog(@"AddProviderVC:prepareForSeque: Segue'ng to AddProviderHCCViewController.");
         
         // Pass in *our_data* and (potentially) new provider's info from our AddressBook.
         UINavigationController* nav_controller = (UINavigationController*)segue.destinationViewController;
@@ -181,26 +181,26 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
         view_controller.potential_provider = potential_provider;
         
         if (kDebugLevel > 0)
-            NSLog(@"AddProviderViewController:prepareForSegue: the ShowAddProviderHCCView controller's now has identity: %s, deposit: %s, public-key: %s, and provider's identity: %s.", [view_controller.our_data.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [[view_controller.our_data.deposit description] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[view_controller.our_data.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [view_controller.potential_provider.principal.identity cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            NSLog(@"AddProviderVC:prepareForSegue: the ShowAddProviderHCCView controller's now has identity: %s, deposit: %s, public-key: %s, and provider's identity: %s.", [view_controller.our_data.identity cStringUsingEncoding: [NSString defaultCStringEncoding]], [[view_controller.our_data.deposit description] cStringUsingEncoding:[NSString defaultCStringEncoding]], [[view_controller.our_data.getPublicKey base64EncodedString] cStringUsingEncoding:[NSString defaultCStringEncoding]], [view_controller.potential_provider.principal.identity cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     } else {
         if (kDebugLevel > 0)
-            NSLog(@"AddProviderViewController:prepareForSeque: TODO(aka) unknown segue: %s.", [[segue identifier] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+            NSLog(@"AddProviderVC:prepareForSeque: TODO(aka) unknown segue: %s.", [[segue identifier] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     }
 }
 
 - (IBAction) unwindToAddProvider:(UIStoryboardSegue*)segue {
     if (kDebugLevel > 4)
-        NSLog(@"AddProviderViewController:unwindToAddProvider: called.");
+        NSLog(@"AddProviderVC:unwindToAddProvider: called.");
     
     UIViewController* sourceViewController = segue.sourceViewController;
     
     if ([sourceViewController isKindOfClass:[AddProviderCTViewController class]]) {
         if (kDebugLevel > 2)
-            NSLog(@"AddProviderViewController:unwindToAddProvider: AddProviderCTView callback.");
+            NSLog(@"AddProviderVC:unwindToAddProvider: AddProviderCTView callback.");
         
         // User hit CANCEL.
     } else {
-        NSLog(@"AddProviderViewController:unwindToAddProvider: TODO(aka) unknown segue: %s.", [[segue identifier] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        NSLog(@"AddProviderVC:unwindToAddProvider: TODO(aka) unknown segue: %s.", [[segue identifier] cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     }
     
     // No need to dismiss the view controller in an unwind segue.
@@ -212,7 +212,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 - (IBAction) showAddressBook:(id)sender {
     if (kDebugLevel > 4)
-        NSLog(@"AddProviderViewController:showAddressBook: called.");
+        NSLog(@"AddProviderVC:showAddressBook: called.");
     
     // First request authorization to Address Book
     ABAddressBookRef address_book_ref = ABAddressBookCreateWithOptions(NULL, NULL);
@@ -248,7 +248,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 - (IBAction)startPairing:(id)sender {
     if (kDebugLevel > 4)
-        NSLog(@"AddProviderViewController:startPairing: called, chosen_protocol: %ld.", (long)_chosen_protocol);
+        NSLog(@"AddProviderVC:startPairing: called, chosen_protocol: %ld.", (long)_chosen_protocol);
 
     if (_chosen_protocol == 0)
         [self performSegueWithIdentifier:@"ShowAddProviderCTViewID" sender:nil];
@@ -260,7 +260,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 
 + (NSArray*) supportedPairingProtocols {
     if (kDebugLevel > 4)
-        NSLog(@"AddProviderViewController:supportedPairingProtocols: called.");
+        NSLog(@"AddProviderVC:supportedPairingProtocols: called.");
     
     static NSArray* protocols = nil;
     
@@ -275,7 +275,7 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 // ABPeoplePicker delegate functions.
 - (BOOL) peoplePickerNavigationController:(ABPeoplePickerNavigationController*)people_picker shouldContinueAfterSelectingPerson:(ABRecordRef)person {
     if (kDebugLevel > 4)
-        NSLog(@"AddProviderViewController:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: called.");
+        NSLog(@"AddProviderVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: called.");
     
     NSString* first_name = (__bridge_transfer NSString*)ABRecordCopyValue(person, kABPersonFirstNameProperty);
     NSString* last_name = (__bridge_transfer NSString*)ABRecordCopyValue(person, kABPersonLastNameProperty);
@@ -301,12 +301,12 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
         _provider.identity = identity;
     
     if (kDebugLevel > 1)
-        NSLog(@"AddProviderViewController:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: identity set to: %s.", [_provider.identity cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        NSLog(@"AddProviderVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: identity set to: %s.", [_provider.identity cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
     _identity_label.text = _provider.identity;
     
     if (kDebugLevel > 2)
-        NSLog(@"AddProviderViewController:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: TODO(aka) Need to see if we have a cell phone or e-mail.");
+        NSLog(@"AddProviderVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: TODO(aka) Need to see if we have a cell phone or e-mail.");
     
     // Look for other data we could use, specifically; mobile phone number, e-mail address.
     NSString* mobile_number = nil;
@@ -337,23 +337,39 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
     // XXX TODO(aka) _email_input.text = email_address;
     
     if (kDebugLevel > 0)
-        NSLog(@"AddProviderViewController:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: Got phone (%s): %s, e-mail (%s): %s.", [(NSString*)kABPersonPhoneMobileLabel cStringUsingEncoding:[NSString defaultCStringEncoding]], [mobile_number cStringUsingEncoding:[NSString defaultCStringEncoding]], [email_label cStringUsingEncoding:[NSString defaultCStringEncoding]], [email_address cStringUsingEncoding:[NSString defaultCStringEncoding]]);
+        NSLog(@"AddProviderVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson: Got phone (%s): %s, e-mail (%s): %s.", [(NSString*)kABPersonPhoneMobileLabel cStringUsingEncoding:[NSString defaultCStringEncoding]], [mobile_number cStringUsingEncoding:[NSString defaultCStringEncoding]], [email_label cStringUsingEncoding:[NSString defaultCStringEncoding]], [email_address cStringUsingEncoding:[NSString defaultCStringEncoding]]);
     
-    [self dismissViewControllerAnimated:YES completion:nil];
+    if ([[[UIDevice currentDevice] systemVersion] compare:@"8.0" options:NSNumericSearch] == NSOrderedAscending) {
+        [self dismissViewControllerAnimated:YES completion:nil];  // in 8.0+ people picker dismisses by itself
+    }
     
     return NO;
 }
 
 - (BOOL) peoplePickerNavigationController:(ABPeoplePickerNavigationController*)people_picker shouldContinueAfterSelectingPerson:(ABRecordRef)person property:(ABPropertyID)property identifier:(ABMultiValueIdentifier)identifier {
     if (kDebugLevel > 4)
-        NSLog(@"AddProviderViewController:peoplePickerNavigationController:shouldContinueAfterSelectingPerson:property:identifier: called.");
+        NSLog(@"AddProviderVC:peoplePickerNavigationController:shouldContinueAfterSelectingPerson:property:identifier: called.");
     
     return NO;
 }
 
+- (void) peoplePickerNavigationController:(ABPeoplePickerNavigationController*)people_picker didSelectPerson:(ABRecordRef)person {
+    if (kDebugLevel > 4)
+        NSLog(@"AddProviderVC:peoplePickerNavigationController:didSelectingPerson: called (%d).", [NSThread isMainThread]);
+    
+    [self peoplePickerNavigationController:people_picker shouldContinueAfterSelectingPerson:person];
+}
+
+- (void) peoplePickerNavigationController:(ABPeoplePickerNavigationController*)people_picker didSelectPerson:(ABRecordRef)person     property:(ABPropertyID)property identifier:(ABMultiValueIdentifier)identifier {
+    if (kDebugLevel > 4)
+        NSLog(@"AddProviderVC:peoplePickerNavigationController:didSelectingPerson:property:identifier: called (%d).", [NSThread isMainThread]);
+    
+    [self peoplePickerNavigationController:people_picker shouldContinueAfterSelectingPerson:person property:property identifier:identifier];
+}
+
 - (void) peoplePickerNavigationControllerDidCancel:(ABPeoplePickerNavigationController*)people_picker {
     if (kDebugLevel > 4)
-        NSLog(@"AddProviderViewController:peoplePickerNavigationControllerDidCancel: called.");
+        NSLog(@"AddProviderVC:peoplePickerNavigationControllerDidCancel: called.");
     
     [self dismissViewControllerAnimated:YES completion:nil];
 }
@@ -361,14 +377,14 @@ static const char* kQueryKeyIdentity = URI_QUERY_KEY_IDENTITY;
 // UIPickerView delegate functions.
 - (NSString*) pickerView:(UIPickerView*)picker_view titleForRow:(NSInteger)row forComponent:(NSInteger)component {
     if (kDebugLevel > 4)
-        NSLog(@"AddProviderViewController:pickerView:titleForRow:forComponent: called with row: %ld.", (long)row);
+        NSLog(@"AddProviderVC:pickerView:titleForRow:forComponent: called with row: %ld.", (long)row);
     
     return [[AddProviderViewController supportedPairingProtocols] objectAtIndex:row];
 }
 
 - (void) pickerView:(UIPickerView*)picker_view didSelectRow:(NSInteger)row inComponent:(NSInteger)component {
     if (kDebugLevel > 4)
-        NSLog(@"AddProviderViewController:pickerView:didSelectRow:inComponent: called.");
+        NSLog(@"AddProviderVC:pickerView:didSelectRow:inComponent: called.");
 
     // Mark which pairing protocol was selected.
     if (row > [[AddProviderViewController supportedPairingProtocols] count])
